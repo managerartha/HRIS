@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HRIS PT Artha Safety Indonesia</title>
-  
+
+  <link rel="icon" type="image/png" href="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -17,11 +18,11 @@
             brand: {
               50: '#eef2ff',
               100: '#e0e7ff',
-              500: '#6366f1',
-              600: '#4f46e5',
-              700: '#4338ca',
-              800: '#3730a3',
-              900: '#312e81',
+              500: '#00d68f',
+              600: '#00b87a',
+              700: '#009966',
+              800: '#101935',
+              900: '#0b132b',
             }
           },
           fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] }
@@ -31,7 +32,7 @@
   </script>
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
-    .active-nav { background: rgba(255, 255, 255, 0.18); border-left: 4px solid #ffffff; font-weight: 700; }
+    .active-nav { background: rgba(255, 255, 255, 0.18); border-left: 4px solid #00d68f; font-weight: 700; }
     .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
@@ -49,12 +50,16 @@
   <!-- SCREEN LOGIN -->
   <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
     <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6 border border-slate-100">
-      <div class="text-center space-y-2">
-        <div class="w-14 h-14 bg-brand-600 rounded-2xl flex items-center justify-center text-white text-2xl mx-auto shadow-lg shadow-brand-600/30">
-          <i class="fa-solid fa-cubes"></i>
+      
+      <!-- LOGO RESMI ARTHA SAFETY INDONESIA (LOGIN) -->
+      <div class="text-center space-y-3 flex flex-col items-center">
+        <div class="py-3 px-5 rounded-2xl bg-white border border-slate-100 inline-block shadow-sm">
+          <img src="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png" alt="PT Artha Safety Indonesia" class="h-12 w-auto object-contain mx-auto" onerror="this.onerror=null; this.src='https://placehold.co/240x60/101935/ffffff?text=ARTHA+SAFETY';">
         </div>
-        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">PT Artha Safety Indonesia</h1>
-        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Portal HRIS & System Presensi GPS</p>
+        <div>
+          <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Portal HRIS & Presensi GPS</h1>
+          <p class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-0.5">Sistem Manajemen SDM & Operational HSE</p>
+        </div>
       </div>
 
       <form id="formLogin" onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
@@ -62,24 +67,24 @@
           <label class="block text-xs font-bold text-slate-600 mb-1">Email Perusahaan</label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400"><i class="fa-solid fa-envelope text-xs"></i></span>
-            <input type="email" id="loginEmail" required value="arabella@arthasafety.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <input type="email" id="loginEmail" required value="arabella@arthasafety.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
           </div>
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Kata Sandi</label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
-            <input type="password" id="loginPassword" required value="user123" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <input type="password" id="loginPassword" required value="user123" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
           </div>
         </div>
-        <button type="submit" id="btnLoginSubmit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-brand-600/30 transition flex items-center justify-center gap-2">
+        <button type="submit" id="btnLoginSubmit" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-slate-900/20 transition flex items-center justify-center gap-2">
           <span>Masuk ke Portal</span>
           <i class="fa-solid fa-arrow-right text-xs"></i>
         </button>
       </form>
 
-      <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 space-y-1">
-        <p class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-amber-600"></i> Akun Demo bawaan:</p>
+      <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 space-y-1">
+        <p class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-emerald-600"></i> Akun Demo Login:</p>
         <p>• <b>Admin HR</b>: admin@arthasafety.com | pass: admin123</p>
         <p>• <b>Karyawan</b>: arabella@arthasafety.com | pass: user123</p>
       </div>
@@ -90,39 +95,34 @@
   <div id="appContainer" class="hidden min-h-screen flex flex-col md:flex-row">
     
     <!-- SIDEBAR LEFT -->
-    <aside class="w-full md:w-64 bg-gradient-to-b from-brand-600 to-brand-800 text-white flex-shrink-0 flex flex-col justify-between p-4 shadow-xl z-20">
+    <aside class="w-full md:w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col justify-between p-4 shadow-xl z-20">
       <div>
-        <div class="flex items-center gap-3 px-3 py-4 mb-6 border-b border-white/10">
-          <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20">
-            <i class="fa-solid fa-cubes text-white text-xl"></i>
-          </div>
-          <div>
-            <h2 class="font-extrabold text-lg leading-tight">HRIS</h2>
-            <p class="text-[10px] text-brand-200 uppercase tracking-wider font-semibold">Artha Safety</p>
-          </div>
+        <!-- LOGO RESMI SIDEBAR -->
+        <div class="flex items-center gap-2 px-3 py-2.5 mb-6 bg-white/95 rounded-2xl shadow-sm border border-white/20">
+          <img src="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png" alt="PT Artha Safety Indonesia" class="h-9 w-auto object-contain mx-auto" onerror="this.onerror=null; this.src='https://placehold.co/200x50/101935/ffffff?text=ARTHA+SAFETY';">
         </div>
 
         <nav class="space-y-1">
-          <p class="px-3 text-[10px] font-bold text-brand-200 uppercase tracking-widest mb-2">Menu Utama</p>
+          <p class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Menu Utama</p>
           
           <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left active-nav">
-            <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
+            <i class="fa-solid fa-chart-pie w-5 text-emerald-400"></i> Dashboard
           </button>
           <button onclick="switchTab('attendance')" id="nav-attendance" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left">
-            <i class="fa-solid fa-camera-retro w-5"></i> Absensi Kamera & GPS
+            <i class="fa-solid fa-camera-retro w-5 text-emerald-400"></i> Absensi Kamera & GPS
           </button>
           <button onclick="switchTab('requests')" id="nav-requests" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left">
-            <i class="fa-solid fa-file-signature w-5"></i> Pengajuan Cuti & Izin
+            <i class="fa-solid fa-file-signature w-5 text-emerald-400"></i> Pengajuan Cuti & Izin
           </button>
           <button onclick="switchTab('documents')" id="nav-documents" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left">
-            <i class="fa-solid fa-id-card w-5"></i> Kontrak & BPJS
+            <i class="fa-solid fa-id-card w-5 text-emerald-400"></i> Kontrak & BPJS
           </button>
           <button onclick="switchTab('payslip')" id="nav-payslip" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left">
-            <i class="fa-solid fa-wallet w-5"></i> Slip Gaji & Cuti
+            <i class="fa-solid fa-wallet w-5 text-emerald-400"></i> Slip Gaji & Cuti
           </button>
 
           <div id="adminNavGroup" class="hidden pt-4 space-y-1 border-t border-white/10 mt-4">
-            <p class="px-3 text-[10px] font-bold text-amber-300 uppercase tracking-widest mb-2">Panel Administrator</p>
+            <p class="px-3 text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2">Panel Administrator</p>
             <button onclick="switchTab('adminEmployees')" id="nav-adminEmployees" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left">
               <i class="fa-solid fa-users w-5"></i> Kelola Karyawan
             </button>
@@ -141,7 +141,7 @@
       </div>
 
       <div class="border-t border-white/10 pt-4 mt-auto">
-        <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-200 hover:bg-red-500/20 transition text-left">
+        <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-300 hover:bg-red-500/20 transition text-left">
           <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar (Logout)
         </button>
       </div>
@@ -154,11 +154,11 @@
       <header class="bg-white border-b border-slate-200 py-3.5 px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div class="relative w-72 hidden sm:block">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
-          <input type="text" placeholder="Cari fitur, karyawan..." class="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <input type="text" placeholder="Cari fitur, karyawan..." class="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
 
         <div class="flex items-center gap-4 ml-auto">
-          <button class="relative p-2 text-slate-500 hover:text-brand-600 rounded-xl hover:bg-slate-100">
+          <button class="relative p-2 text-slate-500 hover:text-emerald-600 rounded-xl hover:bg-slate-100">
             <i class="fa-regular fa-bell text-lg"></i>
             <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
@@ -167,7 +167,7 @@
 
           <div class="flex items-center gap-3">
             <div onclick="openProfileModal()" title="Klik untuk ganti foto profil" class="cursor-pointer relative group">
-              <img id="headerUserAvatarImg" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80" class="w-9 h-9 rounded-full object-cover border-2 border-brand-500 shadow-sm group-hover:opacity-80 transition">
+              <img id="headerUserAvatarImg" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80" class="w-9 h-9 rounded-full object-cover border-2 border-emerald-500 shadow-sm group-hover:opacity-80 transition">
               <div class="absolute inset-0 bg-slate-900/40 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-camera"></i></div>
             </div>
             <div class="text-left hidden sm:block">
@@ -183,25 +183,25 @@
 
         <!-- VIEW 1: DASHBOARD -->
         <div id="view-dashboard" class="tab-content space-y-6">
-          <div class="bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between relative overflow-hidden">
+          <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between relative overflow-hidden">
             <div class="z-10 space-y-2 max-w-lg">
-              <span class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider">HRIS PT Artha Safety Indonesia</span>
+              <span class="bg-emerald-500/20 text-emerald-300 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border border-emerald-500/30">PT Artha Safety Indonesia</span>
               <h1 class="text-2xl md:text-3xl font-extrabold" id="welcomeHeroText">Welcome, Arabella Chloe!</h1>
-              <p class="text-brand-100 text-xs leading-relaxed">Sistem presensi presisi GPS, pengajuan cuti, jadwal dinas luar kota, dan dokumen BPJS & Kontrak digital terintegrasi.</p>
+              <p class="text-slate-300 text-xs leading-relaxed">Sistem presensi presisi GPS, pengajuan cuti, jadwal dinas luar kota, dan dokumen BPJS & Kontrak digital terintegrasi.</p>
               <div class="pt-2 flex flex-wrap gap-2">
-                <button onclick="switchTab('attendance')" class="bg-white text-brand-700 hover:bg-brand-50 px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition inline-flex items-center gap-2">
+                <button onclick="switchTab('attendance')" class="bg-emerald-500 text-slate-900 hover:bg-emerald-400 px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition inline-flex items-center gap-2">
                   <i class="fa-solid fa-camera"></i> Absen Sekarang
                 </button>
-                <button onclick="openProfileModal()" class="bg-brand-700/80 hover:bg-brand-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition inline-flex items-center gap-2 border border-white/20">
+                <button onclick="openProfileModal()" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition inline-flex items-center gap-2 border border-white/20">
                   <i class="fa-solid fa-user-pen"></i> Ganti Foto Profil
                 </button>
               </div>
             </div>
             <div class="mt-4 md:mt-0 z-10 relative group cursor-pointer" onclick="openProfileModal()">
-              <img id="dashboardUserAvatarImg" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80" alt="Hero Employee" class="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-white/30 shadow-2xl object-cover group-hover:scale-105 transition">
-              <span class="absolute bottom-1 right-1 bg-brand-600 text-white p-2 rounded-full text-xs shadow-lg border-2 border-white"><i class="fa-solid fa-pen"></i></span>
+              <img id="dashboardUserAvatarImg" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80" alt="Hero Employee" class="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-emerald-500/50 shadow-2xl object-cover group-hover:scale-105 transition">
+              <span class="absolute bottom-1 right-1 bg-emerald-500 text-slate-900 p-2 rounded-full text-xs shadow-lg border-2 border-white"><i class="fa-solid fa-pen"></i></span>
             </div>
-            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl"></div>
           </div>
 
           <!-- BANNER DINAS LUAR KOTA -->
@@ -246,9 +246,9 @@
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between">
               <div>
                 <p class="text-[11px] font-semibold text-slate-400">Sisa Cuti Tahunan</p>
-                <h3 class="text-2xl font-extrabold text-brand-600" id="statLeaveBalance">12</h3>
+                <h3 class="text-2xl font-extrabold text-emerald-600" id="statLeaveBalance">12</h3>
               </div>
-              <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-lg"><i class="fa-solid fa-calendar-minus"></i></div>
+              <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg"><i class="fa-solid fa-calendar-minus"></i></div>
             </div>
           </div>
 
@@ -260,7 +260,7 @@
                     <h3 class="font-extrabold text-slate-800 text-sm" id="recentAttTitle">Riwayat Presensi</h3>
                     <p class="text-[10px] text-slate-400" id="recentAttSubtitle">Log kehadiran secara real-time</p>
                   </div>
-                  <button onclick="switchTab('attendance')" class="text-xs font-bold text-brand-600 hover:underline">Lihat Semua</button>
+                  <button onclick="switchTab('attendance')" class="text-xs font-bold text-emerald-600 hover:underline">Lihat Semua</button>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -307,7 +307,7 @@
                     <h4 class="font-extrabold text-xs text-slate-800">Agenda & Catatan Tim</h4>
                     <p class="text-[10px] text-slate-400">Pengumuman, Cuti & Event Bersama</p>
                   </div>
-                  <button onclick="openAgendaModal()" class="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
+                  <button onclick="openAgendaModal()" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
                     <i class="fa-solid fa-plus"></i> Tambah
                   </button>
                 </div>
@@ -326,13 +326,13 @@
             <div class="border-b border-slate-100 pb-4 mb-6 text-center">
               <h2 class="text-xl font-extrabold text-slate-900">Absensi Camera Selfie & GPS Radius</h2>
               <p class="text-xs text-slate-500 mt-1" id="attendanceNoticeText">
-                Presensi hanya diizinkan jika posisi lokasi berada maksimal <b class="text-brand-600" id="displayOfficeRadius">10 Meter</b> dari titik koordinat lokasi.
+                Presensi hanya diizinkan jika posisi lokasi berada maksimal <b class="text-emerald-600" id="displayOfficeRadius">10 Meter</b> dari titik koordinat lokasi.
               </p>
             </div>
 
             <div class="p-4 rounded-2xl border mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-slate-50 border-slate-200" id="attendanceLocationCard">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center text-lg" id="locationIconBox"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg" id="locationIconBox"><i class="fa-solid fa-location-dot"></i></div>
                 <div>
                   <p class="font-bold text-slate-800" id="targetLocationTitle">Kantor Pusat PT Artha Safety Indonesia HQ</p>
                   <p class="text-slate-500 font-mono text-[11px]" id="currentGpsCoords">Mencari koordinat GPS...</p>
@@ -369,7 +369,7 @@
                 <button onclick="startCamera()" id="btnStartCamera" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition">
                   <i class="fa-solid fa-video"></i> Buka / Deteksi Kamera
                 </button>
-                <button onclick="takeSnapshot()" id="btnTakeSnap" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 hidden shadow-md transition">
+                <button onclick="takeSnapshot()" id="btnTakeSnap" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 hidden shadow-md transition">
                   <i class="fa-solid fa-circle-dot"></i> Ambil Foto Selfie
                 </button>
                 <button onclick="retakePhoto()" id="btnRetakeSnap" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 hidden shadow-md transition">
@@ -381,7 +381,7 @@
                 <button onclick="processSubmitAttendance('CHECKIN')" id="btnSubmitCheckin" class="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-sm shadow-lg shadow-emerald-600/30 transition">
                   <i class="fa-solid fa-right-to-bracket mr-1"></i> ABSEN MASUK
                 </button>
-                <button onclick="processSubmitAttendance('CHECKOUT')" id="btnSubmitCheckout" class="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-2xl text-sm shadow-lg shadow-indigo-600/30 transition">
+                <button onclick="processSubmitAttendance('CHECKOUT')" id="btnSubmitCheckout" class="flex-1 py-3.5 bg-slate-800 hover:bg-slate-900 text-white font-extrabold rounded-2xl text-sm shadow-lg shadow-slate-900/30 transition">
                   <i class="fa-solid fa-right-from-bracket mr-1"></i> ABSEN KELUAR
                 </button>
               </div>
@@ -396,7 +396,7 @@
               <h2 class="text-xl font-extrabold text-slate-900">Pengajuan Cuti, Izin & Tabung Libur</h2>
               <p class="text-xs text-slate-500">Formulir pengajuan resmi karyawan PT Artha Safety Indonesia</p>
             </div>
-            <button onclick="openRequestModal()" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
+            <button onclick="openRequestModal()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
               <i class="fa-solid fa-plus"></i> Buat Pengajuan Baru
             </button>
           </div>
@@ -432,7 +432,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between">
               <div class="space-y-4">
-                <div class="w-12 h-12 rounded-2xl bg-brand-100 text-brand-600 flex items-center justify-center text-2xl">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl">
                   <i class="fa-solid fa-file-contract"></i>
                 </div>
                 <div>
@@ -442,7 +442,7 @@
               </div>
               <div class="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between">
                 <span class="text-xs font-semibold text-emerald-600"><i class="fa-solid fa-circle-check"></i> Terverifikasi Legal</span>
-                <a id="btnDocContract" href="#" target="_blank" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-2">
+                <a id="btnDocContract" href="#" target="_blank" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-2">
                   <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Dokumen
                 </a>
               </div>
@@ -450,7 +450,7 @@
 
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between">
               <div class="space-y-4">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl">
+                <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center text-2xl">
                   <i class="fa-solid fa-heart-pulse"></i>
                 </div>
                 <div>
@@ -460,7 +460,7 @@
               </div>
               <div class="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between">
                 <span class="text-xs font-semibold text-blue-600"><i class="fa-solid fa-shield"></i> Aktif Perusahaan</span>
-                <a id="btnDocBpjs" href="#" target="_blank" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-2">
+                <a id="btnDocBpjs" href="#" target="_blank" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-2">
                   <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka BPJS Card
                 </a>
               </div>
@@ -471,13 +471,13 @@
         <!-- VIEW 5: SLIP GAJI & SISA CUTI -->
         <div id="view-payslip" class="tab-content hidden space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-gradient-to-br from-indigo-900 to-brand-800 rounded-3xl p-6 text-white shadow-lg flex items-center justify-between">
+            <div class="bg-gradient-to-br from-slate-900 to-emerald-950 rounded-3xl p-6 text-white shadow-lg flex items-center justify-between border border-emerald-500/20">
               <div>
-                <p class="text-xs text-brand-200 font-semibold uppercase">Sisa Cuti Tahunan Anda</p>
+                <p class="text-xs text-emerald-400 font-semibold uppercase">Sisa Cuti Tahunan Anda</p>
                 <h2 class="text-4xl font-extrabold mt-1" id="payslipLeaveCount">12 Hari</h2>
-                <p class="text-[11px] text-brand-200 mt-2">Dapat digunakan untuk pengajuan cuti pribadi.</p>
+                <p class="text-[11px] text-slate-300 mt-2">Dapat digunakan untuk pengajuan cuti pribadi.</p>
               </div>
-              <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-3xl backdrop-blur-md">
+              <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-3xl backdrop-blur-md text-emerald-400">
                 <i class="fa-solid fa-umbrella-beach"></i>
               </div>
             </div>
@@ -523,7 +523,7 @@
               <h2 class="text-xl font-extrabold text-slate-900">Manajemen Data Karyawan</h2>
               <p class="text-xs text-slate-500">Tambah akun karyawan baru & perbarui hak akses portal HRIS</p>
             </div>
-            <button onclick="openEmployeeModal()" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
+            <button onclick="openEmployeeModal()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
               <i class="fa-solid fa-user-plus"></i> Tambah Karyawan Baru
             </button>
           </div>
@@ -632,7 +632,7 @@
 
               <div>
                 <label class="block text-xs font-bold text-slate-600 mb-1">Maksimal Radius Akses Absensi (Meter)</label>
-                <input type="number" id="settingMaxRadius" required value="10" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-brand-600">
+                <input type="number" id="settingMaxRadius" required value="10" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-600">
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
@@ -642,12 +642,12 @@
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">Jam Pulang Kerja (WIB)</label>
-                  <input type="time" id="settingWorkEnd" required value="17:00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-indigo-600">
+                  <input type="time" id="settingWorkEnd" required value="17:00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
                 </div>
               </div>
 
               <div class="pt-4 border-t border-slate-100 flex justify-end">
-                <button type="submit" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-md">
+                <button type="submit" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md">
                   Simpan Pengaturan GPS & Jam Kerja
                 </button>
               </div>
@@ -662,19 +662,14 @@
   <!-- MODAL CETAK SLIP GAJI (PRINT LAYOUT FORMAL) -->
   <div id="modalPrintPayslip" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 text-slate-800 my-6">
-      <!-- HEADER RESMI PERUSAHAAN -->
+      
+      <!-- LOGO RESMI KOP SURAT SLIP GAJI -->
       <div class="flex items-center justify-between border-b-2 border-slate-800 pb-4">
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white text-2xl font-bold">
-            <i class="fa-solid fa-cubes"></i>
-          </div>
-          <div>
-            <h2 class="text-lg font-extrabold uppercase tracking-tight text-slate-900">PT Artha Safety Indonesia</h2>
-            <p class="text-[11px] text-slate-500 font-semibold">Pusat Peralatan K3 & Safety Management System</p>
-          </div>
+          <img src="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png" alt="PT Artha Safety Indonesia" class="h-11 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/220x55/101935/ffffff?text=ARTHA+SAFETY';">
         </div>
         <div class="text-right">
-          <span class="px-3 py-1 bg-brand-100 text-brand-800 rounded-lg text-xs font-extrabold uppercase inline-block mb-1">SLIP GAJI RESMI</span>
+          <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-extrabold uppercase inline-block mb-1">SLIP GAJI RESMI</span>
           <p class="text-xs font-bold text-slate-600" id="printPayPeriod">Periode: Agustus 2026</p>
         </div>
       </div>
@@ -724,7 +719,7 @@
           <tfoot>
             <tr class="border-t-2 border-slate-800 font-extrabold text-sm">
               <td class="py-3 text-slate-900 uppercase">Total Gaji Bersih (THP)</td>
-              <td colspan="2" class="py-3 text-right font-mono text-brand-700 text-base" id="printNetSalary">Rp 9.000.000</td>
+              <td colspan="2" class="py-3 text-right font-mono text-emerald-700 text-base" id="printNetSalary">Rp 9.000.000</td>
             </tr>
           </tfoot>
         </table>
@@ -752,7 +747,7 @@
       <!-- TOMBOL AKSI CETAK MODAL -->
       <div class="pt-4 border-t border-slate-100 flex justify-end gap-3 no-print">
         <button type="button" onclick="closePrintPayslipModal()" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Tutup</button>
-        <button type="button" onclick="triggerPrintProcess()" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
+        <button type="button" onclick="triggerPrintProcess()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-print"></i> Cetak / Simpan PDF
         </button>
       </div>
@@ -782,7 +777,7 @@
         </div>
 
         <div class="space-y-2 text-center">
-          <span class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-extrabold rounded-full inline-block">
+          <span class="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-extrabold rounded-full inline-block">
             <i class="fa-solid fa-right-from-bracket mr-1"></i> FOTO ABSEN KELUAR
           </span>
           <div class="w-full h-48 sm:h-56 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center">
@@ -807,7 +802,7 @@
       </div>
 
       <div class="space-y-4">
-        <div class="relative w-40 h-40 mx-auto bg-slate-900 rounded-full overflow-hidden shadow-inner flex items-center justify-center border-2 border-brand-500">
+        <div class="relative w-40 h-40 mx-auto bg-slate-900 rounded-full overflow-hidden shadow-inner flex items-center justify-center border-2 border-emerald-500">
           <video id="profileWebcamVideo" playsinline muted class="w-full h-full object-cover hidden"></video>
           <img id="profilePreviewImg" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80" class="w-full h-full object-cover">
           <canvas id="profileCanvas" class="hidden"></canvas>
@@ -817,7 +812,7 @@
           <button onclick="startProfileCamera()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5">
             <i class="fa-solid fa-camera"></i> Kamera Live
           </button>
-          <button onclick="takeProfileSnap()" id="btnTakeProfileSnap" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold hidden flex items-center gap-1.5">
+          <button onclick="takeProfileSnap()" id="btnTakeProfileSnap" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold hidden flex items-center gap-1.5">
             <i class="fa-solid fa-circle-dot"></i> Tangkap
           </button>
         </div>
@@ -829,7 +824,7 @@
 
         <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
           <button type="button" onclick="closeProfileModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Batal</button>
-          <button type="button" onclick="submitProfilePhoto()" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md">Simpan Foto Profil</button>
+          <button type="button" onclick="submitProfilePhoto()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md">Simpan Foto Profil</button>
         </div>
       </div>
     </div>
@@ -871,7 +866,7 @@
 
         <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
           <button type="button" onclick="closeAgendaModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Batal</button>
-          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md">Simpan ke Kalender</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md">Simpan ke Kalender</button>
         </div>
       </form>
     </div>
@@ -920,7 +915,7 @@
 
         <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
           <button type="button" onclick="closeRequestModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Batal</button>
-          <button type="submit" class="px-5 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold shadow-md">Kirim Pengajuan</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md">Kirim Pengajuan</button>
         </div>
       </form>
     </div>
@@ -960,7 +955,7 @@
         <div class="grid grid-cols-3 gap-3">
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Radius (Meter)</label>
-            <input type="number" id="dutyRadius" required value="50" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-brand-600">
+            <input type="number" id="dutyRadius" required value="50" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-600">
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Tgl Mulai</label>
@@ -1060,7 +1055,7 @@
 
         <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
           <button type="button" onclick="closeEmployeeModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Batal</button>
-          <button type="submit" class="px-5 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold shadow-md">Simpan Data Karyawan</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md">Simpan Data Karyawan</button>
         </div>
       </form>
     </div>
@@ -1069,7 +1064,7 @@
   <!-- TOAST NOTIFICATION POPUP -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
-      <i id="toastIcon" class="fa-solid fa-circle-info text-brand-400"></i>
+      <i id="toastIcon" class="fa-solid fa-circle-info text-emerald-400"></i>
       <span id="toastMsg" class="text-xs font-bold">Notifikasi Pesan</span>
     </div>
   </div>
@@ -1078,7 +1073,7 @@
     // ============================================================================
     // KONFIGURASI UTAMA BACKEND APPS SCRIPT (GITHUB PAGES FRONTEND)
     // ============================================================================
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwWolb0VVhdnQ8l8KDbdb9HTyUCOsD1UL8sOuSY8FjKMPE7GPn3pF7Cq7Swa4AA30jduQ/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzn2ZLyLtNExj6pgO-p6EGdSHCklO2SchqY9BqALuBPsdtxQjksY2Inm3iDZcGejikjew/exec";
 
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10', WORK_START_TIME: '08:00', WORK_END_TIME: '17:00' };
@@ -1089,9 +1084,16 @@
     let profileMediaStream = null;
     
     let currentCalendarDate = new Date(2026, 7, 1);
-    let allAgendasList = [];
-    let allUsersList = [];
-    let currentLoadedPayslips = [];
+    
+    // IN-MEMORY DATA CACHE UNTUK PERFORMA SERBA INSTAN (0ms)
+    let cachedData = {
+      agendas: [],
+      users: [],
+      requests: [],
+      payslips: [],
+      duties: [],
+      attendance: []
+    };
 
     async function apiCall(action, payload = {}) {
       if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("PASTE_YOUR")) {
@@ -1198,6 +1200,7 @@
       showToast("Anda telah keluar dari aplikasi.");
     }
 
+    // INSTANT 0ms TAB SWITCHER DENGAN RENDER LOKAL IN-MEMORY
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav'));
@@ -1209,11 +1212,11 @@
       if (targetNav) targetNav.classList.add('active-nav');
 
       if (tabId === 'attendance') getLocationGPS();
-      if (tabId === 'requests') fetchUserRequests();
-      if (tabId === 'payslip') fetchUserPayslips();
-      if (tabId === 'adminEmployees') fetchAdminEmployees();
-      if (tabId === 'adminDuties') fetchAdminDuties();
-      if (tabId === 'adminApprovals') fetchAdminApprovals();
+      if (tabId === 'requests') renderUserRequestsTable();
+      if (tabId === 'payslip') renderUserPayslipsTable();
+      if (tabId === 'adminEmployees') renderAdminEmployeesTable();
+      if (tabId === 'adminDuties') renderAdminDutiesTable();
+      if (tabId === 'adminApprovals') renderAdminApprovalsTable();
     }
 
     async function loadDashboardData() {
@@ -1221,8 +1224,14 @@
       if (res.success) {
         officeSettings = res.settings;
         activeDutyAssignment = res.activeDuty || null;
-        allAgendasList = res.agendas || [];
-        allUsersList = res.allUsers || [];
+        
+        // Simpan ke Cache Memory
+        cachedData.agendas = res.agendas || [];
+        cachedData.users = res.allUsers || [];
+        cachedData.requests = res.requests || [];
+        cachedData.payslips = res.payslips || [];
+        cachedData.duties = res.duties || [];
+        cachedData.attendance = res.recentAttendance || [];
 
         document.getElementById('statTotalEmployees').innerText = res.stats.totalEmployees;
         document.getElementById('statPresentToday').innerText = res.stats.presentToday;
@@ -1252,8 +1261,8 @@
         document.getElementById('settingWorkStart').value = res.settings.WORK_START_TIME || '08:00';
         document.getElementById('settingWorkEnd').value = res.settings.WORK_END_TIME || '17:00';
 
-        renderRecentAttendanceTable(res.recentAttendance);
-        renderAgendaList(allAgendasList);
+        renderRecentAttendanceTable(cachedData.attendance);
+        renderAgendaList(cachedData.agendas);
         initMiniCalendar();
 
         getLocationGPS();
@@ -1287,7 +1296,7 @@
           "<td class='py-3 px-3 font-semibold text-slate-600'>" + (item.DISTANCE_METERS || '0') + "m</td>" +
           "<td class='py-3 px-3'>" + statusBadge + "</td>" +
           "<td class='py-3 px-3 text-center'>" +
-            "<button onclick=\"openPhotoViewerModal('" + safeIn + "', '" + safeOut + "', '" + safeName + "', '" + safeDate + "')\" class='px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-lg text-[10px] font-bold transition flex items-center gap-1 mx-auto'>" +
+            "<button onclick=\"openPhotoViewerModal('" + safeIn + "', '" + safeOut + "', '" + safeName + "', '" + safeDate + "')\" class='px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold transition flex items-center gap-1 mx-auto'>" +
               "<i class='fa-solid fa-camera'></i> Foto Bukti" +
             "</button>" +
           "</td>" +
@@ -1348,7 +1357,7 @@
 
               document.getElementById('targetLocationTitle').innerText = targetName;
               document.getElementById('attendanceNoticeText').innerHTML = 
-                "Presensi diizinkan pada <b class='text-amber-600'>" + targetName + "</b> maksimal radius <b class='text-brand-600'>" + maxRad + " Meter</b> (Jam Masuk: " + (officeSettings.WORK_START_TIME || '08:00') + " WIB).";
+                "Presensi diizinkan pada <b class='text-amber-600'>" + targetName + "</b> maksimal radius <b class='text-emerald-600'>" + maxRad + " Meter</b> (Jam Masuk: " + (officeSettings.WORK_START_TIME || '08:00') + " WIB).";
             } else {
               officeLat = parseFloat(officeSettings.OFFICE_LAT || '-6.175392');
               officeLng = parseFloat(officeSettings.OFFICE_LNG || '106.827153');
@@ -1635,12 +1644,12 @@
       }
 
       agendas.forEach(a => {
-        let badgeColor = "bg-brand-100 text-brand-700";
+        let badgeColor = "bg-emerald-100 text-emerald-800";
         let icon = "fa-calendar-day";
 
         if (a.CATEGORY === 'Libur Nasional') { badgeColor = "bg-red-100 text-red-700"; icon = "fa-flag"; }
         if (a.CATEGORY === 'Briefing HSE') { badgeColor = "bg-amber-100 text-amber-700"; icon = "fa-bullhorn"; }
-        if (a.CATEGORY === 'Cuti Karyawan') { badgeColor = "bg-indigo-100 text-indigo-700"; icon = "fa-umbrella-beach"; }
+        if (a.CATEGORY === 'Cuti Karyawan') { badgeColor = "bg-slate-100 text-slate-700"; icon = "fa-umbrella-beach"; }
         if (a.CATEGORY === 'Tugas Dinas') { badgeColor = "bg-orange-100 text-orange-700"; icon = "fa-briefcase"; }
 
         let deleteBtn = '';
@@ -1676,7 +1685,7 @@
     function openDutyModal() {
       const select = document.getElementById('dutyEmpId');
       select.innerHTML = '';
-      allUsersList.forEach(u => {
+      cachedData.users.forEach(u => {
         select.innerHTML += "<option value='" + u.EMP_ID + "'>" + u.FULL_NAME + " (" + u.EMP_ID + " - " + u.POSITION + ")</option>";
       });
       document.getElementById('modalDuty').classList.remove('hidden');
@@ -1703,42 +1712,37 @@
       if (res.success) {
         showToast(res.message);
         closeDutyModal();
-        fetchAdminDuties();
         loadDashboardData();
       } else {
         showToast(res.message, true);
       }
     }
 
-    async function fetchAdminDuties() {
-      const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
-      if (res.success) {
-        const tbody = document.getElementById('tblAdminDuties');
-        tbody.innerHTML = '';
-        if (!res.duties || res.duties.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada penugasan dinas luar kota.</td></tr>';
-          return;
-        }
-
-        res.duties.forEach(d => {
-          tbody.innerHTML += "<tr>" +
-            "<td class='py-3 px-3 font-bold text-slate-800'>" + d.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + d.EMP_ID + "</p></td>" +
-            "<td class='py-3 px-3 font-semibold text-amber-600'><i class='fa-solid fa-location-dot mr-1'></i>" + d.LOCATION_NAME + "</td>" +
-            "<td class='py-3 px-3 font-mono text-slate-500 text-[11px]'>" + d.LATITUDE + ", " + d.LONGITUDE + "</td>" +
-            "<td class='py-3 px-3 font-bold text-brand-600'>" + d.RADIUS_METERS + " m</td>" +
-            "<td class='py-3 px-3 text-slate-600 font-medium'>" + d.START_DATE + " s/d " + d.END_DATE + "</td>" +
-            "<td class='py-3 px-3 text-slate-500'>" + d.REASON + "</td>" +
-            "<td class='py-3 px-3 text-center'><button onclick='deleteDuty(\"" + d.DUTY_ID + "\")' class='text-red-500 hover:underline font-bold text-[11px]'><i class='fa-solid fa-trash'></i> Hapus</button></td>" +
-          "</tr>";
-        });
+    function renderAdminDutiesTable() {
+      const tbody = document.getElementById('tblAdminDuties');
+      tbody.innerHTML = '';
+      if (!cachedData.duties || cachedData.duties.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada penugasan dinas luar kota.</td></tr>';
+        return;
       }
+
+      cachedData.duties.forEach(d => {
+        tbody.innerHTML += "<tr>" +
+          "<td class='py-3 px-3 font-bold text-slate-800'>" + d.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + d.EMP_ID + "</p></td>" +
+          "<td class='py-3 px-3 font-semibold text-amber-600'><i class='fa-solid fa-location-dot mr-1'></i>" + d.LOCATION_NAME + "</td>" +
+          "<td class='py-3 px-3 font-mono text-slate-500 text-[11px]'>" + d.LATITUDE + ", " + d.LONGITUDE + "</td>" +
+          "<td class='py-3 px-3 font-bold text-emerald-600'>" + d.RADIUS_METERS + " m</td>" +
+          "<td class='py-3 px-3 text-slate-600 font-medium'>" + d.START_DATE + " s/d " + d.END_DATE + "</td>" +
+          "<td class='py-3 px-3 text-slate-500'>" + d.REASON + "</td>" +
+          "<td class='py-3 px-3 text-center'><button onclick='deleteDuty(\"" + d.DUTY_ID + "\")' class='text-red-500 hover:underline font-bold text-[11px]'><i class='fa-solid fa-trash'></i> Hapus</button></td>" +
+        "</tr>";
+      });
     }
 
     async function deleteDuty(dutyId) {
       const res = await apiCall('deleteDutyAssignment', { dutyId: dutyId });
       if (res.success) {
         showToast(res.message);
-        fetchAdminDuties();
         loadDashboardData();
       } else {
         showToast(res.message, true);
@@ -1764,79 +1768,87 @@
         docUrl: document.getElementById('reqDocUrl').value
       };
 
+      // Optimistic Local Update
+      const newReqLocal = {
+        REQ_ID: 'REQ-NEW',
+        SUBMIT_DATE: new Date().toLocaleDateString('id-ID'),
+        TYPE: payload.type,
+        START_DATE: payload.startDate,
+        END_DATE: payload.endDate,
+        REASON: payload.reason,
+        STATUS: 'PENDING',
+        ADMIN_NOTE: '-'
+      };
+      cachedData.requests.unshift(newReqLocal);
+      renderUserRequestsTable();
+
+      showToast("Pengajuan berhasil dikirim!");
+      closeRequestModal();
+
       const res = await apiCall('submitRequest', payload);
       if (res.success) {
-        showToast(res.message);
-        closeRequestModal();
-        fetchUserRequests();
+        loadDashboardData();
       } else {
         showToast(res.message, true);
       }
     }
 
-    async function fetchUserRequests() {
-      const res = await apiCall('getRequestsData', { empId: currentUser.EMP_ID, role: currentUser.ROLE });
-      if (res.success) {
-        const tbody = document.getElementById('tblUserRequests');
-        tbody.innerHTML = '';
-        if (res.requests.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada riwayat pengajuan.</td></tr>';
-          return;
-        }
-
-        res.requests.forEach(r => {
-          let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
-          if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
-          if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
-
-          tbody.innerHTML += "<tr>" +
-            "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "</td>" +
-            "<td class='py-3 px-3 text-slate-500'>" + r.SUBMIT_DATE + "</td>" +
-            "<td class='py-3 px-3 font-semibold text-brand-600'>" + r.TYPE + "</td>" +
-            "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
-            "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
-            "<td class='py-3 px-3'>" + badge + "</td>" +
-            "<td class='py-3 px-3 text-slate-400'>" + (r.ADMIN_NOTE || '-') + "</td>" +
-          "</tr>";
-        });
+    function renderUserRequestsTable() {
+      const tbody = document.getElementById('tblUserRequests');
+      tbody.innerHTML = '';
+      if (!cachedData.requests || cachedData.requests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada riwayat pengajuan.</td></tr>';
+        return;
       }
+
+      cachedData.requests.forEach(r => {
+        let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
+        if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
+        if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
+
+        tbody.innerHTML += "<tr>" +
+          "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "</td>" +
+          "<td class='py-3 px-3 text-slate-500'>" + r.SUBMIT_DATE + "</td>" +
+          "<td class='py-3 px-3 font-semibold text-emerald-600'>" + r.TYPE + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
+          "<td class='py-3 px-3'>" + badge + "</td>" +
+          "<td class='py-3 px-3 text-slate-400'>" + (r.ADMIN_NOTE || '-') + "</td>" +
+        "</tr>";
+      });
     }
 
-    async function fetchUserPayslips() {
-      const res = await apiCall('getPayslipsData', { empId: currentUser.EMP_ID, role: currentUser.ROLE });
-      if (res.success) {
-        currentLoadedPayslips = res.payslips || [];
-        const tbody = document.getElementById('tblUserPayslips');
-        tbody.innerHTML = '';
-        if (currentLoadedPayslips.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada dokumen slip gaji.</td></tr>';
-          return;
-        }
-
-        currentLoadedPayslips.forEach((p, idx) => {
-          const lateDeductionText = p.LATE_DEDUCTION > 0 ? 
-            "Rp " + parseInt(p.LATE_DEDUCTION).toLocaleString('id-ID') + " (" + p.LATE_COUNT + "x Telat)" : 
-            "Rp 0 (0x Telat)";
-
-          tbody.innerHTML += "<tr>" +
-            "<td class='py-3 px-3 font-bold text-slate-800'>" + p.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + p.EMP_ID + "</p></td>" +
-            "<td class='py-3 px-3 font-semibold text-slate-700'>" + p.PERIOD + "</td>" +
-            "<td class='py-3 px-3 font-mono'>Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID') + "</td>" +
-            "<td class='py-3 px-3 font-mono text-emerald-600'>Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID') + "</td>" +
-            "<td class='py-3 px-3 font-mono text-red-500'>" + lateDeductionText + "</td>" +
-            "<td class='py-3 px-3 font-mono font-bold text-slate-900'>Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID') + "</td>" +
-            "<td class='py-3 px-3 text-center'>" +
-              "<button onclick='openPrintPayslipModal(" + idx + ")' class='px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-[10px] font-bold shadow-sm transition inline-flex items-center gap-1.5'>" +
-                "<i class='fa-solid fa-print'></i> Cetak Slip" +
-              "</button>" +
-            "</td>" +
-          "</tr>";
-        });
+    function renderUserPayslipsTable() {
+      const tbody = document.getElementById('tblUserPayslips');
+      tbody.innerHTML = '';
+      if (!cachedData.payslips || cachedData.payslips.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada dokumen slip gaji.</td></tr>';
+        return;
       }
+
+      cachedData.payslips.forEach((p, idx) => {
+        const lateDeductionText = p.LATE_DEDUCTION > 0 ? 
+          "Rp " + parseInt(p.LATE_DEDUCTION).toLocaleString('id-ID') + " (" + p.LATE_COUNT + "x Telat)" : 
+          "Rp 0 (0x Telat)";
+
+        tbody.innerHTML += "<tr>" +
+          "<td class='py-3 px-3 font-bold text-slate-800'>" + p.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + p.EMP_ID + "</p></td>" +
+          "<td class='py-3 px-3 font-semibold text-slate-700'>" + p.PERIOD + "</td>" +
+          "<td class='py-3 px-3 font-mono'>Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID') + "</td>" +
+          "<td class='py-3 px-3 font-mono text-emerald-600'>Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID') + "</td>" +
+          "<td class='py-3 px-3 font-mono text-red-500'>" + lateDeductionText + "</td>" +
+          "<td class='py-3 px-3 font-mono font-bold text-slate-900'>Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID') + "</td>" +
+          "<td class='py-3 px-3 text-center'>" +
+            "<button onclick='openPrintPayslipModal(" + idx + ")' class='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold shadow-sm transition inline-flex items-center gap-1.5'>" +
+              "<i class='fa-solid fa-print'></i> Cetak Slip" +
+            "</button>" +
+          "</td>" +
+        "</tr>";
+      });
     }
 
     function openPrintPayslipModal(index) {
-      const p = currentLoadedPayslips[index];
+      const p = cachedData.payslips[index];
       if (!p) return;
 
       document.getElementById('printPayPeriod').innerText = "Periode: " + p.PERIOD;
@@ -1864,56 +1876,52 @@
       window.print();
     }
 
-    async function fetchAdminEmployees() {
-      const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
-      if (res.success) {
-        const tbody = document.getElementById('tblAdminEmployees');
-        tbody.innerHTML = '';
-        res.allUsers.forEach(u => {
-          tbody.innerHTML += "<tr>" +
-            "<td class='py-3 px-3 flex items-center gap-2'>" +
-              "<img src='" + (u.PROFILE_PIC || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80") + "' class='w-7 h-7 rounded-full object-cover'>" +
-              "<div>" +
-                "<p class='font-bold text-slate-800'>" + u.FULL_NAME + "</p>" +
-                "<p class='text-[10px] font-mono text-slate-400'>" + u.EMP_ID + "</p>" +
-              "</div>" +
-            "</td>" +
-            "<td class='py-3 px-3 text-slate-600'>" + u.EMAIL + "</td>" +
-            "<td class='py-3 px-3'>" +
-              "<p class='font-semibold text-slate-700'>" + u.POSITION + "</p>" +
-              "<p class='text-[10px] text-slate-400'>" + u.DEPARTMENT + "</p>" +
-            "</td>" +
-            "<td class='py-3 px-3'><span class='px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-700'>" + u.ROLE + "</span></td>" +
-            "<td class='py-3 px-3 font-bold text-brand-600'>" + u.LEAVE_BALANCE + " Hari</td>" +
-            "<td class='py-3 px-3 font-bold text-amber-600'>" + u.SAVED_HOLIDAYS + " Hari</td>" +
-            "<td class='py-3 px-3'>" +
-              "<button onclick='editEmployee(\"" + u.EMP_ID + "\")' class='text-brand-600 hover:underline font-bold text-[11px]'><i class='fa-solid fa-pen-to-square'></i> Edit</button>" +
-            "</td>" +
-          "</tr>";
-        });
-      }
+    function renderAdminEmployeesTable() {
+      const tbody = document.getElementById('tblAdminEmployees');
+      tbody.innerHTML = '';
+      if (!cachedData.users) return;
+
+      cachedData.users.forEach(u => {
+        tbody.innerHTML += "<tr>" +
+          "<td class='py-3 px-3 flex items-center gap-2'>" +
+            "<img src='" + (u.PROFILE_PIC || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80") + "' class='w-7 h-7 rounded-full object-cover'>" +
+            "<div>" +
+              "<p class='font-bold text-slate-800'>" + u.FULL_NAME + "</p>" +
+              "<p class='text-[10px] font-mono text-slate-400'>" + u.EMP_ID + "</p>" +
+            "</div>" +
+          "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + u.EMAIL + "</td>" +
+          "<td class='py-3 px-3'>" +
+            "<p class='font-semibold text-slate-700'>" + u.POSITION + "</p>" +
+            "<p class='text-[10px] text-slate-400'>" + u.DEPARTMENT + "</p>" +
+          "</td>" +
+          "<td class='py-3 px-3'><span class='px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-700'>" + u.ROLE + "</span></td>" +
+          "<td class='py-3 px-3 font-bold text-emerald-600'>" + u.LEAVE_BALANCE + " Hari</td>" +
+          "<td class='py-3 px-3 font-bold text-amber-600'>" + u.SAVED_HOLIDAYS + " Hari</td>" +
+          "<td class='py-3 px-3'>" +
+            "<button onclick='editEmployee(\"" + u.EMP_ID + "\")' class='text-emerald-600 hover:underline font-bold text-[11px]'><i class='fa-solid fa-pen-to-square'></i> Edit</button>" +
+          "</td>" +
+        "</tr>";
+      });
     }
 
-    async function editEmployee(empId) {
-      const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
-      if (res.success && res.allUsers) {
-        const emp = res.allUsers.find(u => u.EMP_ID === empId);
-        if (emp) {
-          document.getElementById('empIsEdit').value = "true";
-          document.getElementById('empEditId').value = emp.EMP_ID;
-          document.getElementById('employeeModalTitle').innerText = "Edit Data Karyawan (" + emp.EMP_ID + ")";
-          document.getElementById('empFullName').value = emp.FULL_NAME || "";
-          document.getElementById('empEmail').value = emp.EMAIL || "";
-          document.getElementById('empRole').value = emp.ROLE || "EMPLOYEE";
-          document.getElementById('empPosition').value = emp.POSITION || "";
-          document.getElementById('empDepartment').value = emp.DEPARTMENT || "";
-          document.getElementById('empLeaveBalance').value = emp.LEAVE_BALANCE || "12";
-          document.getElementById('empBasicSalary').value = emp.BASIC_SALARY || "0";
-          document.getElementById('empAllowance').value = emp.ALLOWANCE || "0";
-          document.getElementById('empContractUrl').value = emp.CONTRACT_DOC_URL || "";
-          document.getElementById('empBpjsUrl').value = emp.BPJS_DOC_URL || "";
-          document.getElementById('modalEmployee').classList.remove('hidden');
-        }
+    function editEmployee(empId) {
+      const emp = cachedData.users.find(u => u.EMP_ID === empId);
+      if (emp) {
+        document.getElementById('empIsEdit').value = "true";
+        document.getElementById('empEditId').value = emp.EMP_ID;
+        document.getElementById('employeeModalTitle').innerText = "Edit Data Karyawan (" + emp.EMP_ID + ")";
+        document.getElementById('empFullName').value = emp.FULL_NAME || "";
+        document.getElementById('empEmail').value = emp.EMAIL || "";
+        document.getElementById('empRole').value = emp.ROLE || "EMPLOYEE";
+        document.getElementById('empPosition').value = emp.POSITION || "";
+        document.getElementById('empDepartment').value = emp.DEPARTMENT || "";
+        document.getElementById('empLeaveBalance').value = emp.LEAVE_BALANCE || "12";
+        document.getElementById('empBasicSalary').value = emp.BASIC_SALARY || "0";
+        document.getElementById('empAllowance').value = emp.ALLOWANCE || "0";
+        document.getElementById('empContractUrl').value = emp.CONTRACT_DOC_URL || "";
+        document.getElementById('empBpjsUrl').value = emp.BPJS_DOC_URL || "";
+        document.getElementById('modalEmployee').classList.remove('hidden');
       }
     }
 
@@ -1947,59 +1955,58 @@
         joinDate: new Date().toLocaleDateString('id-ID')
       };
 
+      showToast("Menyimpan data karyawan...");
+      closeEmployeeModal();
+
       const res = await apiCall('saveEmployee', payload);
       if (res.success) {
         showToast(res.message);
-        closeEmployeeModal();
-        fetchAdminEmployees();
+        loadDashboardData();
       } else {
         showToast(res.message, true);
       }
     }
 
-    async function fetchAdminApprovals() {
-      const res = await apiCall('getRequestsData', { empId: currentUser.EMP_ID, role: currentUser.ROLE });
-      if (res.success) {
-        const tbody = document.getElementById('tblAdminApprovals');
-        tbody.innerHTML = '';
-        if (res.requests.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Tidak ada data pengajuan.</td></tr>';
-          return;
+    function renderAdminApprovalsTable() {
+      const tbody = document.getElementById('tblAdminApprovals');
+      tbody.innerHTML = '';
+      if (!cachedData.requests || cachedData.requests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Tidak ada data pengajuan.</td></tr>';
+        return;
+      }
+
+      cachedData.requests.forEach(r => {
+        let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
+        if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
+        if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
+
+        let actions = '-';
+        if (r.STATUS === 'PENDING') {
+          actions = "<div class='flex items-center justify-center gap-1'>" +
+            "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"APPROVED\")' class='px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:bg-emerald-700'><i class='fa-solid fa-check'></i> Setujui</button>" +
+            "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"REJECTED\")' class='px-2.5 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700'><i class='fa-solid fa-xmark'></i> Tolak</button>" +
+          "</div>";
         }
 
-        res.requests.forEach(r => {
-          let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
-          if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
-          if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
-
-          let actions = '-';
-          if (r.STATUS === 'PENDING') {
-            actions = "<div class='flex items-center justify-center gap-1'>" +
-              "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"APPROVED\")' class='px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:bg-emerald-700'><i class='fa-solid fa-check'></i> Setujui</button>" +
-              "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"REJECTED\")' class='px-2.5 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700'><i class='fa-solid fa-xmark'></i> Tolak</button>" +
-            "</div>";
-          }
-
-          tbody.innerHTML += "<tr>" +
-            "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "<p class='text-[10px] text-slate-400 font-normal'>" + r.SUBMIT_DATE + "</p></td>" +
-            "<td class='py-3 px-3 font-semibold text-slate-800'>" + r.FULL_NAME + "</td>" +
-            "<td class='py-3 px-3 font-bold text-brand-600'>" + r.TYPE + "</td>" +
-            "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
-            "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
-            "<td class='py-3 px-3'>" + badge + "</td>" +
-            "<td class='py-3 px-3 text-center'>" + actions + "</td>" +
-          "</tr>";
-        });
-      }
+        tbody.innerHTML += "<tr>" +
+          "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "<p class='text-[10px] text-slate-400 font-normal'>" + r.SUBMIT_DATE + "</p></td>" +
+          "<td class='py-3 px-3 font-semibold text-slate-800'>" + r.FULL_NAME + "</td>" +
+          "<td class='py-3 px-3 font-bold text-emerald-600'>" + r.TYPE + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
+          "<td class='py-3 px-3'>" + badge + "</td>" +
+          "<td class='py-3 px-3 text-center'>" + actions + "</td>" +
+        "</tr>";
+      });
     }
 
     async function processApproval(reqId, status) {
       const note = prompt("Masukkan catatan admin (opsional):", status === 'APPROVED' ? 'Disetujui HR' : 'Tidak memenuhi kriteria');
       
+      showToast("Memproses verifikasi...");
       const res = await apiCall('updateRequestStatus', { reqId: reqId, status: status, adminNote: note, adminName: currentUser.FULL_NAME });
       if (res.success) {
         showToast(res.message);
-        fetchAdminApprovals();
         loadDashboardData();
       } else {
         showToast(res.message, true);
@@ -2013,6 +2020,7 @@
       const workStart = document.getElementById('settingWorkStart').value;
       const workEnd = document.getElementById('settingWorkEnd').value;
 
+      showToast("Menyimpan pengaturan GPS & Jam Kerja...");
       const res = await apiCall('updateOfficeSettings', { lat: lat, lng: lng, radius: radius, workStart: workStart, workEnd: workEnd });
       if (res.success) {
         showToast(res.message);
@@ -2052,8 +2060,8 @@
       }
 
       for (let day = 1; day <= daysInMonth; day++) {
-        let hasEvent = allAgendasList.some(a => a.DATE && a.DATE.startsWith(String(day).padStart(2, '0')));
-        let isToday = (day === 25 && month === 7) ? 'bg-brand-600 text-white rounded-full font-bold shadow-md' : 'hover:bg-slate-100 text-slate-700 rounded-full py-1.5';
+        let hasEvent = cachedData.agendas.some(a => a.DATE && a.DATE.startsWith(String(day).padStart(2, '0')));
+        let isToday = (day === 25 && month === 7) ? 'bg-emerald-600 text-white rounded-full font-bold shadow-md' : 'hover:bg-slate-100 text-slate-700 rounded-full py-1.5';
 
         let dot = hasEvent ? '<span class="w-1.5 h-1.5 bg-amber-500 rounded-full inline-block ml-0.5"></span>' : '';
 
