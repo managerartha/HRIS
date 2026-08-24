@@ -15,8 +15,13 @@
         extend: {
           colors: {
             brand: {
-              50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1',
-              600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81',
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
             }
           },
           fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] }
@@ -33,6 +38,7 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col justify-between">
 
+  <!-- SCREEN LOGIN -->
   <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
     <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6 border border-slate-100">
       <div class="text-center space-y-2">
@@ -72,8 +78,10 @@
     </div>
   </div>
 
+  <!-- CONTAINER UTAMA SETELAH LOGIN -->
   <div id="appContainer" class="hidden min-h-screen flex flex-col md:flex-row">
     
+    <!-- SIDEBAR LEFT -->
     <aside class="w-full md:w-64 bg-gradient-to-b from-brand-600 to-brand-800 text-white flex-shrink-0 flex flex-col justify-between p-4 shadow-xl z-20">
       <div>
         <div class="flex items-center gap-3 px-3 py-4 mb-6 border-b border-white/10">
@@ -131,8 +139,10 @@
       </div>
     </aside>
 
+    <!-- CONTENT RIGHT -->
     <div class="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scroll">
       
+      <!-- HEADER TOP -->
       <header class="bg-white border-b border-slate-200 py-3.5 px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div class="relative w-72 hidden sm:block">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
@@ -160,6 +170,7 @@
         </div>
       </header>
 
+      <!-- MAIN CONTENT VIEW -->
       <main class="p-4 sm:p-6 space-y-6">
 
         <!-- VIEW 1: DASHBOARD -->
@@ -185,6 +196,7 @@
             <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
           </div>
 
+          <!-- BANNER DINAS LUAR KOTA (JIKA ADA DUGAS) -->
           <div id="dutyBannerCard" class="hidden bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl p-4 shadow-md flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-briefcase"></i></div>
@@ -252,6 +264,7 @@
                         <th class="py-2.5 px-3">Jam Keluar</th>
                         <th class="py-2.5 px-3">Jarak GPS</th>
                         <th class="py-2.5 px-3">Status</th>
+                        <th class="py-2.5 px-3 text-center">Bukti Selfie</th>
                       </tr>
                     </thead>
                     <tbody id="tblRecentAttendance" class="text-xs divide-y divide-slate-100">
@@ -262,6 +275,7 @@
             </div>
 
             <div class="space-y-6">
+              <!-- MINI CALENDAR WIDGET -->
               <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                 <div class="flex items-center justify-between mb-4">
                   <h4 class="font-extrabold text-xs text-slate-800" id="calendarMonthYear">Agustus 2026</h4>
@@ -278,6 +292,7 @@
                 </div>
               </div>
 
+              <!-- AGENDA & SHARED NOTES WIDGET -->
               <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                   <div>
@@ -624,6 +639,48 @@
     </div>
   </div>
 
+  <!-- MODAL VIEWER FOTO PRESENSI (MASUK & KELUAR) -->
+  <div id="modalPhotoViewer" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-extrabold text-base text-slate-800" id="viewerModalTitle">Verifikasi Foto Selfie Presensi</h3>
+          <p class="text-xs text-slate-500" id="viewerModalSubtitle">Absen Masuk & Keluar Karyawan</p>
+        </div>
+        <button onclick="closePhotoViewerModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- FOTO ABSEN MASUK -->
+        <div class="space-y-2 text-center">
+          <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-extrabold rounded-full inline-block">
+            <i class="fa-solid fa-right-to-bracket mr-1"></i> FOTO ABSEN MASUK
+          </span>
+          <div class="w-full h-48 sm:h-56 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center">
+            <img id="viewerImgCheckin" src="" class="w-full h-full object-cover hidden">
+            <p id="viewerEmptyCheckin" class="text-xs text-slate-400 italic">Foto tidak tersedia</p>
+          </div>
+        </div>
+
+        <!-- FOTO ABSEN KELUAR -->
+        <div class="space-y-2 text-center">
+          <span class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-extrabold rounded-full inline-block">
+            <i class="fa-solid fa-right-from-bracket mr-1"></i> FOTO ABSEN KELUAR
+          </span>
+          <div class="w-full h-48 sm:h-56 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center">
+            <img id="viewerImgCheckout" src="" class="w-full h-full object-cover hidden">
+            <p id="viewerEmptyCheckout" class="text-xs text-slate-400 italic">Belum Absen Keluar</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end">
+        <button type="button" onclick="closePhotoViewerModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-md">Tutup Preview</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT FOTO PROFIL -->
   <div id="modalProfilePhoto" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -660,6 +717,7 @@
     </div>
   </div>
 
+  <!-- MODAL ADD AGENDA / CATATAN TIM -->
   <div id="modalAgenda" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -701,6 +759,7 @@
     </div>
   </div>
 
+  <!-- MODAL PENGAJUAN HR -->
   <div id="modalRequest" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -749,6 +808,7 @@
     </div>
   </div>
 
+  <!-- MODAL TUGAS DINAS LUAR KOTA (ADMIN ONLY) -->
   <div id="modalDuty" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -807,6 +867,7 @@
     </div>
   </div>
 
+  <!-- MODAL ADD/EDIT EMPLOYEE (ADMIN ONLY) -->
   <div id="modalEmployee" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -887,6 +948,7 @@
     </div>
   </div>
 
+  <!-- TOAST NOTIFICATION POPUP -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
       <i id="toastIcon" class="fa-solid fa-circle-info text-brand-400"></i>
@@ -899,7 +961,7 @@
     // KONFIGURASI UTAMA BACKEND APPS SCRIPT (GITHUB PAGES FRONTEND)
     // PASTE KAN URL WEB APP DEPLOYMENT GOOGLE APPS SCRIPT ANDA DI BAWAH INI:
     // ============================================================================
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxyR2u4T-oxOrQuMNJiX5xLOudR1_fV8OnhbT-mCKXbKX8sNxiTIbTNEvlMVabu6A_yIw/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLRHBPnv2YLso79AiXbPs7WGC53LfLoc2lCsqf7_Rk2ItiA93M2jbBFkKcrmxAwk8Yjw/exec";
 
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10' };
@@ -1028,6 +1090,7 @@
       if (targetView) targetView.classList.remove('hidden');
       if (targetNav) targetNav.classList.add('active-nav');
 
+      if (tabId === 'attendance') getLocationGPS();
       if (tabId === 'requests') fetchUserRequests();
       if (tabId === 'payslip') fetchUserPayslips();
       if (tabId === 'adminEmployees') fetchAdminEmployees();
@@ -1072,6 +1135,8 @@
         renderRecentAttendanceTable(res.recentAttendance);
         renderAgendaList(allAgendasList);
         initMiniCalendar();
+
+        getLocationGPS();
       }
     }
 
@@ -1079,14 +1144,21 @@
       const tbody = document.getElementById('tblRecentAttendance');
       tbody.innerHTML = '';
       if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-400">Belum ada data presensi.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Belum ada data presensi.</td></tr>';
         return;
       }
 
-      list.forEach(item => {
+      list.forEach((item, index) => {
         let statusBadge = item.STATUS === 'TEPAT WAKTU' ? 
           '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-extrabold">TEPAT WAKTU</span>' :
           '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-extrabold">TERLAMBAT</span>';
+
+        let inPhoto = item.CHECKIN_PHOTO || '-';
+        let outPhoto = item.CHECKOUT_PHOTO || '-';
+        let safeIn = inPhoto.replace(/'/g, "\\'");
+        let safeOut = outPhoto.replace(/'/g, "\\'");
+        let safeName = (item.FULL_NAME || '').replace(/'/g, "\\'");
+        let safeDate = (item.DATE || '').replace(/'/g, "\\'");
 
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + item.FULL_NAME + "</td>" +
@@ -1094,8 +1166,46 @@
           "<td class='py-3 px-3 font-mono text-slate-500'>" + (item.CHECKOUT_TIME || '-') + "</td>" +
           "<td class='py-3 px-3 font-semibold text-slate-600'>" + (item.DISTANCE_METERS || '0') + "m</td>" +
           "<td class='py-3 px-3'>" + statusBadge + "</td>" +
+          "<td class='py-3 px-3 text-center'>" +
+            "<button onclick=\"openPhotoViewerModal('" + safeIn + "', '" + safeOut + "', '" + safeName + "', '" + safeDate + "')\" class='px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-lg text-[10px] font-bold transition flex items-center gap-1 mx-auto'>" +
+              "<i class='fa-solid fa-camera'></i> Foto Bukti" +
+            "</button>" +
+          "</td>" +
         "</tr>";
       });
+    }
+
+    function openPhotoViewerModal(inPhoto, outPhoto, empName, dateStr) {
+      document.getElementById('viewerModalTitle').innerText = "Bukti Presensi: " + empName;
+      document.getElementById('viewerModalSubtitle').innerText = "Tanggal: " + dateStr;
+
+      const imgIn = document.getElementById('viewerImgCheckin');
+      const emptyIn = document.getElementById('viewerEmptyCheckin');
+      if (inPhoto && inPhoto !== '-' && inPhoto.length > 20) {
+        imgIn.src = inPhoto;
+        imgIn.classList.remove('hidden');
+        emptyIn.classList.add('hidden');
+      } else {
+        imgIn.classList.add('hidden');
+        emptyIn.classList.remove('hidden');
+      }
+
+      const imgOut = document.getElementById('viewerImgCheckout');
+      const emptyOut = document.getElementById('viewerEmptyCheckout');
+      if (outPhoto && outPhoto !== '-' && outPhoto.length > 20) {
+        imgOut.src = outPhoto;
+        imgOut.classList.remove('hidden');
+        emptyOut.classList.add('hidden');
+      } else {
+        imgOut.classList.add('hidden');
+        emptyOut.classList.remove('hidden');
+      }
+
+      document.getElementById('modalPhotoViewer').classList.remove('hidden');
+    }
+
+    function closePhotoViewerModal() {
+      document.getElementById('modalPhotoViewer').classList.add('hidden');
     }
 
     function getLocationGPS() {
@@ -1222,28 +1332,30 @@
       const canvas = document.getElementById('photoCanvas');
       const ctx = canvas.getContext('2d');
 
-      const targetWidth = 320;
-      const targetHeight = 240;
+      // Kompresi Mikroskopis (240x180 JPEG 0.4) agar ukuran Base64 sangat ringkas (~4KB - 6KB)
+      const targetWidth = 240;
+      const targetHeight = 180;
 
       canvas.width = targetWidth;
       canvas.height = targetHeight;
 
       ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
       
+      // Watermark Stamp Stempel Otomatis
       ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-      ctx.fillRect(0, targetHeight - 50, targetWidth, 50);
+      ctx.fillRect(0, targetHeight - 40, targetWidth, 40);
       
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 11px sans-serif";
-      ctx.fillText(currentUser.FULL_NAME + " (" + currentUser.EMP_ID + ")", 8, targetHeight - 30);
+      ctx.font = "bold 9px sans-serif";
+      ctx.fillText(currentUser.FULL_NAME + " (" + currentUser.EMP_ID + ")", 6, targetHeight - 24);
       
       const now = new Date();
       const timeStr = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID');
-      ctx.font = "10px sans-serif";
+      ctx.font = "8px sans-serif";
       ctx.fillStyle = "#00ffaa";
-      ctx.fillText(timeStr + " | Lat:" + currentGeoLocation.lat.toFixed(5) + " Lng:" + currentGeoLocation.lng.toFixed(5), 8, targetHeight - 12);
+      ctx.fillText(timeStr + " | Lat:" + currentGeoLocation.lat.toFixed(4) + " Lng:" + currentGeoLocation.lng.toFixed(4), 6, targetHeight - 10);
 
-      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
+      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.4);
 
       video.classList.add('hidden');
       canvas.classList.remove('hidden');
@@ -1334,11 +1446,11 @@
       const canvas = document.getElementById('profileCanvas');
       const ctx = canvas.getContext('2d');
 
-      canvas.width = 200;
-      canvas.height = 200;
-      ctx.drawImage(video, 0, 0, 200, 200);
+      canvas.width = 180;
+      canvas.height = 180;
+      ctx.drawImage(video, 0, 0, 180, 180);
 
-      const photoBase64 = canvas.toDataURL('image/jpeg', 0.6);
+      const photoBase64 = canvas.toDataURL('image/jpeg', 0.5);
       document.getElementById('profilePreviewImg').src = photoBase64;
 
       if (profileMediaStream) {
@@ -1781,7 +1893,7 @@
 
       for (let day = 1; day <= daysInMonth; day++) {
         let hasEvent = allAgendasList.some(a => a.DATE && a.DATE.startsWith(String(day).padStart(2, '0')));
-        let isToday = (day === 22 && month === 7) ? 'bg-brand-600 text-white rounded-full font-bold shadow-md' : 'hover:bg-slate-100 text-slate-700 rounded-full py-1.5';
+        let isToday = (day === 24 && month === 7) ? 'bg-brand-600 text-white rounded-full font-bold shadow-md' : 'hover:bg-slate-100 text-slate-700 rounded-full py-1.5';
 
         let dot = hasEvent ? '<span class="w-1.5 h-1.5 bg-amber-500 rounded-full inline-block ml-0.5"></span>' : '';
 
