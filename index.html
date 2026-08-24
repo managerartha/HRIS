@@ -5,11 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HRIS PT Artha Safety Indonesia</title>
   
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Google Fonts: Plus Jakarta Sans -->
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script>
@@ -36,7 +33,6 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col justify-between">
 
-  <!-- ================= SCREEN 1: LOGIN PORTAL ================= -->
   <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
     <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6 border border-slate-100">
       <div class="text-center space-y-2">
@@ -76,10 +72,8 @@
     </div>
   </div>
 
-  <!-- ================= APP MAIN CONTAINER ================= -->
   <div id="appContainer" class="hidden min-h-screen flex flex-col md:flex-row">
     
-    <!-- SIDEBAR NAV -->
     <aside class="w-full md:w-64 bg-gradient-to-b from-brand-600 to-brand-800 text-white flex-shrink-0 flex flex-col justify-between p-4 shadow-xl z-20">
       <div>
         <div class="flex items-center gap-3 px-3 py-4 mb-6 border-b border-white/10">
@@ -111,7 +105,6 @@
             <i class="fa-solid fa-wallet w-5"></i> Slip Gaji & Cuti
           </button>
 
-          <!-- Admin Nav Group -->
           <div id="adminNavGroup" class="hidden pt-4 space-y-1 border-t border-white/10 mt-4">
             <p class="px-3 text-[10px] font-bold text-amber-300 uppercase tracking-widest mb-2">Panel Administrator</p>
             <button onclick="switchTab('adminEmployees')" id="nav-adminEmployees" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left">
@@ -138,10 +131,8 @@
       </div>
     </aside>
 
-    <!-- MAIN CONTENT AREA -->
     <div class="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scroll">
       
-      <!-- TOP HEADER -->
       <header class="bg-white border-b border-slate-200 py-3.5 px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div class="relative w-72 hidden sm:block">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
@@ -169,12 +160,10 @@
         </div>
       </header>
 
-      <!-- VIEW PANELS -->
       <main class="p-4 sm:p-6 space-y-6">
 
         <!-- VIEW 1: DASHBOARD -->
         <div id="view-dashboard" class="tab-content space-y-6">
-          
           <div class="bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between relative overflow-hidden">
             <div class="z-10 space-y-2 max-w-lg">
               <span class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider">HRIS PT Artha Safety Indonesia</span>
@@ -196,7 +185,6 @@
             <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
           </div>
 
-          <!-- Banner Informasi Status Dinas Luar Kota (jika aktif) -->
           <div id="dutyBannerCard" class="hidden bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl p-4 shadow-md flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-briefcase"></i></div>
@@ -273,7 +261,6 @@
               </div>
             </div>
 
-            <!-- SIDEBAR RIGHT: INTERACTIVE SHARED CALENDAR & NOTES -->
             <div class="space-y-6">
               <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                 <div class="flex items-center justify-between mb-4">
@@ -291,7 +278,6 @@
                 </div>
               </div>
 
-              <!-- SHARED NOTES & AGENDA BOX -->
               <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                   <div>
@@ -321,7 +307,6 @@
               </p>
             </div>
 
-            <!-- Target Location Card -->
             <div class="p-4 rounded-2xl border mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-slate-50 border-slate-200" id="attendanceLocationCard">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center text-lg" id="locationIconBox"><i class="fa-solid fa-location-dot"></i></div>
@@ -337,33 +322,24 @@
             </div>
 
             <div class="space-y-4">
-              <!-- Live Camera Preview Box -->
               <div class="relative w-full h-72 sm:h-80 bg-slate-900 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center border-2 border-dashed border-slate-300">
                 <video id="webcamVideo" playsinline muted class="w-full h-full object-cover hidden"></video>
                 <canvas id="photoCanvas" class="w-full h-full object-cover hidden"></canvas>
                 
                 <div id="cameraPlaceholder" class="text-center p-6 text-slate-400 max-w-md">
                   <i class="fa-solid fa-camera text-4xl mb-2 text-slate-500"></i>
-                  <p class="text-xs" id="cameraStatusText">Klik 'Buka / Deteksi Kamera' untuk mendeteksi & mengaktifkan kamera selfie live.</p>
+                  <p class="text-xs" id="cameraStatusText">Klik 'Buka / Deteksi Kamera' untuk mengaktifkan kamera selfie live.</p>
                 </div>
               </div>
 
-              <!-- Troubleshooting Box -->
               <div id="cameraErrorBox" class="hidden p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 space-y-2">
                 <p class="font-bold flex items-center gap-1.5 text-red-800 text-sm">
                   <i class="fa-solid fa-triangle-exclamation text-red-500"></i>
-                  <span id="cameraErrTitle">Kamera Tidak Terdeteksi / Diblokir</span>
+                  <span>Kamera Tidak Terdeteksi / Diblokir</span>
                 </p>
-                <p id="cameraErrDetail" class="text-xs text-red-600 leading-relaxed">
-                  Sistem tidak dapat mengaktifkan aliran video live dari perangkat kamera Anda.
+                <p class="text-xs text-red-600 leading-relaxed">
+                  Sistem tidak dapat mengaktifkan kamera live. Pastikan Anda memberikan Izin Kamera pada browser.
                 </p>
-                <div class="pt-2 text-[11px] text-slate-700 border-t border-red-200/80 font-medium space-y-1">
-                  <p><b>Tips Pemecahan Masalah:</b></p>
-                  <ul class="list-disc list-inside space-y-0.5 text-slate-600">
-                    <li>Tutup aplikasi lain yang mungkin sedang mengunci kamera (Zoom, Teams).</li>
-                    <li>Pastikan Anda memberi Izin Akses Kamera pada prompt browser.</li>
-                  </ul>
-                </div>
               </div>
 
               <div class="flex flex-wrap gap-3 justify-center">
@@ -648,9 +624,6 @@
     </div>
   </div>
 
-  <!-- ================= MODALS DIALOGS ================= -->
-
-  <!-- MODAL FORM EDIT PROFILE PHOTO -->
   <div id="modalProfilePhoto" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -675,7 +648,7 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Atau Gunakan Link URL Foto (Unsplash/Drive):</label>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Atau Gunakan Link URL Foto:</label>
           <input type="url" id="profileUrlInput" placeholder="https://images.unsplash.com/..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
         </div>
 
@@ -687,7 +660,6 @@
     </div>
   </div>
 
-  <!-- MODAL ADD AGENDA / SHARED NOTES -->
   <div id="modalAgenda" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -729,7 +701,6 @@
     </div>
   </div>
 
-  <!-- MODAL FORM PENGAJUAN (CUTI/IZIN) -->
   <div id="modalRequest" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -778,7 +749,6 @@
     </div>
   </div>
 
-  <!-- MODAL ADD DINAS LUAR KOTA (ADMIN ONLY) -->
   <div id="modalDuty" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -837,7 +807,6 @@
     </div>
   </div>
 
-  <!-- MODAL ADD/EDIT EMPLOYEE (ADMIN ONLY) -->
   <div id="modalEmployee" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -918,7 +887,6 @@
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION POPUP -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
       <i id="toastIcon" class="fa-solid fa-circle-info text-brand-400"></i>
@@ -926,12 +894,12 @@
     </div>
   </div>
 
-  <!-- FRONTEND JAVASCRIPT LOGIC ENGINE -->
   <script>
-    // =========================================================================
-    // 🔗 PASTE GOOGLE APPS SCRIPT WEB APP URL DI BAWAH INI:
-    // =========================================================================
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHc-Uy9m1f6waAdwKVbnvimjWo14k10OCSaY1ujIoklVWC5bn8ClvEDhkSfr6TDGrF9Q/exec";
+    // ============================================================================
+    // KONFIGURASI UTAMA BACKEND APPS SCRIPT (GITHUB PAGES FRONTEND)
+    // PASTE KAN URL WEB APP DEPLOYMENT GOOGLE APPS SCRIPT ANDA DI BAWAH INI:
+    // ============================================================================
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxyR2u4T-oxOrQuMNJiX5xLOudR1_fV8OnhbT-mCKXbKX8sNxiTIbTNEvlMVabu6A_yIw/exec";
 
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10' };
@@ -945,20 +913,28 @@
     let allAgendasList = [];
     let allUsersList = [];
 
-    const previewData = {
-      user: {
-        EMP_ID: 'EMP-0002', FULL_NAME: 'Arabella Chloe', EMAIL: 'arabella@arthasafety.com',
-        ROLE: 'EMPLOYEE', POSITION: 'UI/UX Designer', DEPARTMENT: 'HSE & Tech',
-        LEAVE_BALANCE: '12', SAVED_HOLIDAYS: '2',
-        CONTRACT_DOC_URL: 'https://google.com', BPJS_DOC_URL: 'https://google.com',
-        PROFILE_PIC: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
-      },
-      stats: { totalEmployees: 350, presentToday: 390, lateToday: 40, leaveBalance: 12, savedHolidays: 2 },
-      attendance: [
-        { FULL_NAME: 'John Doe', CHECKIN_TIME: '07:55:00', CHECKOUT_TIME: '17:00:00', DISTANCE_METERS: '3.2', STATUS: 'TEPAT WAKTU' },
-        { FULL_NAME: 'Alexander Stan', CHECKIN_TIME: '08:12:10', CHECKOUT_TIME: '-', DISTANCE_METERS: '6.1', STATUS: 'TERLAMBAT' }
-      ]
-    };
+    async function apiCall(action, payload = {}) {
+      if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("PASTE_YOUR")) {
+        showToast("Buka index.html di GitHub & pasang URL APPS_SCRIPT_URL Anda!", true);
+        throw new Error("URL Apps Script belum dikonfigurasi.");
+      }
+
+      payload.action = action;
+
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        return data;
+      } catch (err) {
+        console.error("API Call Error:", err);
+        showToast("Error Koneksi API: " + err.message, true);
+        return { success: false, message: err.message };
+      }
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
       initMiniCalendar();
@@ -974,42 +950,27 @@
       
       toast.classList.remove('translate-y-20', 'opacity-0');
       setTimeout(() => {
-    function apiCall(action, payload = {}, callback) {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        // Fallback untuk mode Apps Script biasa
-        if (action === 'loginUser') google.script.run.withSuccessHandler(callback).loginUser(payload.email, payload.password);
-        if (action === 'getDashboardData') google.script.run.withSuccessHandler(callback).getDashboardData(payload.empId);
-        if (action === 'submitAttendance') google.script.run.withSuccessHandler(callback).submitAttendance(payload);
-        if (action === 'submitRequest') google.script.run.withSuccessHandler(callback).submitRequest(payload);
-        if (action === 'getRequestsData') google.script.run.withSuccessHandler(callback).getRequestsData(payload.empId, payload.role);
-        if (action === 'getPayslipsData') google.script.run.withSuccessHandler(callback).getPayslipsData(payload.empId, payload.role);
-        if (action === 'saveEmployee') google.script.run.withSuccessHandler(callback).saveEmployee(payload);
-        if (action === 'updateRequestStatus') google.script.run.withSuccessHandler(callback).updateRequestStatus(payload.reqId, payload.status, payload.adminNote, payload.adminName);
-        if (action === 'updateOfficeSettings') google.script.run.withSuccessHandler(callback).updateOfficeSettings(payload.lat, payload.lng, payload.radius);
-        if (action === 'updateProfilePhoto') google.script.run.withSuccessHandler(callback).updateProfilePhoto(payload.empId, payload.photoBase64);
-        if (action === 'addAgenda') google.script.run.withSuccessHandler(callback).addAgenda(payload);
-        if (action === 'deleteAgenda') google.script.run.withSuccessHandler(callback).deleteAgenda(payload.agendaId, payload.empId, payload.role);
-        if (action === 'addDutyAssignment') google.script.run.withSuccessHandler(callback).addDutyAssignment(payload);
-        if (action === 'deleteDutyAssignment') google.script.run.withSuccessHandler(callback).deleteDutyAssignment(payload.dutyId);
-      } else {
-        // Mode Fetch REST API untuk GitHub Pages
-        const targetUrl = APPS_SCRIPT_URL;
-        if (!targetUrl || targetUrl.includes("PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE")) {
-          showToast("URL Apps Script belum dipasang di index.html!", true);
-          return;
-        }
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
 
-        fetch(targetUrl, {
-          method: 'POST',
-          mode: 'cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: action, payload: payload })
-        })
-        .then(res => res.json())
-        .then(data => callback(data))
-        .catch(err => {
-          showToast("Gagal terhubung ke Apps Script API: " + err.message, true);
-        });
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value;
+      const pass = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('btnLoginSubmit');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Memeriksa...';
+
+      const res = await apiCall('login', { email: email, password: pass });
+      btn.disabled = false;
+      btn.innerHTML = '<span>Masuk ke Portal</span><i class="fa-solid fa-arrow-right text-xs"></i>';
+
+      if (res.success) {
+        currentUser = res.user;
+        onLoginSuccess();
+      } else {
+        showToast(res.message || "Gagal masuk. Periksa email & password.", true);
       }
     }
 
@@ -1023,7 +984,6 @@
       document.getElementById('headerUserRole').innerText = currentUser.POSITION + ' • ' + currentUser.ROLE;
       document.getElementById('welcomeHeroText').innerText = "Welcome, " + currentUser.FULL_NAME + "!";
 
-      // Sesuaikan Judul Tabel Riwayat Presensi Berdasarkan Role Karyawan atau Admin
       const recTitle = document.getElementById('recentAttTitle');
       const recSub = document.getElementById('recentAttSubtitle');
       if (currentUser.ROLE === 'ADMIN') {
@@ -1075,57 +1035,43 @@
       if (tabId === 'adminApprovals') fetchAdminApprovals();
     }
 
-    function loadDashboardData() {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              officeSettings = res.settings;
-              activeDutyAssignment = res.activeDuty || null;
-              allAgendasList = res.agendas || [];
-              allUsersList = res.allUsers || [];
+    async function loadDashboardData() {
+      const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
+      if (res.success) {
+        officeSettings = res.settings;
+        activeDutyAssignment = res.activeDuty || null;
+        allAgendasList = res.agendas || [];
+        allUsersList = res.allUsers || [];
 
-              document.getElementById('statTotalEmployees').innerText = res.stats.totalEmployees;
-              document.getElementById('statPresentToday').innerText = res.stats.presentToday;
-              document.getElementById('statLateToday').innerText = res.stats.lateToday;
-              document.getElementById('statLeaveBalance').innerText = res.stats.leaveBalance;
-              document.getElementById('payslipLeaveCount').innerText = res.stats.leaveBalance + ' Hari';
-              document.getElementById('payslipSavedHolidays').innerText = res.stats.savedHolidays + ' Hari';
-              
-              if (res.stats.pendingRequestsCount > 0) {
-                const badge = document.getElementById('badgePendingCount');
-                badge.innerText = res.stats.pendingRequestsCount;
-                badge.classList.remove('hidden');
-              }
+        document.getElementById('statTotalEmployees').innerText = res.stats.totalEmployees;
+        document.getElementById('statPresentToday').innerText = res.stats.presentToday;
+        document.getElementById('statLateToday').innerText = res.stats.lateToday;
+        document.getElementById('statLeaveBalance').innerText = res.stats.leaveBalance;
+        document.getElementById('payslipLeaveCount').innerText = res.stats.leaveBalance + ' Hari';
+        document.getElementById('payslipSavedHolidays').innerText = res.stats.savedHolidays + ' Hari';
+        
+        if (res.stats.pendingRequestsCount > 0) {
+          const badge = document.getElementById('badgePendingCount');
+          badge.innerText = res.stats.pendingRequestsCount;
+          badge.classList.remove('hidden');
+        }
 
-              // Update Banner Status Dinas jika Aktif
-              const dutyBanner = document.getElementById('dutyBannerCard');
-              if (activeDutyAssignment) {
-                dutyBanner.classList.remove('hidden');
-                document.getElementById('dutyBannerTitle').innerText = "📍 Tugas Dinas: " + activeDutyAssignment.LOCATION_NAME;
-                document.getElementById('dutyBannerDetail').innerText = "Periode: " + activeDutyAssignment.START_DATE + " s/d " + activeDutyAssignment.END_DATE + " (Radius " + activeDutyAssignment.RADIUS_METERS + "m)";
-              } else {
-                dutyBanner.classList.add('hidden');
-              }
+        const dutyBanner = document.getElementById('dutyBannerCard');
+        if (activeDutyAssignment) {
+          dutyBanner.classList.remove('hidden');
+          document.getElementById('dutyBannerTitle').innerText = "📍 Tugas Dinas: " + activeDutyAssignment.LOCATION_NAME;
+          document.getElementById('dutyBannerDetail').innerText = "Periode: " + activeDutyAssignment.START_DATE + " s/d " + activeDutyAssignment.END_DATE + " (Radius " + activeDutyAssignment.RADIUS_METERS + "m)";
+        } else {
+          dutyBanner.classList.add('hidden');
+        }
 
-              document.getElementById('settingOfficeLat').value = res.settings.OFFICE_LAT || '-6.175392';
-              document.getElementById('settingOfficeLng').value = res.settings.OFFICE_LNG || '106.827153';
-              document.getElementById('settingMaxRadius').value = res.settings.MAX_RADIUS_METERS || '10';
+        document.getElementById('settingOfficeLat').value = res.settings.OFFICE_LAT || '-6.175392';
+        document.getElementById('settingOfficeLng').value = res.settings.OFFICE_LNG || '106.827153';
+        document.getElementById('settingMaxRadius').value = res.settings.MAX_RADIUS_METERS || '10';
 
-              renderRecentAttendanceTable(res.recentAttendance);
-              renderAgendaList(allAgendasList);
-              initMiniCalendar();
-            }
-          })
-          .getDashboardData(currentUser.EMP_ID);
-      } else {
-        document.getElementById('statTotalEmployees').innerText = previewData.stats.totalEmployees;
-        document.getElementById('statPresentToday').innerText = previewData.stats.presentToday;
-        document.getElementById('statLateToday').innerText = previewData.stats.lateToday;
-        document.getElementById('statLeaveBalance').innerText = previewData.stats.leaveBalance;
-        document.getElementById('payslipLeaveCount').innerText = previewData.stats.leaveBalance + ' Hari';
-        document.getElementById('payslipSavedHolidays').innerText = previewData.stats.savedHolidays + ' Hari';
-        renderRecentAttendanceTable(previewData.attendance);
+        renderRecentAttendanceTable(res.recentAttendance);
+        renderAgendaList(allAgendasList);
+        initMiniCalendar();
       }
     }
 
@@ -1214,7 +1160,6 @@
       return Math.round(R * c * 10) / 10;
     }
 
-    // MULTI-STAGE WEBRTC CAMERA STREAM INITIALIZATION WITH PROMISE HANDLING
     async function startCamera() {
       const video = document.getElementById('webcamVideo');
       const placeholder = document.getElementById('cameraPlaceholder');
@@ -1232,7 +1177,6 @@
         mediaStream = null;
       }
 
-      // 3 Tingkat Fallback Constraints Kamera untuk Desktop & Mobile
       const constraintsList = [
         { video: { facingMode: "user" }, audio: false },
         { video: { facingMode: { ideal: "user" } }, audio: false },
@@ -1243,7 +1187,7 @@
       for (let constraints of constraintsList) {
         try {
           stream = await navigator.mediaDevices.getUserMedia(constraints);
-          if (stream) break; // Berhenti jika berhasil dapatkan aliran
+          if (stream) break;
         } catch (err) {
           console.warn("Mencoba constraint fallback kamera...", err);
         }
@@ -1253,18 +1197,16 @@
         btnStart.disabled = false;
         if (errBox) errBox.classList.remove('hidden');
         if (statusText) statusText.innerText = "Akses kamera gagal.";
-        showToast("Perangkat kamera tidak terdeteksi atau diblokir oleh browser.", true);
+        showToast("Kamera tidak terdeteksi atau diblokir izin browser.", true);
         return;
       }
 
       mediaStream = stream;
       video.srcObject = stream;
-      
-      // Explicit Promise Handling to guarantee playback across browsers
       video.onloadedmetadata = function() {
-        video.play().catch(e => console.warn("Video play exception:", e));
+        video.play().catch(e => console.warn(e));
       };
-      video.play().catch(e => console.warn("Direct play exception:", e));
+      video.play().catch(e => console.warn(e));
 
       video.classList.remove('hidden');
       if (placeholder) placeholder.classList.add('hidden');
@@ -1280,29 +1222,28 @@
       const canvas = document.getElementById('photoCanvas');
       const ctx = canvas.getContext('2d');
 
-      const w = video.videoWidth || 640;
-      const h = video.videoHeight || 480;
+      const targetWidth = 320;
+      const targetHeight = 240;
 
-      canvas.width = w;
-      canvas.height = h;
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
 
-      ctx.drawImage(video, 0, 0, w, h);
+      ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
       
-      // Auto-Watermark Info
-      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-      ctx.fillRect(0, h - 60, w, 60);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+      ctx.fillRect(0, targetHeight - 50, targetWidth, 50);
       
       ctx.fillStyle = "#ffffff";
-      ctx.font = "14px Arial";
-      ctx.fillText(currentUser.FULL_NAME + " (" + currentUser.EMP_ID + ")", 10, h - 35);
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText(currentUser.FULL_NAME + " (" + currentUser.EMP_ID + ")", 8, targetHeight - 30);
       
       const now = new Date();
       const timeStr = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID');
-      ctx.font = "12px Arial";
+      ctx.font = "10px sans-serif";
       ctx.fillStyle = "#00ffaa";
-      ctx.fillText(timeStr + " | Lat: " + currentGeoLocation.lat.toFixed(5) + " Lng: " + currentGeoLocation.lng.toFixed(5), 10, h - 15);
+      ctx.fillText(timeStr + " | Lat:" + currentGeoLocation.lat.toFixed(5) + " Lng:" + currentGeoLocation.lng.toFixed(5), 8, targetHeight - 12);
 
-      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.85);
+      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
 
       video.classList.add('hidden');
       canvas.classList.remove('hidden');
@@ -1319,14 +1260,14 @@
       document.getElementById('btnTakeSnap').classList.remove('hidden');
     }
 
-    function processSubmitAttendance(type) {
+    async function processSubmitAttendance(type) {
       if (!capturedPhotoBase64) {
         showToast("Harap ambil foto selfie terlebih dahulu!", true);
         return;
       }
 
       if (currentGeoLocation.lat === 0) {
-        showToast("Lokasi GPS belum terdeteksi. Silakan aktifkan GPS HP/Browser Anda.", true);
+        showToast("Lokasi GPS belum terdeteksi. Aktifkan GPS HP/Browser Anda.", true);
         return;
       }
 
@@ -1341,25 +1282,16 @@
 
       showToast("Memproses Presensi GPS...");
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              showToast(res.message);
-              loadDashboardData();
-              switchTab('dashboard');
-            } else {
-              showToast(res.message, true);
-            }
-          })
-          .submitAttendance(payload);
-      } else {
-        showToast("Demo Mode: " + type + " Berhasil dicatat!");
+      const res = await apiCall('submitAttendance', payload);
+      if (res.success) {
+        showToast(res.message);
+        loadDashboardData();
         switchTab('dashboard');
+      } else {
+        showToast(res.message, true);
       }
     }
 
-    // PROFILE PHOTO EDIT LOGIC
     function openProfileModal() {
       document.getElementById('modalProfilePhoto').classList.remove('hidden');
     }
@@ -1384,27 +1316,15 @@
         profileMediaStream = null;
       }
 
-      const constraintsList = [
-        { video: { facingMode: "user" }, audio: false },
-        { video: true, audio: false }
-      ];
-
-      let stream = null;
-      for (let c of constraintsList) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia(c);
-          if (stream) break;
-        } catch(e) {}
-      }
-
-      if (stream) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         profileMediaStream = stream;
         video.srcObject = stream;
         video.play().catch(e => console.warn(e));
         img.classList.add('hidden');
         video.classList.remove('hidden');
         document.getElementById('btnTakeProfileSnap').classList.remove('hidden');
-      } else {
+      } catch (e) {
         showToast("Gagal mengaktifkan kamera profil.", true);
       }
     }
@@ -1414,11 +1334,11 @@
       const canvas = document.getElementById('profileCanvas');
       const ctx = canvas.getContext('2d');
 
-      canvas.width = 300;
-      canvas.height = 300;
-      ctx.drawImage(video, 0, 0, 300, 300);
+      canvas.width = 200;
+      canvas.height = 200;
+      ctx.drawImage(video, 0, 0, 200, 200);
 
-      const photoBase64 = canvas.toDataURL('image/jpeg', 0.85);
+      const photoBase64 = canvas.toDataURL('image/jpeg', 0.6);
       document.getElementById('profilePreviewImg').src = photoBase64;
 
       if (profileMediaStream) {
@@ -1428,35 +1348,25 @@
       video.classList.add('hidden');
       document.getElementById('profilePreviewImg').classList.remove('hidden');
       document.getElementById('btnTakeProfileSnap').classList.add('hidden');
-      showToast("Snapshot foto profil berhasil diambil!");
+      showToast("Foto profil berhasil diambil!");
     }
 
-    function submitProfilePhoto() {
+    async function submitProfilePhoto() {
       const urlInput = document.getElementById('profileUrlInput').value;
       const previewImgSrc = document.getElementById('profilePreviewImg').src;
       const targetPhoto = urlInput || previewImgSrc;
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              showToast(res.message);
-              currentUser.PROFILE_PIC = targetPhoto;
-              updateUserProfilePicUI(targetPhoto);
-              closeProfileModal();
-            } else {
-              showToast(res.message, true);
-            }
-          })
-          .updateProfilePhoto(currentUser.EMP_ID, targetPhoto);
-      } else {
+      const res = await apiCall('updateProfilePhoto', { empId: currentUser.EMP_ID, photoBase64: targetPhoto });
+      if (res.success) {
+        showToast(res.message);
+        currentUser.PROFILE_PIC = targetPhoto;
         updateUserProfilePicUI(targetPhoto);
         closeProfileModal();
-        showToast("Demo Mode: Foto profil diperbarui.");
+      } else {
+        showToast(res.message, true);
       }
     }
 
-    // SHARED AGENDA & NOTES LOGIC
     function openAgendaModal() {
       document.getElementById('modalAgenda').classList.remove('hidden');
     }
@@ -1465,7 +1375,7 @@
       document.getElementById('modalAgenda').classList.add('hidden');
     }
 
-    function submitAgendaForm() {
+    async function submitAgendaForm() {
       const payload = {
         empId: currentUser.EMP_ID,
         createdBy: currentUser.FULL_NAME,
@@ -1475,21 +1385,13 @@
         description: document.getElementById('agendaDescription').value
       };
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              showToast(res.message);
-              closeAgendaModal();
-              loadDashboardData();
-            } else {
-              showToast(res.message, true);
-            }
-          })
-          .addAgenda(payload);
-      } else {
-        showToast("Demo Mode: Agenda baru tersimpan.");
+      const res = await apiCall('addAgenda', payload);
+      if (res.success) {
+        showToast(res.message);
         closeAgendaModal();
+        loadDashboardData();
+      } else {
+        showToast(res.message, true);
       }
     }
 
@@ -1531,24 +1433,16 @@
       });
     }
 
-    function deleteAgenda(agendaId) {
-      if (confirm("Hapus agenda ini dari kalender bersama?")) {
-        if (typeof google !== 'undefined' && google.script && google.script.run) {
-          google.script.run
-            .withSuccessHandler(res => {
-              if (res.success) {
-                showToast(res.message);
-                loadDashboardData();
-              } else {
-                showToast(res.message, true);
-              }
-            })
-            .deleteAgenda(agendaId, currentUser.EMP_ID, currentUser.ROLE);
-        }
+    async function deleteAgenda(agendaId) {
+      const res = await apiCall('deleteAgenda', { agendaId: agendaId, empId: currentUser.EMP_ID, role: currentUser.ROLE });
+      if (res.success) {
+        showToast(res.message);
+        loadDashboardData();
+      } else {
+        showToast(res.message, true);
       }
     }
 
-    // DUTIES (DINAS LUAR KOTA) LOGIC
     function openDutyModal() {
       const select = document.getElementById('dutyEmpId');
       select.innerHTML = '';
@@ -1562,7 +1456,7 @@
       document.getElementById('modalDuty').classList.add('hidden');
     }
 
-    function submitDutyForm() {
+    async function submitDutyForm() {
       const payload = {
         empId: document.getElementById('dutyEmpId').value,
         locationName: document.getElementById('dutyLocationName').value,
@@ -1575,73 +1469,52 @@
         createdBy: currentUser.FULL_NAME
       };
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              showToast(res.message);
-              closeDutyModal();
-              fetchAdminDuties();
-              loadDashboardData();
-            } else {
-              showToast(res.message, true);
-            }
-          })
-          .addDutyAssignment(payload);
-      } else {
-        showToast("Demo Mode: Tugas dinas tersimpan.");
+      const res = await apiCall('addDutyAssignment', payload);
+      if (res.success) {
+        showToast(res.message);
         closeDutyModal();
+        fetchAdminDuties();
+        loadDashboardData();
+      } else {
+        showToast(res.message, true);
       }
     }
 
-    function fetchAdminDuties() {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              const tbody = document.getElementById('tblAdminDuties');
-              tbody.innerHTML = '';
-              if (!res.duties || res.duties.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada penugasan dinas luar kota.</td></tr>';
-                return;
-              }
-
-              res.duties.forEach(d => {
-                tbody.innerHTML += "<tr>" +
-                  "<td class='py-3 px-3 font-bold text-slate-800'>" + d.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + d.EMP_ID + "</p></td>" +
-                  "<td class='py-3 px-3 font-semibold text-amber-600'><i class='fa-solid fa-location-dot mr-1'></i>" + d.LOCATION_NAME + "</td>" +
-                  "<td class='py-3 px-3 font-mono text-slate-500 text-[11px]'>" + d.LATITUDE + ", " + d.LONGITUDE + "</td>" +
-                  "<td class='py-3 px-3 font-bold text-brand-600'>" + d.RADIUS_METERS + " m</td>" +
-                  "<td class='py-3 px-3 text-slate-600 font-medium'>" + d.START_DATE + " s/d " + d.END_DATE + "</td>" +
-                  "<td class='py-3 px-3 text-slate-500'>" + d.REASON + "</td>" +
-                  "<td class='py-3 px-3 text-center'><button onclick='deleteDuty(\"" + d.DUTY_ID + "\")' class='text-red-500 hover:underline font-bold text-[11px]'><i class='fa-solid fa-trash'></i> Hapus</button></td>" +
-                "</tr>";
-              });
-            }
-          })
-          .getDashboardData(currentUser.EMP_ID);
-      }
-    }
-
-    function deleteDuty(dutyId) {
-      if (confirm("Hapus penugasan dinas ini? Karyawan akan kembali ke koordinat HQ.")) {
-        if (typeof google !== 'undefined' && google.script && google.script.run) {
-          google.script.run
-            .withSuccessHandler(res => {
-              if (res.success) {
-                showToast(res.message);
-                fetchAdminDuties();
-                loadDashboardData();
-              } else {
-                showToast(res.message, true);
-              }
-            })
-            .deleteDutyAssignment(dutyId);
+    async function fetchAdminDuties() {
+      const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
+      if (res.success) {
+        const tbody = document.getElementById('tblAdminDuties');
+        tbody.innerHTML = '';
+        if (!res.duties || res.duties.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada penugasan dinas luar kota.</td></tr>';
+          return;
         }
+
+        res.duties.forEach(d => {
+          tbody.innerHTML += "<tr>" +
+            "<td class='py-3 px-3 font-bold text-slate-800'>" + d.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + d.EMP_ID + "</p></td>" +
+            "<td class='py-3 px-3 font-semibold text-amber-600'><i class='fa-solid fa-location-dot mr-1'></i>" + d.LOCATION_NAME + "</td>" +
+            "<td class='py-3 px-3 font-mono text-slate-500 text-[11px]'>" + d.LATITUDE + ", " + d.LONGITUDE + "</td>" +
+            "<td class='py-3 px-3 font-bold text-brand-600'>" + d.RADIUS_METERS + " m</td>" +
+            "<td class='py-3 px-3 text-slate-600 font-medium'>" + d.START_DATE + " s/d " + d.END_DATE + "</td>" +
+            "<td class='py-3 px-3 text-slate-500'>" + d.REASON + "</td>" +
+            "<td class='py-3 px-3 text-center'><button onclick='deleteDuty(\"" + d.DUTY_ID + "\")' class='text-red-500 hover:underline font-bold text-[11px]'><i class='fa-solid fa-trash'></i> Hapus</button></td>" +
+          "</tr>";
+        });
       }
     }
 
-    // REQUESTS & APPROVALS LOGIC
+    async function deleteDuty(dutyId) {
+      const res = await apiCall('deleteDutyAssignment', { dutyId: dutyId });
+      if (res.success) {
+        showToast(res.message);
+        fetchAdminDuties();
+        loadDashboardData();
+      } else {
+        showToast(res.message, true);
+      }
+    }
+
     function openRequestModal() {
       document.getElementById('modalRequest').classList.remove('hidden');
     }
@@ -1650,7 +1523,7 @@
       document.getElementById('modalRequest').classList.add('hidden');
     }
 
-    function submitRequestForm() {
+    async function submitRequestForm() {
       const payload = {
         empId: currentUser.EMP_ID,
         fullName: currentUser.FULL_NAME,
@@ -1661,146 +1534,118 @@
         docUrl: document.getElementById('reqDocUrl').value
       };
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              showToast(res.message);
-              closeRequestModal();
-              fetchUserRequests();
-            } else {
-              showToast(res.message, true);
-            }
-          })
-          .submitRequest(payload);
-      } else {
-        showToast("Demo Mode: Pengajuan berhasil dikirim.");
+      const res = await apiCall('submitRequest', payload);
+      if (res.success) {
+        showToast(res.message);
         closeRequestModal();
+        fetchUserRequests();
+      } else {
+        showToast(res.message, true);
       }
     }
 
-    function fetchUserRequests() {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              const tbody = document.getElementById('tblUserRequests');
-              tbody.innerHTML = '';
-              if (res.requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada riwayat pengajuan.</td></tr>';
-                return;
-              }
+    async function fetchUserRequests() {
+      const res = await apiCall('getRequestsData', { empId: currentUser.EMP_ID, role: currentUser.ROLE });
+      if (res.success) {
+        const tbody = document.getElementById('tblUserRequests');
+        tbody.innerHTML = '';
+        if (res.requests.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada riwayat pengajuan.</td></tr>';
+          return;
+        }
 
-              res.requests.forEach(r => {
-                let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
-                if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
-                if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
+        res.requests.forEach(r => {
+          let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
+          if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
+          if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
 
-                tbody.innerHTML += "<tr>" +
-                  "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "</td>" +
-                  "<td class='py-3 px-3 text-slate-500'>" + r.SUBMIT_DATE + "</td>" +
-                  "<td class='py-3 px-3 font-semibold text-brand-600'>" + r.TYPE + "</td>" +
-                  "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
-                  "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
-                  "<td class='py-3 px-3'>" + badge + "</td>" +
-                  "<td class='py-3 px-3 text-slate-400'>" + (r.ADMIN_NOTE || '-') + "</td>" +
-                "</tr>";
-              });
-            }
-          })
-          .getRequestsData(currentUser.EMP_ID, currentUser.ROLE);
+          tbody.innerHTML += "<tr>" +
+            "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "</td>" +
+            "<td class='py-3 px-3 text-slate-500'>" + r.SUBMIT_DATE + "</td>" +
+            "<td class='py-3 px-3 font-semibold text-brand-600'>" + r.TYPE + "</td>" +
+            "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
+            "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
+            "<td class='py-3 px-3'>" + badge + "</td>" +
+            "<td class='py-3 px-3 text-slate-400'>" + (r.ADMIN_NOTE || '-') + "</td>" +
+          "</tr>";
+        });
       }
     }
 
-    function fetchUserPayslips() {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              const tbody = document.getElementById('tblUserPayslips');
-              tbody.innerHTML = '';
-              if (res.payslips.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada dokumen slip gaji.</td></tr>';
-                return;
-              }
+    async function fetchUserPayslips() {
+      const res = await apiCall('getPayslipsData', { empId: currentUser.EMP_ID, role: currentUser.ROLE });
+      if (res.success) {
+        const tbody = document.getElementById('tblUserPayslips');
+        tbody.innerHTML = '';
+        if (res.payslips.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada dokumen slip gaji.</td></tr>';
+          return;
+        }
 
-              res.payslips.forEach(p => {
-                tbody.innerHTML += "<tr>" +
-                  "<td class='py-3 px-3 font-bold text-slate-800'>" + p.PAY_ID + "</td>" +
-                  "<td class='py-3 px-3 font-semibold text-slate-700'>" + p.PERIOD + "</td>" +
-                  "<td class='py-3 px-3 font-mono'>Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID') + "</td>" +
-                  "<td class='py-3 px-3 font-mono text-emerald-600'>Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID') + "</td>" +
-                  "<td class='py-3 px-3 font-mono text-red-500'>Rp " + parseInt(p.DEDUCTIONS||0).toLocaleString('id-ID') + "</td>" +
-                  "<td class='py-3 px-3 font-mono font-bold text-slate-900'>Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID') + "</td>" +
-                  "<td class='py-3 px-3'><button onclick='showToast(\"Cetak PDF Slip Gaji " + p.PAY_ID + "\")' class='px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold'><i class='fa-solid fa-print'></i> Cetak</button></td>" +
-                "</tr>";
-              });
-            }
-          })
-          .getPayslipsData(currentUser.EMP_ID, currentUser.ROLE);
+        res.payslips.forEach(p => {
+          tbody.innerHTML += "<tr>" +
+            "<td class='py-3 px-3 font-bold text-slate-800'>" + p.PAY_ID + "</td>" +
+            "<td class='py-3 px-3 font-semibold text-slate-700'>" + p.PERIOD + "</td>" +
+            "<td class='py-3 px-3 font-mono'>Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID') + "</td>" +
+            "<td class='py-3 px-3 font-mono text-emerald-600'>Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID') + "</td>" +
+            "<td class='py-3 px-3 font-mono text-red-500'>Rp " + parseInt(p.DEDUCTIONS||0).toLocaleString('id-ID') + "</td>" +
+            "<td class='py-3 px-3 font-mono font-bold text-slate-900'>Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID') + "</td>" +
+            "<td class='py-3 px-3'><button onclick='showToast(\"Cetak PDF Slip Gaji " + p.PAY_ID + "\")' class='px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold'><i class='fa-solid fa-print'></i> Cetak</button></td>" +
+          "</tr>";
+        });
       }
     }
 
-    function fetchAdminEmployees() {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              const tbody = document.getElementById('tblAdminEmployees');
-              tbody.innerHTML = '';
-              res.allUsers.forEach(u => {
-                tbody.innerHTML += "<tr>" +
-                  "<td class='py-3 px-3 flex items-center gap-2'>" +
-                    "<img src='" + (u.PROFILE_PIC || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80") + "' class='w-7 h-7 rounded-full object-cover'>" +
-                    "<div>" +
-                      "<p class='font-bold text-slate-800'>" + u.FULL_NAME + "</p>" +
-                      "<p class='text-[10px] font-mono text-slate-400'>" + u.EMP_ID + "</p>" +
-                    "</div>" +
-                  "</td>" +
-                  "<td class='py-3 px-3 text-slate-600'>" + u.EMAIL + "</td>" +
-                  "<td class='py-3 px-3'>" +
-                    "<p class='font-semibold text-slate-700'>" + u.POSITION + "</p>" +
-                    "<p class='text-[10px] text-slate-400'>" + u.DEPARTMENT + "</p>" +
-                  "</td>" +
-                  "<td class='py-3 px-3'><span class='px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-700'>" + u.ROLE + "</span></td>" +
-                  "<td class='py-3 px-3 font-bold text-brand-600'>" + u.LEAVE_BALANCE + " Hari</td>" +
-                  "<td class='py-3 px-3 font-bold text-amber-600'>" + u.SAVED_HOLIDAYS + " Hari</td>" +
-                  "<td class='py-3 px-3'>" +
-                    "<button onclick='editEmployee(\"" + u.EMP_ID + "\")' class='text-brand-600 hover:underline font-bold text-[11px]'><i class='fa-solid fa-pen-to-square'></i> Edit</button>" +
-                  "</td>" +
-                "</tr>";
-              });
-            }
-          })
-          .getDashboardData(currentUser.EMP_ID);
+    async function fetchAdminEmployees() {
+      const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
+      if (res.success) {
+        const tbody = document.getElementById('tblAdminEmployees');
+        tbody.innerHTML = '';
+        res.allUsers.forEach(u => {
+          tbody.innerHTML += "<tr>" +
+            "<td class='py-3 px-3 flex items-center gap-2'>" +
+              "<img src='" + (u.PROFILE_PIC || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80") + "' class='w-7 h-7 rounded-full object-cover'>" +
+              "<div>" +
+                "<p class='font-bold text-slate-800'>" + u.FULL_NAME + "</p>" +
+                "<p class='text-[10px] font-mono text-slate-400'>" + u.EMP_ID + "</p>" +
+              "</div>" +
+            "</td>" +
+            "<td class='py-3 px-3 text-slate-600'>" + u.EMAIL + "</td>" +
+            "<td class='py-3 px-3'>" +
+              "<p class='font-semibold text-slate-700'>" + u.POSITION + "</p>" +
+              "<p class='text-[10px] text-slate-400'>" + u.DEPARTMENT + "</p>" +
+            "</td>" +
+            "<td class='py-3 px-3'><span class='px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-700'>" + u.ROLE + "</span></td>" +
+            "<td class='py-3 px-3 font-bold text-brand-600'>" + u.LEAVE_BALANCE + " Hari</td>" +
+            "<td class='py-3 px-3 font-bold text-amber-600'>" + u.SAVED_HOLIDAYS + " Hari</td>" +
+            "<td class='py-3 px-3'>" +
+              "<button onclick='editEmployee(\"" + u.EMP_ID + "\")' class='text-brand-600 hover:underline font-bold text-[11px]'><i class='fa-solid fa-pen-to-square'></i> Edit</button>" +
+            "</td>" +
+          "</tr>";
+        });
       }
     }
 
-    function editEmployee(empId) {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success && res.allUsers) {
-              const emp = res.allUsers.find(u => u.EMP_ID === empId);
-              if (emp) {
-                document.getElementById('empIsEdit').value = "true";
-                document.getElementById('empEditId').value = emp.EMP_ID;
-                document.getElementById('employeeModalTitle').innerText = "Edit Data Karyawan (" + emp.EMP_ID + ")";
-                document.getElementById('empFullName').value = emp.FULL_NAME || "";
-                document.getElementById('empEmail').value = emp.EMAIL || "";
-                document.getElementById('empRole').value = emp.ROLE || "EMPLOYEE";
-                document.getElementById('empPosition').value = emp.POSITION || "";
-                document.getElementById('empDepartment').value = emp.DEPARTMENT || "";
-                document.getElementById('empLeaveBalance').value = emp.LEAVE_BALANCE || "12";
-                document.getElementById('empBasicSalary').value = emp.BASIC_SALARY || "0";
-                document.getElementById('empAllowance').value = emp.ALLOWANCE || "0";
-                document.getElementById('empContractUrl').value = emp.CONTRACT_DOC_URL || "";
-                document.getElementById('empBpjsUrl').value = emp.BPJS_DOC_URL || "";
-                document.getElementById('modalEmployee').classList.remove('hidden');
-              }
-            }
-          })
-          .getDashboardData(currentUser.EMP_ID);
+    async function editEmployee(empId) {
+      const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
+      if (res.success && res.allUsers) {
+        const emp = res.allUsers.find(u => u.EMP_ID === empId);
+        if (emp) {
+          document.getElementById('empIsEdit').value = "true";
+          document.getElementById('empEditId').value = emp.EMP_ID;
+          document.getElementById('employeeModalTitle').innerText = "Edit Data Karyawan (" + emp.EMP_ID + ")";
+          document.getElementById('empFullName').value = emp.FULL_NAME || "";
+          document.getElementById('empEmail').value = emp.EMAIL || "";
+          document.getElementById('empRole').value = emp.ROLE || "EMPLOYEE";
+          document.getElementById('empPosition').value = emp.POSITION || "";
+          document.getElementById('empDepartment').value = emp.DEPARTMENT || "";
+          document.getElementById('empLeaveBalance').value = emp.LEAVE_BALANCE || "12";
+          document.getElementById('empBasicSalary').value = emp.BASIC_SALARY || "0";
+          document.getElementById('empAllowance').value = emp.ALLOWANCE || "0";
+          document.getElementById('empContractUrl').value = emp.CONTRACT_DOC_URL || "";
+          document.getElementById('empBpjsUrl').value = emp.BPJS_DOC_URL || "";
+          document.getElementById('modalEmployee').classList.remove('hidden');
+        }
       }
     }
 
@@ -1815,7 +1660,7 @@
       document.getElementById('modalEmployee').classList.add('hidden');
     }
 
-    function submitEmployeeForm() {
+    async function submitEmployeeForm() {
       const payload = {
         isEdit: document.getElementById('empIsEdit').value === 'true',
         empId: document.getElementById('empEditId').value,
@@ -1834,108 +1679,82 @@
         joinDate: new Date().toLocaleDateString('id-ID')
       };
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              showToast(res.message);
-              closeEmployeeModal();
-              fetchAdminEmployees();
-            } else {
-              showToast(res.message, true);
-            }
-          })
-          .saveEmployee(payload);
-      } else {
-        showToast("Demo Mode: Akun karyawan tersimpan.");
+      const res = await apiCall('saveEmployee', payload);
+      if (res.success) {
+        showToast(res.message);
         closeEmployeeModal();
+        fetchAdminEmployees();
+      } else {
+        showToast(res.message, true);
       }
     }
 
-    function fetchAdminApprovals() {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              const tbody = document.getElementById('tblAdminApprovals');
-              tbody.innerHTML = '';
-              if (res.requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Tidak ada data pengajuan.</td></tr>';
-                return;
-              }
+    async function fetchAdminApprovals() {
+      const res = await apiCall('getRequestsData', { empId: currentUser.EMP_ID, role: currentUser.ROLE });
+      if (res.success) {
+        const tbody = document.getElementById('tblAdminApprovals');
+        tbody.innerHTML = '';
+        if (res.requests.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Tidak ada data pengajuan.</td></tr>';
+          return;
+        }
 
-              res.requests.forEach(r => {
-                let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
-                if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
-                if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
+        res.requests.forEach(r => {
+          let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
+          if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
+          if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
 
-                let actions = '-';
-                if (r.STATUS === 'PENDING') {
-                  actions = "<div class='flex items-center justify-center gap-1'>" +
-                    "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"APPROVED\")' class='px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:bg-emerald-700'><i class='fa-solid fa-check'></i> Setujui</button>" +
-                    "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"REJECTED\")' class='px-2.5 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700'><i class='fa-solid fa-xmark'></i> Tolak</button>" +
-                  "</div>";
-                }
+          let actions = '-';
+          if (r.STATUS === 'PENDING') {
+            actions = "<div class='flex items-center justify-center gap-1'>" +
+              "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"APPROVED\")' class='px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:bg-emerald-700'><i class='fa-solid fa-check'></i> Setujui</button>" +
+              "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"REJECTED\")' class='px-2.5 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700'><i class='fa-solid fa-xmark'></i> Tolak</button>" +
+            "</div>";
+          }
 
-                tbody.innerHTML += "<tr>" +
-                  "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "<p class='text-[10px] text-slate-400 font-normal'>" + r.SUBMIT_DATE + "</p></td>" +
-                  "<td class='py-3 px-3 font-semibold text-slate-800'>" + r.FULL_NAME + "</td>" +
-                  "<td class='py-3 px-3 font-bold text-brand-600'>" + r.TYPE + "</td>" +
-                  "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
-                  "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
-                  "<td class='py-3 px-3'>" + badge + "</td>" +
-                  "<td class='py-3 px-3 text-center'>" + actions + "</td>" +
-                "</tr>";
-              });
-            }
-          })
-          .getRequestsData(currentUser.EMP_ID, currentUser.ROLE);
+          tbody.innerHTML += "<tr>" +
+            "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "<p class='text-[10px] text-slate-400 font-normal'>" + r.SUBMIT_DATE + "</p></td>" +
+            "<td class='py-3 px-3 font-semibold text-slate-800'>" + r.FULL_NAME + "</td>" +
+            "<td class='py-3 px-3 font-bold text-brand-600'>" + r.TYPE + "</td>" +
+            "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
+            "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
+            "<td class='py-3 px-3'>" + badge + "</td>" +
+            "<td class='py-3 px-3 text-center'>" + actions + "</td>" +
+          "</tr>";
+        });
       }
     }
 
-    function processApproval(reqId, status) {
+    async function processApproval(reqId, status) {
       const note = prompt("Masukkan catatan admin (opsional):", status === 'APPROVED' ? 'Disetujui HR' : 'Tidak memenuhi kriteria');
       
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              showToast(res.message);
-              fetchAdminApprovals();
-              loadDashboardData();
-            } else {
-              showToast(res.message, true);
-            }
-          })
-          .updateRequestStatus(reqId, status, note, currentUser.FULL_NAME);
+      const res = await apiCall('updateRequestStatus', { reqId: reqId, status: status, adminNote: note, adminName: currentUser.FULL_NAME });
+      if (res.success) {
+        showToast(res.message);
+        fetchAdminApprovals();
+        loadDashboardData();
       } else {
-        showToast("Demo Mode: Status pengajuan diperbarui.");
+        showToast(res.message, true);
       }
     }
 
-    function saveOfficeSettings() {
+    async function saveOfficeSettings() {
       const lat = document.getElementById('settingOfficeLat').value;
       const lng = document.getElementById('settingOfficeLng').value;
       const radius = document.getElementById('settingMaxRadius').value;
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res.success) {
-              showToast(res.message);
-              officeSettings.OFFICE_LAT = lat;
-              officeSettings.OFFICE_LNG = lng;
-              officeSettings.MAX_RADIUS_METERS = radius;
-              document.getElementById('displayOfficeRadius').innerText = radius + ' Meter';
-            }
-          })
-          .updateOfficeSettings(lat, lng, radius);
+      const res = await apiCall('updateOfficeSettings', { lat: lat, lng: lng, radius: radius });
+      if (res.success) {
+        showToast(res.message);
+        officeSettings.OFFICE_LAT = lat;
+        officeSettings.OFFICE_LNG = lng;
+        officeSettings.MAX_RADIUS_METERS = radius;
+        document.getElementById('displayOfficeRadius').innerText = radius + ' Meter';
       } else {
-        showToast("Demo Mode: Setting lokasi disimpan.");
+        showToast(res.message, true);
       }
     }
 
-    // CALENDAR GRID GENERATOR
     function changeCalendarMonth(delta) {
       currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
       initMiniCalendar();
@@ -1961,8 +1780,6 @@
       }
 
       for (let day = 1; day <= daysInMonth; day++) {
-        const dayStr = String(day).padStart(2, '0') + '/' + String(month + 1).padStart(2, '0') + '/' + year;
-        
         let hasEvent = allAgendasList.some(a => a.DATE && a.DATE.startsWith(String(day).padStart(2, '0')));
         let isToday = (day === 22 && month === 7) ? 'bg-brand-600 text-white rounded-full font-bold shadow-md' : 'hover:bg-slate-100 text-slate-700 rounded-full py-1.5';
 
