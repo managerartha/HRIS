@@ -928,6 +928,11 @@
 
   <!-- FRONTEND JAVASCRIPT LOGIC ENGINE -->
   <script>
+    // =========================================================================
+    // 🔗 PASTE GOOGLE APPS SCRIPT WEB APP URL DI BAWAH INI:
+    // =========================================================================
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHc-Uy9m1f6waAdwKVbnvimjWo14k10OCSaY1ujIoklVWC5bn8ClvEDhkSfr6TDGrF9Q/exec";
+
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10' };
     let activeDutyAssignment = null;
@@ -969,42 +974,42 @@
       
       toast.classList.remove('translate-y-20', 'opacity-0');
       setTimeout(() => {
-        toast.classList.add('translate-y-20', 'opacity-0');
-      }, 3500);
-    }
-
-    function handleLogin() {
-      const email = document.getElementById('loginEmail').value;
-      const pass = document.getElementById('loginPassword').value;
-      const btn = document.getElementById('btnLoginSubmit');
-
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Memeriksa...';
-
+    function apiCall(action, payload = {}, callback) {
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(res => {
-            btn.disabled = false;
-            btn.innerHTML = '<span>Masuk ke Portal</span><i class="fa-solid fa-arrow-right text-xs"></i>';
-            if (res.success) {
-              currentUser = res.user;
-              onLoginSuccess();
-            } else {
-              showToast(res.message, true);
-            }
-          })
-          .withFailureHandler(err => {
-            btn.disabled = false;
-            btn.innerHTML = '<span>Masuk ke Portal</span>';
-            showToast("Error: " + err.message, true);
-          })
-          .loginUser(email, pass);
+        // Fallback untuk mode Apps Script biasa
+        if (action === 'loginUser') google.script.run.withSuccessHandler(callback).loginUser(payload.email, payload.password);
+        if (action === 'getDashboardData') google.script.run.withSuccessHandler(callback).getDashboardData(payload.empId);
+        if (action === 'submitAttendance') google.script.run.withSuccessHandler(callback).submitAttendance(payload);
+        if (action === 'submitRequest') google.script.run.withSuccessHandler(callback).submitRequest(payload);
+        if (action === 'getRequestsData') google.script.run.withSuccessHandler(callback).getRequestsData(payload.empId, payload.role);
+        if (action === 'getPayslipsData') google.script.run.withSuccessHandler(callback).getPayslipsData(payload.empId, payload.role);
+        if (action === 'saveEmployee') google.script.run.withSuccessHandler(callback).saveEmployee(payload);
+        if (action === 'updateRequestStatus') google.script.run.withSuccessHandler(callback).updateRequestStatus(payload.reqId, payload.status, payload.adminNote, payload.adminName);
+        if (action === 'updateOfficeSettings') google.script.run.withSuccessHandler(callback).updateOfficeSettings(payload.lat, payload.lng, payload.radius);
+        if (action === 'updateProfilePhoto') google.script.run.withSuccessHandler(callback).updateProfilePhoto(payload.empId, payload.photoBase64);
+        if (action === 'addAgenda') google.script.run.withSuccessHandler(callback).addAgenda(payload);
+        if (action === 'deleteAgenda') google.script.run.withSuccessHandler(callback).deleteAgenda(payload.agendaId, payload.empId, payload.role);
+        if (action === 'addDutyAssignment') google.script.run.withSuccessHandler(callback).addDutyAssignment(payload);
+        if (action === 'deleteDutyAssignment') google.script.run.withSuccessHandler(callback).deleteDutyAssignment(payload.dutyId);
       } else {
-        btn.disabled = false;
-        btn.innerHTML = '<span>Masuk ke Portal</span>';
-        currentUser = (email.includes('admin')) ? 
-          { ...previewData.user, ROLE: 'ADMIN', FULL_NAME: 'Administrator HR' } : previewData.user;
-        onLoginSuccess();
+        // Mode Fetch REST API untuk GitHub Pages
+        const targetUrl = APPS_SCRIPT_URL;
+        if (!targetUrl || targetUrl.includes("PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE")) {
+          showToast("URL Apps Script belum dipasang di index.html!", true);
+          return;
+        }
+
+        fetch(targetUrl, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: action, payload: payload })
+        })
+        .then(res => res.json())
+        .then(data => callback(data))
+        .catch(err => {
+          showToast("Gagal terhubung ke Apps Script API: " + err.message, true);
+        });
       }
     }
 
