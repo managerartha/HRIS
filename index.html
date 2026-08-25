@@ -36,11 +36,11 @@
     .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-    /* STYLE KHUSUS CETAK SLIP GAJI */
+    /* STYLE KHUSUS CETAK SLIP GAJI & LAPORAN PRESENSI PDF */
     @media print {
       body * { visibility: hidden; }
-      #modalPrintPayslip, #modalPrintPayslip * { visibility: visible; }
-      #modalPrintPayslip { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 0; margin: 0; }
+      #modalPrintPayslip, #modalPrintPayslip *, #modalPrintAttendanceReport, #modalPrintAttendanceReport * { visibility: visible; }
+      #modalPrintPayslip, #modalPrintAttendanceReport { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 0; margin: 0; }
       .no-print { display: none !important; }
     }
   </style>
@@ -132,6 +132,9 @@
             <button onclick="switchTab('adminApprovals')" id="nav-adminApprovals" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left relative">
               <i class="fa-solid fa-clipboard-check w-5"></i> Persetujuan
               <span id="badgePendingCount" class="ml-auto bg-amber-400 text-slate-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full hidden">0</span>
+            </button>
+            <button onclick="openAttendanceReportModal()" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left text-amber-300">
+              <i class="fa-solid fa-file-pdf w-5"></i> Laporan Presensi (PDF)
             </button>
             <button onclick="switchTab('adminSettings')" id="nav-adminSettings" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left">
               <i class="fa-solid fa-gears w-5"></i> Pengaturan Kantor
@@ -495,7 +498,7 @@
           </div>
 
           <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <h3 class="font-extrabold text-slate-800 text-sm mb-4">Riwayat Slip Gaji Bulanan (Otomatis Akhir Bulan)</h3>
+            <h3 class="font-extrabold text-slate-800 text-sm mb-4">Riwayat Slip Gaji Bulanan</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse">
                 <thead>
@@ -504,7 +507,7 @@
                     <th class="py-3 px-3">Periode Bulan</th>
                     <th class="py-3 px-3">Gaji Pokok</th>
                     <th class="py-3 px-3">Tunjangan</th>
-                    <th class="py-3 px-3">Potongan Terlambat</th>
+                    <th class="py-3 px-3">Total Potongan</th>
                     <th class="py-3 px-3">THP (Gaji Bersih)</th>
                     <th class="py-3 px-3 text-center">Cetak Slip</th>
                   </tr>
@@ -536,9 +539,9 @@
                     <th class="py-3 px-3">ID / Nama</th>
                     <th class="py-3 px-3">Email</th>
                     <th class="py-3 px-3">Jabatan & Dept</th>
-                    <th class="py-3 px-3">Role Akses</th>
+                    <th class="py-3 px-3">Potongan BPJS TK</th>
+                    <th class="py-3 px-3">Potongan BPJS Kes</th>
                     <th class="py-3 px-3">Sisa Cuti</th>
-                    <th class="py-3 px-3">Tabung Libur</th>
                     <th class="py-3 px-3">Aksi</th>
                   </tr>
                 </thead>
@@ -659,7 +662,7 @@
     </div>
   </div>
 
-  <!-- MODAL CETAK SLIP GAJI (PRINT LAYOUT FORMAL) -->
+  <!-- MODAL CETAK SLIP GAJI (PRINT LAYOUT FORMAL DENGAN RINCIAN BPJS & PERIZINAN) -->
   <div id="modalPrintPayslip" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 text-slate-800 my-6">
       
@@ -711,9 +714,19 @@
               <td class="py-2 text-right font-mono text-slate-400">-</td>
             </tr>
             <tr>
-              <td class="py-2 text-red-600 font-semibold" id="printLateDeductionLabel">Potongan Keterlambatan (0x Terlambat)</td>
+              <td class="py-2 text-red-600 font-semibold" id="printLateDeductionLabel">Potongan Keterlambatan (0x Terlambat Tanpa Izin)</td>
               <td class="py-2 text-right font-mono text-slate-400">-</td>
               <td class="py-2 text-right font-mono text-red-600" id="printLateDeduction">Rp 0</td>
+            </tr>
+            <tr>
+              <td class="py-2 text-red-600 font-semibold">Potongan BPJS Ketenagakerjaan (TK)</td>
+              <td class="py-2 text-right font-mono text-slate-400">-</td>
+              <td class="py-2 text-right font-mono text-red-600" id="printBpjsTkDeduction">Rp 0</td>
+            </tr>
+            <tr id="printBpjsKesRow">
+              <td class="py-2 text-red-600 font-semibold">Potongan BPJS Kesehatan (Perusahaan)</td>
+              <td class="py-2 text-right font-mono text-slate-400">-</td>
+              <td class="py-2 text-right font-mono text-red-600" id="printBpjsKesDeduction">Rp 0</td>
             </tr>
           </tbody>
           <tfoot>
@@ -725,13 +738,13 @@
         </table>
       </div>
 
-      <!-- KOLOM TANDA TANGAN FORMAL -->
+      <!-- KOLOM TANDA TANGAN FORMAL SLIP GAJI -->
       <div class="pt-6 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs">
         <div class="space-y-12">
-          <p class="font-bold text-slate-600">Bagian Keuangan,</p>
+          <p class="font-bold text-slate-600">Bagian Keuangan & HRD,</p>
           <div>
-            <p class="font-extrabold text-slate-900 text-sm underline">Avitya</p>
-            <p class="text-[10px] text-slate-400 font-semibold uppercase">Finance Dept</p>
+            <p class="font-extrabold text-slate-900 text-sm underline">Avitya Fitriana</p>
+            <p class="text-[10px] text-slate-400 font-semibold uppercase">Finance & HR Dept</p>
           </div>
         </div>
 
@@ -749,6 +762,71 @@
         <button type="button" onclick="closePrintPayslipModal()" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Tutup</button>
         <button type="button" onclick="triggerPrintProcess()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-print"></i> Cetak / Simpan PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL LAPORAN PRESENSI PDF (ADMIN ONLY) -->
+  <div id="modalPrintAttendanceReport" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-4xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 text-slate-800 my-6">
+      
+      <!-- LOGO RESMI KOP SURAT LAPORAN -->
+      <div class="flex items-center justify-between border-b-2 border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <img src="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png" alt="PT Artha Safety Indonesia" class="h-11 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/220x55/101935/ffffff?text=ARTHA+SAFETY';">
+        </div>
+        <div class="text-right">
+          <span class="px-3 py-1 bg-amber-100 text-amber-900 rounded-lg text-xs font-extrabold uppercase inline-block mb-1">LAPORAN REKAPITULASI PRESENSI</span>
+          <p class="text-xs font-bold text-slate-600" id="printReportPeriod">Periode: Agustus 2026</p>
+        </div>
+      </div>
+
+      <!-- TABEL REKAPITULASI LAPORAN -->
+      <div class="space-y-3">
+        <h4 class="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">Daftar Kehadiran & Status Presensi Seluruh Karyawan</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="border-b-2 border-slate-800 font-bold text-slate-700 uppercase text-[10px] bg-slate-50">
+                <th class="py-2.5 px-3">Tanggal</th>
+                <th class="py-2.5 px-3">Nama Karyawan</th>
+                <th class="py-2.5 px-3">Jam Masuk</th>
+                <th class="py-2.5 px-3">Jam Keluar</th>
+                <th class="py-2.5 px-3">Lokasi Absen</th>
+                <th class="py-2.5 px-3">Status</th>
+              </tr>
+            </thead>
+            <tbody id="tblReportAttendance" class="divide-y divide-slate-200 font-medium">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- KOLOM TANDA TANGAN FORMAL LAPORAN PRESENSI PDF -->
+      <div class="pt-8 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs">
+        <div class="space-y-12">
+          <p class="font-bold text-slate-600">Dibuat Oleh (HRD),</p>
+          <div>
+            <p class="font-extrabold text-slate-900 text-sm underline">Reninta Kikis Santika</p>
+            <p class="text-[10px] text-slate-400 font-semibold uppercase">Human Resource Dept</p>
+          </div>
+        </div>
+
+        <div class="space-y-12">
+          <p class="font-bold text-slate-600">Disetujui Oleh Pimpinan,</p>
+          <div>
+            <p class="font-extrabold text-slate-900 text-sm underline">Saut Reynald Ricardo Simbolon</p>
+            <p class="text-[10px] text-slate-400 font-semibold uppercase">Direktur Utama</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOMBOL AKSI CETAK LAPORAN -->
+      <div class="pt-4 border-t border-slate-100 flex justify-end gap-3 no-print">
+        <button type="button" onclick="closeAttendanceReportModal()" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Tutup</button>
+        <button type="button" onclick="triggerPrintProcess()" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
+          <i class="fa-solid fa-print"></i> Cetak PDF Laporan
         </button>
       </div>
     </div>
@@ -886,7 +964,7 @@
           <select id="reqType" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none">
             <option value="Pengajuan Cuti">Pengajuan Cuti Tahunan</option>
             <option value="Pengganti Hari Libur">Pengganti Hari Libur (Gunakan Tabungan Libur)</option>
-            <option value="Izin Terlambat">Izin Terlambat Hadir</option>
+            <option value="Izin Terlambat">Izin Terlambat Hadir (Bebas Potongan Denda jika Disetujui)</option>
             <option value="Izin Sakit">Izin Sakit (Surat Dokter)</option>
             <option value="Tabung Hari Libur">Menabung Hari Libur (Masuk Minggu/Tgl Merah)</option>
           </select>
@@ -980,7 +1058,7 @@
     </div>
   </div>
 
-  <!-- MODAL ADD/EDIT EMPLOYEE -->
+  <!-- MODAL ADD/EDIT EMPLOYEE (LENGKAP PENGATURAN POTONGAN BPJS TK & KESEHATAN) -->
   <div id="modalEmployee" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1043,6 +1121,26 @@
           </div>
         </div>
 
+        <!-- SEKSI POTONGAN BPJS TK & BPJS KESEHATAN -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+          <p class="font-bold text-xs text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-calculator text-emerald-600"></i> Pengaturan Potongan BPJS (Nominal)</p>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Nominal Potongan BPJS TK (Rp)</label>
+              <input type="number" id="empBpjsTkAmount" required value="100000" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-red-600">
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <input type="checkbox" id="empHasBpjsKes" onchange="toggleBpjsKesInput()" class="w-4 h-4 text-emerald-600 rounded">
+                <label for="empHasBpjsKes" class="text-[11px] font-bold text-slate-700">BPJS Kesehatan Perusahaan</label>
+              </div>
+              <input type="number" id="empBpjsKesAmount" value="75000" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-red-600 disabled:opacity-50">
+            </div>
+          </div>
+        </div>
+
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Link Dokumen Kontrak (Drive/PDF)</label>
           <input type="url" id="empContractUrl" placeholder="https://drive.google.com/..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
@@ -1073,7 +1171,7 @@
     // ============================================================================
     // KONFIGURASI UTAMA BACKEND APPS SCRIPT (GITHUB PAGES FRONTEND)
     // ============================================================================
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzn2ZLyLtNExj6pgO-p6EGdSHCklO2SchqY9BqALuBPsdtxQjksY2Inm3iDZcGejikjew/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzX2PmQMVnlRzoOWPsjvq0VMglf7RThBbt_PPu-OmYVJhkNhuYge9iBKEecycNr_aI3tA/exec";
 
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10', WORK_START_TIME: '08:00', WORK_END_TIME: '17:00' };
@@ -1200,7 +1298,6 @@
       showToast("Anda telah keluar dari aplikasi.");
     }
 
-    // INSTANT 0ms TAB SWITCHER DENGAN RENDER LOKAL IN-MEMORY
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav'));
@@ -1225,7 +1322,6 @@
         officeSettings = res.settings;
         activeDutyAssignment = res.activeDuty || null;
         
-        // Simpan ke Cache Memory
         cachedData.agendas = res.agendas || [];
         cachedData.users = res.allUsers || [];
         cachedData.requests = res.requests || [];
@@ -1335,6 +1431,36 @@
 
     function closePhotoViewerModal() {
       document.getElementById('modalPhotoViewer').classList.add('hidden');
+    }
+
+    function openAttendanceReportModal() {
+      const tbody = document.getElementById('tblReportAttendance');
+      tbody.innerHTML = '';
+
+      if (!cachedData.attendance || cachedData.attendance.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Tidak ada data rekap presensi.</td></tr>';
+      } else {
+        cachedData.attendance.forEach(a => {
+          let badge = a.STATUS === 'TEPAT WAKTU' ? 
+            '<span class="text-emerald-700 font-bold">TEPAT WAKTU</span>' : 
+            '<span class="text-amber-700 font-bold">TERLAMBAT</span>';
+
+          tbody.innerHTML += "<tr>" +
+            "<td class='py-2 px-3 font-mono text-slate-600'>" + a.DATE + "</td>" +
+            "<td class='py-2 px-3 font-bold text-slate-900'>" + a.FULL_NAME + " (" + a.EMP_ID + ")</td>" +
+            "<td class='py-2 px-3 font-mono text-emerald-700'>" + (a.CHECKIN_TIME || '-') + "</td>" +
+            "<td class='py-2 px-3 font-mono text-slate-500'>" + (a.CHECKOUT_TIME || '-') + "</td>" +
+            "<td class='py-2 px-3 text-slate-600'>" + (a.LOCATION_NAME || 'HQ') + "</td>" +
+            "<td class='py-2 px-3'>" + badge + "</td>" +
+          "</tr>";
+        });
+      }
+
+      document.getElementById('modalPrintAttendanceReport').classList.remove('hidden');
+    }
+
+    function closeAttendanceReportModal() {
+      document.getElementById('modalPrintAttendanceReport').classList.add('hidden');
     }
 
     function getLocationGPS() {
@@ -1768,7 +1894,6 @@
         docUrl: document.getElementById('reqDocUrl').value
       };
 
-      // Optimistic Local Update
       const newReqLocal = {
         REQ_ID: 'REQ-NEW',
         SUBMIT_DATE: new Date().toLocaleDateString('id-ID'),
@@ -1828,15 +1953,15 @@
 
       cachedData.payslips.forEach((p, idx) => {
         const lateDeductionText = p.LATE_DEDUCTION > 0 ? 
-          "Rp " + parseInt(p.LATE_DEDUCTION).toLocaleString('id-ID') + " (" + p.LATE_COUNT + "x Telat)" : 
-          "Rp 0 (0x Telat)";
+          "Rp " + parseInt(p.LATE_DEDUCTION).toLocaleString('id-ID') + " (" + p.LATE_COUNT + "x Denda)" : 
+          "Rp 0 (0x Denda)";
 
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + p.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + p.EMP_ID + "</p></td>" +
           "<td class='py-3 px-3 font-semibold text-slate-700'>" + p.PERIOD + "</td>" +
           "<td class='py-3 px-3 font-mono'>Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 font-mono text-emerald-600'>Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID') + "</td>" +
-          "<td class='py-3 px-3 font-mono text-red-500'>" + lateDeductionText + "</td>" +
+          "<td class='py-3 px-3 font-mono text-red-500'>Rp " + parseInt(p.DEDUCTIONS||0).toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 font-mono font-bold text-slate-900'>Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 text-center'>" +
             "<button onclick='openPrintPayslipModal(" + idx + ")' class='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold shadow-sm transition inline-flex items-center gap-1.5'>" +
@@ -1860,8 +1985,19 @@
       document.getElementById('printBasicSalary').innerText = "Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID');
       document.getElementById('printAllowance').innerText = "Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID');
 
-      document.getElementById('printLateDeductionLabel').innerText = "Potongan Keterlambatan (" + (p.LATE_COUNT||0) + "x Terlambat)";
+      const excusedText = p.EXCUSED_LATE_COUNT > 0 ? " [" + p.EXCUSED_LATE_COUNT + "x Izin Disetujui]" : "";
+      document.getElementById('printLateDeductionLabel').innerText = "Potongan Keterlambatan (" + (p.LATE_COUNT||0) + "x Denda)" + excusedText;
       document.getElementById('printLateDeduction').innerText = "Rp " + parseInt(p.LATE_DEDUCTION||0).toLocaleString('id-ID');
+
+      document.getElementById('printBpjsTkDeduction').innerText = "Rp " + parseInt(p.BPJS_TK_AMOUNT||0).toLocaleString('id-ID');
+
+      const kesRow = document.getElementById('printBpjsKesRow');
+      if (p.HAS_BPJS_KES) {
+        kesRow.classList.remove('hidden');
+        document.getElementById('printBpjsKesDeduction').innerText = "Rp " + parseInt(p.BPJS_KES_AMOUNT||0).toLocaleString('id-ID');
+      } else {
+        kesRow.classList.add('hidden');
+      }
 
       document.getElementById('printNetSalary').innerText = "Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID');
 
@@ -1876,12 +2012,22 @@
       window.print();
     }
 
+    function toggleBpjsKesInput() {
+      const chk = document.getElementById('empHasBpjsKes');
+      const input = document.getElementById('empBpjsKesAmount');
+      input.disabled = !chk.checked;
+      if (!chk.checked) input.value = 0;
+    }
+
     function renderAdminEmployeesTable() {
       const tbody = document.getElementById('tblAdminEmployees');
       tbody.innerHTML = '';
       if (!cachedData.users) return;
 
       cachedData.users.forEach(u => {
+        const bpjsKesText = (String(u.HAS_BPJS_KES).toUpperCase() === 'TRUE') ? 
+          "Rp " + parseInt(u.BPJS_KES_AMOUNT||0).toLocaleString('id-ID') : "Tidak Ada";
+
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 flex items-center gap-2'>" +
             "<img src='" + (u.PROFILE_PIC || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80") + "' class='w-7 h-7 rounded-full object-cover'>" +
@@ -1895,9 +2041,9 @@
             "<p class='font-semibold text-slate-700'>" + u.POSITION + "</p>" +
             "<p class='text-[10px] text-slate-400'>" + u.DEPARTMENT + "</p>" +
           "</td>" +
-          "<td class='py-3 px-3'><span class='px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-700'>" + u.ROLE + "</span></td>" +
+          "<td class='py-3 px-3 font-mono font-bold text-red-600'>Rp " + parseInt(u.BPJS_TK_AMOUNT||0).toLocaleString('id-ID') + "</td>" +
+          "<td class='py-3 px-3 font-mono font-bold text-red-600'>" + bpjsKesText + "</td>" +
           "<td class='py-3 px-3 font-bold text-emerald-600'>" + u.LEAVE_BALANCE + " Hari</td>" +
-          "<td class='py-3 px-3 font-bold text-amber-600'>" + u.SAVED_HOLIDAYS + " Hari</td>" +
           "<td class='py-3 px-3'>" +
             "<button onclick='editEmployee(\"" + u.EMP_ID + "\")' class='text-emerald-600 hover:underline font-bold text-[11px]'><i class='fa-solid fa-pen-to-square'></i> Edit</button>" +
           "</td>" +
@@ -1921,6 +2067,13 @@
         document.getElementById('empAllowance').value = emp.ALLOWANCE || "0";
         document.getElementById('empContractUrl').value = emp.CONTRACT_DOC_URL || "";
         document.getElementById('empBpjsUrl').value = emp.BPJS_DOC_URL || "";
+
+        document.getElementById('empBpjsTkAmount').value = emp.BPJS_TK_AMOUNT || "0";
+        const hasKes = String(emp.HAS_BPJS_KES).toUpperCase() === 'TRUE';
+        document.getElementById('empHasBpjsKes').checked = hasKes;
+        document.getElementById('empBpjsKesAmount').value = emp.BPJS_KES_AMOUNT || "0";
+        document.getElementById('empBpjsKesAmount').disabled = !hasKes;
+
         document.getElementById('modalEmployee').classList.remove('hidden');
       }
     }
@@ -1929,6 +2082,8 @@
       document.getElementById('empIsEdit').value = "false";
       document.getElementById('employeeModalTitle').innerText = "Tambah Akun Karyawan Baru";
       document.getElementById('formEmployee').reset();
+      document.getElementById('empHasBpjsKes').checked = false;
+      document.getElementById('empBpjsKesAmount').disabled = true;
       document.getElementById('modalEmployee').classList.remove('hidden');
     }
 
@@ -1952,6 +2107,9 @@
         allowance: document.getElementById('empAllowance').value,
         contractUrl: document.getElementById('empContractUrl').value,
         bpjsUrl: document.getElementById('empBpjsUrl').value,
+        bpjsTkAmount: document.getElementById('empBpjsTkAmount').value,
+        hasBpjsKes: document.getElementById('empHasBpjsKes').checked,
+        bpjsKesAmount: document.getElementById('empBpjsKesAmount').value,
         joinDate: new Date().toLocaleDateString('id-ID')
       };
 
