@@ -489,7 +489,7 @@
               <div>
                 <p class="text-xs text-slate-400 font-semibold uppercase">Tabungan Hari Libur (Kerja Minggu/Tgl Merah)</p>
                 <h2 class="text-4xl font-extrabold mt-1 text-amber-400" id="payslipSavedHolidays">0 Hari</h2>
-                <p class="text-[11px] text-slate-400 mt-2">Dapat ditukarkan sebagai Pengganti Hari Libur.</p>
+                <p class="text-[11px] text-slate-400 mt-2">Dapat ditukarkan Libur Pengganti atau Diuangkan (Rp 50.000/hari).</p>
               </div>
               <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-3xl backdrop-blur-md text-amber-400">
                 <i class="fa-solid fa-piggy-bank"></i>
@@ -540,7 +540,7 @@
                     <th class="py-3 px-3">Email</th>
                     <th class="py-3 px-3">Jabatan & Dept</th>
                     <th class="py-3 px-3">Potongan BPJS TK</th>
-                    <th class="py-3 px-3">Potongan BPJS Kes</th>
+                    <th class="py-3 px-3">Kasbon Bulanan</th>
                     <th class="py-3 px-3">Sisa Cuti</th>
                     <th class="py-3 px-3">Aksi</th>
                   </tr>
@@ -662,7 +662,7 @@
     </div>
   </div>
 
-  <!-- MODAL CETAK SLIP GAJI (PRINT LAYOUT FORMAL DENGAN RINCIAN BPJS & PERIZINAN) -->
+  <!-- MODAL CETAK SLIP GAJI (PRINT LAYOUT FORMAL DENGAN KASBON & DANA HARI LIBUR) -->
   <div id="modalPrintPayslip" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 text-slate-800 my-6">
       
@@ -713,6 +713,11 @@
               <td class="py-2 text-right font-mono text-emerald-600" id="printAllowance">Rp 1.500.000</td>
               <td class="py-2 text-right font-mono text-slate-400">-</td>
             </tr>
+            <tr id="printEncashedHolidayRow" class="hidden">
+              <td class="py-2 text-emerald-600 font-semibold" id="printEncashedHolidayLabel">Kompensasi Tabungan Libur Diuangkan</td>
+              <td class="py-2 text-right font-mono text-emerald-600" id="printEncashedHolidayPay">Rp 0</td>
+              <td class="py-2 text-right font-mono text-slate-400">-</td>
+            </tr>
             <tr>
               <td class="py-2 text-red-600 font-semibold" id="printLateDeductionLabel">Potongan Keterlambatan (0x Terlambat Tanpa Izin)</td>
               <td class="py-2 text-right font-mono text-slate-400">-</td>
@@ -727,6 +732,11 @@
               <td class="py-2 text-red-600 font-semibold">Potongan BPJS Kesehatan (Perusahaan)</td>
               <td class="py-2 text-right font-mono text-slate-400">-</td>
               <td class="py-2 text-right font-mono text-red-600" id="printBpjsKesDeduction">Rp 0</td>
+            </tr>
+            <tr id="printKasbonRow" class="hidden">
+              <td class="py-2 text-red-600 font-semibold">Potongan Kasbon / Pinjaman Karyawan</td>
+              <td class="py-2 text-right font-mono text-slate-400">-</td>
+              <td class="py-2 text-right font-mono text-red-600" id="printKasbonDeduction">Rp 0</td>
             </tr>
           </tbody>
           <tfoot>
@@ -1058,7 +1068,7 @@
     </div>
   </div>
 
-  <!-- MODAL ADD/EDIT EMPLOYEE (LENGKAP PENGATURAN POTONGAN BPJS TK & KESEHATAN) -->
+  <!-- MODAL ADD/EDIT EMPLOYEE (LENGKAP PENGATURAN POTONGAN BPJS, KASBON & DANA TABUNGAN LIBUR) -->
   <div id="modalEmployee" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1121,6 +1131,23 @@
           </div>
         </div>
 
+        <!-- SEKSI POTONGAN KASBON & KOMPENSASI HARI LIBUR DIUANGKAN -->
+        <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-3">
+          <p class="font-bold text-xs text-amber-900 flex items-center gap-1.5"><i class="fa-solid fa-coins text-amber-600"></i> Pengaturan Kasbon & Kompensasi Tabungan Libur</p>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Nominal Kasbon Bulanan (Rp)</label>
+              <input type="number" id="empKasbonAmount" required value="0" class="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-xs font-mono font-bold text-red-600">
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Hari Libur Diuangkan (Rp 50.000/Hari)</label>
+              <input type="number" id="empEncashedHolidays" required value="0" class="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-xs font-mono font-bold text-emerald-600">
+            </div>
+          </div>
+        </div>
+
         <!-- SEKSI POTONGAN BPJS TK & BPJS KESEHATAN -->
         <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
           <p class="font-bold text-xs text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-calculator text-emerald-600"></i> Pengaturan Potongan BPJS (Nominal)</p>
@@ -1171,7 +1198,7 @@
     // ============================================================================
     // KONFIGURASI UTAMA BACKEND APPS SCRIPT (GITHUB PAGES FRONTEND)
     // ============================================================================
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzX2PmQMVnlRzoOWPsjvq0VMglf7RThBbt_PPu-OmYVJhkNhuYge9iBKEecycNr_aI3tA/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwikmWKn55J0V64tj351DS2fyHOn42336FN_tNF53PsXYUp_5c0CzjgRUN2LRV1iWrM2A/exec";
 
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10', WORK_START_TIME: '08:00', WORK_END_TIME: '17:00' };
@@ -1450,7 +1477,7 @@
             "<td class='py-2 px-3 font-bold text-slate-900'>" + a.FULL_NAME + " (" + a.EMP_ID + ")</td>" +
             "<td class='py-2 px-3 font-mono text-emerald-700'>" + (a.CHECKIN_TIME || '-') + "</td>" +
             "<td class='py-2 px-3 font-mono text-slate-500'>" + (a.CHECKOUT_TIME || '-') + "</td>" +
-            "<td class='py-2 px-3 text-slate-600'>" + (a.LOCATION_NAME || 'HQ') + "</td>" +
+            "<td class='py-2 px-3 text-slate-600'>" + (a.LOCATION_NAME || 'Kantor Pusat HQ') + "</td>" +
             "<td class='py-2 px-3'>" + badge + "</td>" +
           "</tr>";
         });
@@ -1952,10 +1979,6 @@
       }
 
       cachedData.payslips.forEach((p, idx) => {
-        const lateDeductionText = p.LATE_DEDUCTION > 0 ? 
-          "Rp " + parseInt(p.LATE_DEDUCTION).toLocaleString('id-ID') + " (" + p.LATE_COUNT + "x Denda)" : 
-          "Rp 0 (0x Denda)";
-
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + p.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + p.EMP_ID + "</p></td>" +
           "<td class='py-3 px-3 font-semibold text-slate-700'>" + p.PERIOD + "</td>" +
@@ -1985,10 +2008,22 @@
       document.getElementById('printBasicSalary').innerText = "Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID');
       document.getElementById('printAllowance').innerText = "Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID');
 
+      // Penerimaan tambahan: Kompensasi Tabungan Hari Libur Diuangkan
+      const encashedRow = document.getElementById('printEncashedHolidayRow');
+      if (p.ENCASHED_HOLIDAYS > 0) {
+        encashedRow.classList.remove('hidden');
+        document.getElementById('printEncashedHolidayLabel').innerText = "Kompensasi Tabungan Libur Diuangkan (" + p.ENCASHED_HOLIDAYS + " Hari @ Rp 50.000)";
+        document.getElementById('printEncashedHolidayPay').innerText = "Rp " + parseInt(p.ENCASHED_HOLIDAY_PAY||0).toLocaleString('id-ID');
+      } else {
+        encashedRow.classList.add('hidden');
+      }
+
+      // Potongan Keterlambatan
       const excusedText = p.EXCUSED_LATE_COUNT > 0 ? " [" + p.EXCUSED_LATE_COUNT + "x Izin Disetujui]" : "";
       document.getElementById('printLateDeductionLabel').innerText = "Potongan Keterlambatan (" + (p.LATE_COUNT||0) + "x Denda)" + excusedText;
       document.getElementById('printLateDeduction').innerText = "Rp " + parseInt(p.LATE_DEDUCTION||0).toLocaleString('id-ID');
 
+      // Potongan BPJS TK & Kesehatan
       document.getElementById('printBpjsTkDeduction').innerText = "Rp " + parseInt(p.BPJS_TK_AMOUNT||0).toLocaleString('id-ID');
 
       const kesRow = document.getElementById('printBpjsKesRow');
@@ -1997,6 +2032,15 @@
         document.getElementById('printBpjsKesDeduction').innerText = "Rp " + parseInt(p.BPJS_KES_AMOUNT||0).toLocaleString('id-ID');
       } else {
         kesRow.classList.add('hidden');
+      }
+
+      // Potongan Kasbon
+      const kasbonRow = document.getElementById('printKasbonRow');
+      if (p.KASBON_AMOUNT > 0) {
+        kasbonRow.classList.remove('hidden');
+        document.getElementById('printKasbonDeduction').innerText = "Rp " + parseInt(p.KASBON_AMOUNT||0).toLocaleString('id-ID');
+      } else {
+        kasbonRow.classList.add('hidden');
       }
 
       document.getElementById('printNetSalary').innerText = "Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID');
@@ -2025,8 +2069,8 @@
       if (!cachedData.users) return;
 
       cachedData.users.forEach(u => {
-        const bpjsKesText = (String(u.HAS_BPJS_KES).toUpperCase() === 'TRUE') ? 
-          "Rp " + parseInt(u.BPJS_KES_AMOUNT||0).toLocaleString('id-ID') : "Tidak Ada";
+        const kasbonText = parseInt(u.KASBON_AMOUNT||0) > 0 ? 
+          "Rp " + parseInt(u.KASBON_AMOUNT||0).toLocaleString('id-ID') : "Rp 0";
 
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 flex items-center gap-2'>" +
@@ -2042,7 +2086,7 @@
             "<p class='text-[10px] text-slate-400'>" + u.DEPARTMENT + "</p>" +
           "</td>" +
           "<td class='py-3 px-3 font-mono font-bold text-red-600'>Rp " + parseInt(u.BPJS_TK_AMOUNT||0).toLocaleString('id-ID') + "</td>" +
-          "<td class='py-3 px-3 font-mono font-bold text-red-600'>" + bpjsKesText + "</td>" +
+          "<td class='py-3 px-3 font-mono font-bold text-red-600'>" + kasbonText + "</td>" +
           "<td class='py-3 px-3 font-bold text-emerald-600'>" + u.LEAVE_BALANCE + " Hari</td>" +
           "<td class='py-3 px-3'>" +
             "<button onclick='editEmployee(\"" + u.EMP_ID + "\")' class='text-emerald-600 hover:underline font-bold text-[11px]'><i class='fa-solid fa-pen-to-square'></i> Edit</button>" +
@@ -2068,6 +2112,9 @@
         document.getElementById('empContractUrl').value = emp.CONTRACT_DOC_URL || "";
         document.getElementById('empBpjsUrl').value = emp.BPJS_DOC_URL || "";
 
+        document.getElementById('empKasbonAmount').value = emp.KASBON_AMOUNT || "0";
+        document.getElementById('empEncashedHolidays').value = emp.ENCASHED_HOLIDAYS || "0";
+
         document.getElementById('empBpjsTkAmount').value = emp.BPJS_TK_AMOUNT || "0";
         const hasKes = String(emp.HAS_BPJS_KES).toUpperCase() === 'TRUE';
         document.getElementById('empHasBpjsKes').checked = hasKes;
@@ -2084,6 +2131,8 @@
       document.getElementById('formEmployee').reset();
       document.getElementById('empHasBpjsKes').checked = false;
       document.getElementById('empBpjsKesAmount').disabled = true;
+      document.getElementById('empKasbonAmount').value = 0;
+      document.getElementById('empEncashedHolidays').value = 0;
       document.getElementById('modalEmployee').classList.remove('hidden');
     }
 
@@ -2110,6 +2159,8 @@
         bpjsTkAmount: document.getElementById('empBpjsTkAmount').value,
         hasBpjsKes: document.getElementById('empHasBpjsKes').checked,
         bpjsKesAmount: document.getElementById('empBpjsKesAmount').value,
+        kasbonAmount: document.getElementById('empKasbonAmount').value,
+        encashedHolidays: document.getElementById('empEncashedHolidays').value,
         joinDate: new Date().toLocaleDateString('id-ID')
       };
 
