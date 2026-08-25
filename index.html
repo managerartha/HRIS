@@ -258,7 +258,7 @@
                     <h3 class="font-extrabold text-slate-800 text-sm" id="recentAttTitle">Riwayat Presensi</h3>
                     <p class="text-[10px] text-slate-400" id="recentAttSubtitle">Log kehadiran secara real-time</p>
                   </div>
-                  <button onclick="switchTab('attendance')" class="text-xs font-bold text-emerald-600 hover:underline">Lihat Semua</button>
+                  <button onclick="switchTab('attendance')" class="text-xs font-bold text-emerald-600 hover:underline">Absen Sekarang</button>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -277,6 +277,21 @@
                     </tbody>
                   </table>
                 </div>
+
+                <!-- PAGINATION CONTROLS RIWAYAT PRESENSI -->
+                <div class="flex flex-col sm:flex-row items-center justify-between pt-4 mt-2 border-t border-slate-100 text-xs text-slate-500 gap-2">
+                  <span id="attPaginationInfo" class="font-semibold text-slate-600 text-[11px]">Menampilkan 0 data</span>
+                  <div class="flex items-center gap-2">
+                    <button id="btnAttPrevPage" onclick="changeAttPage(-1)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1">
+                      <i class="fa-solid fa-chevron-left text-[10px]"></i> Sebelumnya
+                    </button>
+                    <span id="attPageNumber" class="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold text-slate-800 text-xs">1 / 1</span>
+                    <button id="btnAttNextPage" onclick="changeAttPage(1)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1">
+                      Selanjutnya <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -332,7 +347,7 @@
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg" id="locationIconBox"><i class="fa-solid fa-location-dot"></i></div>
                 <div>
-                  <p class="font-bold text-slate-800" id="targetLocationTitle">Kantor Pusat PT Artha Safety Indonesia HQ</p>
+                  <p class="font-bold text-slate-800" id="targetLocationTitle">PT Artha Safety Indonesia - Kantor Pusat HQ</p>
                   <p class="text-slate-500 font-mono text-[11px]" id="currentGpsCoords">Mencari koordinat GPS...</p>
                 </div>
               </div>
@@ -787,6 +802,34 @@
         </div>
       </div>
 
+      <!-- FILTER PERIODE BULAN & TAHUN (KHUSUS TAMPILAN, OTOMATIS HILANG SAAT DICETAK PDF) -->
+      <div class="flex flex-wrap items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200 no-print gap-2">
+        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+          <i class="fa-solid fa-filter text-amber-600"></i> Pilih Periode Laporan:
+        </span>
+        <div class="flex items-center gap-2">
+          <select id="reportMonthSelect" onchange="filterAttendanceReport()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none">
+            <option value="0">Januari</option>
+            <option value="1">Februari</option>
+            <option value="2">Maret</option>
+            <option value="3">April</option>
+            <option value="4">Mei</option>
+            <option value="5">Juni</option>
+            <option value="6">Juli</option>
+            <option value="7">Agustus</option>
+            <option value="8">September</option>
+            <option value="9">Oktober</option>
+            <option value="10">November</option>
+            <option value="11">Desember</option>
+          </select>
+          <select id="reportYearSelect" onchange="filterAttendanceReport()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none">
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+          </select>
+        </div>
+      </div>
+
       <!-- TABEL REKAPITULASI LAPORAN -->
       <div class="space-y-3">
         <h4 class="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">Daftar Kehadiran & Status Presensi Seluruh Karyawan</h4>
@@ -1205,6 +1248,10 @@
     
     let currentCalendarDate = new Date(2026, 7, 1);
     
+    // PAGINATION CONTROLS
+    let currentAttPage = 1;
+    const attPageSize = 10;
+
     // IN-MEMORY DATA CACHE UNTUK PERFORMA SERBA INSTAN (0ms)
     let cachedData = {
       agendas: [],
@@ -1379,6 +1426,7 @@
         document.getElementById('settingWorkStart').value = res.settings.WORK_START_TIME || '08:00';
         document.getElementById('settingWorkEnd').value = res.settings.WORK_END_TIME || '17:00';
 
+        currentAttPage = 1;
         renderRecentAttendanceTable(cachedData.attendance);
         renderAgendaList(cachedData.agendas);
         initMiniCalendar();
@@ -1392,10 +1440,20 @@
       tbody.innerHTML = '';
       if (!list || list.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Belum ada data presensi.</td></tr>';
+        updateAttPaginationControls(0, 0, 0, 1);
         return;
       }
 
-      list.forEach((item) => {
+      const totalItems = list.length;
+      const totalPages = Math.ceil(totalItems / attPageSize) || 1;
+      if (currentAttPage > totalPages) currentAttPage = totalPages;
+      if (currentAttPage < 1) currentAttPage = 1;
+
+      const startIndex = (currentAttPage - 1) * attPageSize;
+      const endIndex = Math.min(startIndex + attPageSize, totalItems);
+      const pageItems = list.slice(startIndex, endIndex);
+
+      pageItems.forEach((item) => {
         let statusBadge = item.STATUS === 'TEPAT WAKTU' ? 
           '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-extrabold">TEPAT WAKTU</span>' :
           '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-extrabold">TERLAMBAT</span>';
@@ -1420,6 +1478,33 @@
           "</td>" +
         "</tr>";
       });
+
+      updateAttPaginationControls(startIndex + 1, endIndex, totalItems, totalPages);
+    }
+
+    function updateAttPaginationControls(start, end, total, totalPages) {
+      const infoEl = document.getElementById('attPaginationInfo');
+      const numEl = document.getElementById('attPageNumber');
+      const btnPrev = document.getElementById('btnAttPrevPage');
+      const btnNext = document.getElementById('btnAttNextPage');
+
+      if (infoEl) {
+        infoEl.innerText = total === 0 ? "Menampilkan 0 data" : "Menampilkan " + start + " - " + end + " dari " + total + " data";
+      }
+      if (numEl) {
+        numEl.innerText = (totalPages === 0 ? 1 : currentAttPage) + " / " + (totalPages || 1);
+      }
+      if (btnPrev) {
+        btnPrev.disabled = (currentAttPage <= 1);
+      }
+      if (btnNext) {
+        btnNext.disabled = (currentAttPage >= totalPages || totalPages === 0);
+      }
+    }
+
+    function changeAttPage(delta) {
+      currentAttPage += delta;
+      renderRecentAttendanceTable(cachedData.attendance);
     }
 
     function openPhotoViewerModal(inPhoto, outPhoto, empName, dateStr) {
@@ -1456,29 +1541,70 @@
     }
 
     function openAttendanceReportModal() {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      const mSelect = document.getElementById('reportMonthSelect');
+      const ySelect = document.getElementById('reportYearSelect');
+      if (mSelect) mSelect.value = currentMonth;
+      if (ySelect) ySelect.value = currentYear;
+
+      filterAttendanceReport();
+      document.getElementById('modalPrintAttendanceReport').classList.remove('hidden');
+    }
+
+    function filterAttendanceReport() {
+      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+      const mSelect = document.getElementById('reportMonthSelect');
+      const ySelect = document.getElementById('reportYearSelect');
+      
+      const selMonth = mSelect ? parseInt(mSelect.value, 10) : new Date().getMonth();
+      const selYear = ySelect ? parseInt(ySelect.value, 10) : new Date().getFullYear();
+
+      const periodStr = monthNames[selMonth] + " " + selYear;
+      const reportPeriodEl = document.getElementById('printReportPeriod');
+      if (reportPeriodEl) reportPeriodEl.innerText = "Periode: " + periodStr;
+
       const tbody = document.getElementById('tblReportAttendance');
+      if (!tbody) return;
       tbody.innerHTML = '';
 
       if (!cachedData.attendance || cachedData.attendance.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Tidak ada data rekap presensi.</td></tr>';
-      } else {
-        cachedData.attendance.forEach(a => {
-          let badge = a.STATUS === 'TEPAT WAKTU' ? 
-            '<span class="text-emerald-700 font-bold">TEPAT WAKTU</span>' : 
-            '<span class="text-amber-700 font-bold">TERLAMBAT</span>';
-
-          tbody.innerHTML += "<tr>" +
-            "<td class='py-2 px-3 font-mono text-slate-600'>" + a.DATE + "</td>" +
-            "<td class='py-2 px-3 font-bold text-slate-900'>" + a.FULL_NAME + " (" + a.EMP_ID + ")</td>" +
-            "<td class='py-2 px-3 font-mono text-emerald-700'>" + (a.CHECKIN_TIME || '-') + "</td>" +
-            "<td class='py-2 px-3 font-mono text-slate-500'>" + (a.CHECKOUT_TIME || '-') + "</td>" +
-            "<td class='py-2 px-3 text-slate-600'>" + (a.LOCATION_NAME || 'Kantor Pusat HQ') + "</td>" +
-            "<td class='py-2 px-3'>" + badge + "</td>" +
-          "</tr>";
-        });
+        return;
       }
 
-      document.getElementById('modalPrintAttendanceReport').classList.remove('hidden');
+      const filtered = cachedData.attendance.filter(a => {
+        if (!a.DATE) return false;
+        const parts = a.DATE.split('/');
+        if (parts.length === 3) {
+          const dMonth = parseInt(parts[1], 10) - 1;
+          const dYear = parseInt(parts[2], 10);
+          return dMonth === selMonth && dYear === selYear;
+        }
+        return false;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Tidak ada data presensi pada periode ' + periodStr + '.</td></tr>';
+        return;
+      }
+
+      filtered.forEach(a => {
+        let badge = a.STATUS === 'TEPAT WAKTU' ? 
+          '<span class="text-emerald-700 font-bold">TEPAT WAKTU</span>' : 
+          '<span class="text-amber-700 font-bold">TERLAMBAT</span>';
+
+        tbody.innerHTML += "<tr>" +
+          "<td class='py-2 px-3 font-mono text-slate-600'>" + a.DATE + "</td>" +
+          "<td class='py-2 px-3 font-bold text-slate-900'>" + a.FULL_NAME + " (" + a.EMP_ID + ")</td>" +
+          "<td class='py-2 px-3 font-mono text-emerald-700'>" + (a.CHECKIN_TIME || '-') + "</td>" +
+          "<td class='py-2 px-3 font-mono text-slate-500'>" + (a.CHECKOUT_TIME || '-') + "</td>" +
+          "<td class='py-2 px-3 text-slate-600'>" + (a.LOCATION_NAME || 'PT Artha Safety Indonesia - Kantor Pusat HQ') + "</td>" +
+          "<td class='py-2 px-3'>" + badge + "</td>" +
+        "</tr>";
+      });
     }
 
     function closeAttendanceReportModal() {
@@ -1510,7 +1636,7 @@
               officeLat = parseFloat(officeSettings.OFFICE_LAT || '-6.175392');
               officeLng = parseFloat(officeSettings.OFFICE_LNG || '106.827153');
               maxRad = parseFloat(officeSettings.MAX_RADIUS_METERS || '10');
-              targetName = officeSettings.OFFICE_NAME || "Kantor Pusat HQ";
+              targetName = officeSettings.OFFICE_NAME || "PT Artha Safety Indonesia - Kantor Pusat HQ";
 
               document.getElementById('targetLocationTitle').innerText = targetName;
               document.getElementById('displayOfficeRadius').innerText = maxRad + ' Meter';
