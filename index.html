@@ -185,7 +185,7 @@
             <div class="z-10 space-y-2 max-w-lg">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="bg-emerald-500/20 text-emerald-300 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border border-emerald-500/30">PT Artha Safety Indonesia</span>
-                <!-- BADGE DISIPLIN TERBAIK (ZETTBOT FEATURE) -->
+                <!-- BADGE DISIPLIN TERBAIK -->
                 <span id="badgeDisiplinHero" class="hidden bg-amber-400 text-slate-950 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border border-amber-300 shadow-sm items-center gap-1">
                   <i class="fa-solid fa-star text-amber-900"></i> ⭐ Disiplin Terbaik
                 </span>
@@ -514,8 +514,29 @@
             </div>
           </div>
 
-          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <h3 class="font-extrabold text-slate-800 text-sm mb-4">Riwayat Slip Gaji Bulanan</h3>
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h3 class="font-extrabold text-slate-800 text-sm">Riwayat & Arsip Slip Gaji</h3>
+                <p class="text-[10px] text-slate-400">Pilih periode bulan untuk melihat rincian gaji Anda</p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                  <i class="fa-solid fa-filter text-[11px] text-slate-400"></i>
+                  <select id="filterPayslipPeriod" onchange="filterPayslipsTable()" class="bg-transparent text-xs font-bold text-slate-700 focus:outline-none">
+                    <option value="ALL">Semua Periode</option>
+                  </select>
+                </div>
+
+                <div id="btnAdminManualPayslipGroup" class="hidden">
+                  <button onclick="openManualPayslipModal()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> + Terbitkan Slip Manual
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse">
                 <thead>
@@ -680,6 +701,113 @@
     </div>
   </div>
 
+  <!-- MODAL TERBITKAN SLIP GAJI MANUAL (KHUSUS ADMIN/KEUANGAN) -->
+  <div id="modalManualPayslip" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-extrabold text-base text-slate-800">Terbitkan Slip Gaji Manual / Bulan Lampau</h3>
+          <p class="text-[11px] text-slate-400">Input nominal gaji, potongan kasbon, & BPJS tanpa perlu input absensi</p>
+        </div>
+        <button onclick="closeManualPayslipModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="formManualPayslip" onsubmit="event.preventDefault(); submitManualPayslip();" class="space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-600 mb-1">Pilih Karyawan</label>
+            <select id="manPayEmpId" required onchange="onManualEmpSelected()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none">
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600 mb-1">Periode Bulan & Tahun</label>
+            <div class="grid grid-cols-2 gap-2">
+              <select id="manPayMonth" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none">
+                <option value="Januari">Januari</option>
+                <option value="Februari">Februari</option>
+                <option value="Maret">Maret</option>
+                <option value="April">April</option>
+                <option value="Mei">Mei</option>
+                <option value="Juni">Juni</option>
+                <option value="Juli">Juli</option>
+                <option value="Agustus" selected>Agustus</option>
+                <option value="September">September</option>
+                <option value="Oktober">Oktober</option>
+                <option value="November">November</option>
+                <option value="Desember">Desember</option>
+              </select>
+              <select id="manPayYear" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none">
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+          <p class="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider text-emerald-700">1. Komponen Penerimaan & Tunjangan</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Gaji Pokok (Rp)</label>
+              <input type="number" id="manPayBasic" required value="0" oninput="recalculateManualNet()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-mono font-bold">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Tunjangan Jabatan/Operasional (Rp)</label>
+              <input type="number" id="manPayAllowance" required value="0" oninput="recalculateManualNet()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-mono font-bold">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Bonus Disiplin (0x Telat) (Rp)</label>
+              <input type="number" id="manPayOnTimeBonus" required value="50000" oninput="recalculateManualNet()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-mono font-bold text-emerald-600">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Hari Libur Diuangkan (Hari)</label>
+              <input type="number" id="manPayEncashedHolidays" required value="0" oninput="recalculateManualNet()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-mono font-bold text-emerald-600">
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3.5 bg-red-50/50 rounded-2xl border border-red-100 space-y-3">
+          <p class="font-extrabold text-red-700 text-[11px] uppercase tracking-wider">2. Komponen Potongan (Deductions)</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Potongan Terlambat (Rp)</label>
+              <input type="number" id="manPayLateDeduction" required value="0" oninput="recalculateManualNet()" class="w-full px-3 py-2 bg-white border border-red-200 rounded-xl font-mono font-bold text-red-600">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Potongan BPJS TK (Rp)</label>
+              <input type="number" id="manPayBpjsTk" required value="0" oninput="recalculateManualNet()" class="w-full px-3 py-2 bg-white border border-red-200 rounded-xl font-mono font-bold text-red-600">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Potongan BPJS Kesehatan (Rp)</label>
+              <input type="number" id="manPayBpjsKes" required value="0" oninput="recalculateManualNet()" class="w-full px-3 py-2 bg-white border border-red-200 rounded-xl font-mono font-bold text-red-600">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Potongan Kasbon Bulanan (Rp)</label>
+              <input type="number" id="manPayKasbon" required value="0" oninput="recalculateManualNet()" class="w-full px-3 py-2 bg-white border border-red-200 rounded-xl font-mono font-bold text-red-600">
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-900 text-white rounded-2xl flex items-center justify-between">
+          <div>
+            <p class="text-[10px] text-slate-400 font-bold uppercase">Estimasi Gaji Bersih (THP)</p>
+            <h4 class="text-lg font-extrabold text-emerald-400 font-mono" id="manPayPreviewNet">Rp 0</h4>
+          </div>
+          <button type="submit" id="btnSubmitManualPay" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-md flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan & Terbitkan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL CETAK SLIP GAJI (PRINT LAYOUT FORMAL) -->
   <div id="modalPrintPayslip" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 text-slate-800 my-6">
@@ -815,7 +943,7 @@
         </div>
       </div>
 
-      <!-- FILTER PERIODE BULAN & TAHUN (KHUSUS TAMPILAN, OTOMATIS HILANG SAAT DICETAK PDF) -->
+      <!-- FILTER PERIODE BULAN & TAHUN -->
       <div class="flex flex-wrap items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200 no-print gap-2">
         <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
           <i class="fa-solid fa-filter text-amber-600"></i> Pilih Periode Laporan:
@@ -1384,10 +1512,12 @@
         if (recTitle) recTitle.innerText = "Riwayat Presensi Terbaru (Seluruh Karyawan)";
         if (recSub) recSub.innerText = "Log kehadiran seluruh karyawan secara real-time";
         document.getElementById('adminNavGroup').classList.remove('hidden');
+        document.getElementById('btnAdminManualPayslipGroup').classList.remove('hidden');
       } else {
         if (recTitle) recTitle.innerText = "Riwayat Presensi Saya";
         if (recSub) recSub.innerText = "Log kehadiran pribadi Anda secara real-time";
         document.getElementById('adminNavGroup').classList.add('hidden');
+        document.getElementById('btnAdminManualPayslipGroup').classList.add('hidden');
       }
 
       document.getElementById('btnDocContract').href = currentUser.CONTRACT_DOC_URL || '#';
@@ -1486,6 +1616,8 @@
         currentAttPage = 1;
         renderRecentAttendanceTable(cachedData.attendance);
         renderAgendaList(cachedData.agendas);
+        populatePayslipPeriodFilter();
+        renderUserPayslipsTable();
         initMiniCalendar();
 
         getLocationGPS();
@@ -2260,16 +2392,60 @@
       });
     }
 
+    // ============================================================================
+    // LOGIKA FILTER DAN MANUAL SLIP GAJI
+    // ============================================================================
+    function populatePayslipPeriodFilter() {
+      const select = document.getElementById('filterPayslipPeriod');
+      if (!select) return;
+
+      const currentVal = select.value;
+      const periods = new Set();
+
+      if (cachedData.payslips) {
+        cachedData.payslips.forEach(p => {
+          if (p.PERIOD) periods.add(p.PERIOD);
+        });
+      }
+
+      select.innerHTML = '<option value="ALL">Semua Periode</option>';
+      periods.forEach(per => {
+        select.innerHTML += "<option value='" + per + "'>" + per + "</option>";
+      });
+
+      if (periods.has(currentVal)) {
+        select.value = currentVal;
+      }
+    }
+
+    function filterPayslipsTable() {
+      renderUserPayslipsTable();
+    }
+
     function renderUserPayslipsTable() {
       const tbody = document.getElementById('tblUserPayslips');
       tbody.innerHTML = '';
+
       if (!cachedData.payslips || cachedData.payslips.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada dokumen slip gaji.</td></tr>';
         return;
       }
 
-      cachedData.payslips.forEach((p, idx) => {
+      const periodFilter = document.getElementById('filterPayslipPeriod') ? document.getElementById('filterPayslipPeriod').value : 'ALL';
+      
+      const filteredPayslips = cachedData.payslips.filter(p => {
+        if (periodFilter === 'ALL') return true;
+        return p.PERIOD === periodFilter;
+      });
+
+      if (filteredPayslips.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Tidak ada slip gaji pada periode ' + periodFilter + '.</td></tr>';
+        return;
+      }
+
+      filteredPayslips.forEach((p, idx) => {
         const totalAllowanceAndBonus = (parseInt(p.ALLOWANCE||0) + parseInt(p.ON_TIME_BONUS||0) + parseInt(p.ENCASHED_HOLIDAY_PAY||0));
+        const originalIndex = cachedData.payslips.indexOf(p);
 
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + p.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + p.EMP_ID + "</p></td>" +
@@ -2279,12 +2455,108 @@
           "<td class='py-3 px-3 font-mono text-red-500'>Rp " + parseInt(p.DEDUCTIONS||0).toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 font-mono font-bold text-slate-900'>Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 text-center'>" +
-            "<button onclick='openPrintPayslipModal(" + idx + ")' class='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold shadow-sm transition inline-flex items-center gap-1.5'>" +
+            "<button onclick='openPrintPayslipModal(" + originalIndex + ")' class='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold shadow-sm transition inline-flex items-center gap-1.5'>" +
               "<i class='fa-solid fa-print'></i> Cetak Slip" +
             "</button>" +
           "</td>" +
         "</tr>";
       });
+    }
+
+    function openManualPayslipModal() {
+      const select = document.getElementById('manPayEmpId');
+      select.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+      cachedData.users.forEach(u => {
+        select.innerHTML += "<option value='" + u.EMP_ID + "'>" + u.FULL_NAME + " (" + u.EMP_ID + " - " + u.POSITION + ")</option>";
+      });
+      document.getElementById('modalManualPayslip').classList.remove('hidden');
+    }
+
+    function closeManualPayslipModal() {
+      document.getElementById('modalManualPayslip').classList.add('hidden');
+    }
+
+    function onManualEmpSelected() {
+      const empId = document.getElementById('manPayEmpId').value;
+      const emp = cachedData.users.find(u => u.EMP_ID === empId);
+      if (emp) {
+        document.getElementById('manPayBasic').value = emp.BASIC_SALARY || 0;
+        document.getElementById('manPayAllowance').value = emp.ALLOWANCE || 0;
+        document.getElementById('manPayBpjsTk').value = emp.BPJS_TK_AMOUNT || 0;
+        const hasKes = String(emp.HAS_BPJS_KES).toUpperCase() === 'TRUE';
+        document.getElementById('manPayBpjsKes').value = hasKes ? (emp.BPJS_KES_AMOUNT || 0) : 0;
+        document.getElementById('manPayKasbon').value = emp.KASBON_AMOUNT || 0;
+        document.getElementById('manPayEncashedHolidays').value = emp.ENCASHED_HOLIDAYS || 0;
+        document.getElementById('manPayOnTimeBonus').value = 50000;
+        document.getElementById('manPayLateDeduction').value = 0;
+      }
+      recalculateManualNet();
+    }
+
+    function recalculateManualNet() {
+      const basic = parseInt(document.getElementById('manPayBasic').value || 0, 10);
+      const allow = parseInt(document.getElementById('manPayAllowance').value || 0, 10);
+      const onTime = parseInt(document.getElementById('manPayOnTimeBonus').value || 0, 10);
+      const holidays = parseInt(document.getElementById('manPayEncashedHolidays').value || 0, 10);
+      const holidayPay = holidays * 50000;
+
+      const lateDed = parseInt(document.getElementById('manPayLateDeduction').value || 0, 10);
+      const bpjsTk = parseInt(document.getElementById('manPayBpjsTk').value || 0, 10);
+      const bpjsKes = parseInt(document.getElementById('manPayBpjsKes').value || 0, 10);
+      const kasbon = parseInt(document.getElementById('manPayKasbon').value || 0, 10);
+
+      const income = basic + allow + onTime + holidayPay;
+      const deduction = lateDed + bpjsTk + bpjsKes + kasbon;
+      const net = income - deduction;
+
+      document.getElementById('manPayPreviewNet').innerText = "Rp " + net.toLocaleString('id-ID');
+    }
+
+    async function submitManualPayslip() {
+      const empId = document.getElementById('manPayEmpId').value;
+      if (!empId) {
+        showToast("Silakan pilih karyawan terlebih dahulu!", true);
+        return;
+      }
+
+      const period = document.getElementById('manPayMonth').value + " " + document.getElementById('manPayYear').value;
+      const targetEmp = cachedData.users.find(u => u.EMP_ID === empId);
+
+      const payload = {
+        empId: empId,
+        fullName: targetEmp ? targetEmp.FULL_NAME : empId,
+        position: targetEmp ? targetEmp.POSITION : 'Karyawan',
+        department: targetEmp ? targetEmp.DEPARTMENT : 'Operational',
+        period: period,
+        basicSalary: document.getElementById('manPayBasic').value,
+        allowance: document.getElementById('manPayAllowance').value,
+        onTimeBonus: document.getElementById('manPayOnTimeBonus').value,
+        encashedHolidays: document.getElementById('manPayEncashedHolidays').value,
+        lateCount: '0',
+        excusedLateCount: '0',
+        lateDeduction: document.getElementById('manPayLateDeduction').value,
+        bpjsTkAmount: document.getElementById('manPayBpjsTk').value,
+        hasBpjsKes: parseInt(document.getElementById('manPayBpjsKes').value || 0, 10) > 0,
+        bpjsKesAmount: document.getElementById('manPayBpjsKes').value,
+        kasbonAmount: document.getElementById('manPayKasbon').value,
+        paymentDate: new Date().toLocaleDateString('id-ID')
+      };
+
+      const btn = document.getElementById('btnSubmitManualPay');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+
+      const res = await apiCall('saveManualPayslip', payload);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan & Terbitkan';
+
+      if (res.success) {
+        showToast(res.message);
+        closeManualPayslipModal();
+        loadDashboardData();
+      } else {
+        showToast(res.message, true);
+      }
     }
 
     function openPrintPayslipModal(index) {
