@@ -2392,9 +2392,6 @@
       });
     }
 
-    // ============================================================================
-    // LOGIKA FILTER DAN MANUAL SLIP GAJI
-    // ============================================================================
     function populatePayslipPeriodFilter() {
       const select = document.getElementById('filterPayslipPeriod');
       if (!select) return;
@@ -2443,9 +2440,9 @@
         return;
       }
 
-      filteredPayslips.forEach((p, idx) => {
+      filteredPayslips.forEach((p) => {
         const totalAllowanceAndBonus = (parseInt(p.ALLOWANCE||0) + parseInt(p.ON_TIME_BONUS||0) + parseInt(p.ENCASHED_HOLIDAY_PAY||0));
-        const originalIndex = cachedData.payslips.indexOf(p);
+        const safePayId = (p.PAY_ID || '').replace(/'/g, "\\'");
 
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + p.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + p.EMP_ID + "</p></td>" +
@@ -2455,7 +2452,7 @@
           "<td class='py-3 px-3 font-mono text-red-500'>Rp " + parseInt(p.DEDUCTIONS||0).toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 font-mono font-bold text-slate-900'>Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 text-center'>" +
-            "<button onclick='openPrintPayslipModal(" + originalIndex + ")' class='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold shadow-sm transition inline-flex items-center gap-1.5'>" +
+            "<button onclick=\"openPrintPayslipModal('" + safePayId + "')\" class='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold shadow-sm transition inline-flex items-center gap-1.5'>" +
               "<i class='fa-solid fa-print'></i> Cetak Slip" +
             "</button>" +
           "</td>" +
@@ -2559,8 +2556,14 @@
       }
     }
 
-    function openPrintPayslipModal(index) {
-      const p = cachedData.payslips[index];
+    function openPrintPayslipModal(payIdOrIndex) {
+      let p = null;
+      if (typeof payIdOrIndex === 'string') {
+        p = cachedData.payslips.find(item => item.PAY_ID === payIdOrIndex);
+      } else if (typeof payIdOrIndex === 'number') {
+        p = cachedData.payslips[payIdOrIndex];
+      }
+      
       if (!p) return;
 
       document.getElementById('printPayPeriod').innerText = "Periode: " + p.PERIOD;
