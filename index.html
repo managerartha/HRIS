@@ -183,7 +183,13 @@
         <div id="view-dashboard" class="tab-content space-y-6">
           <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between relative overflow-hidden">
             <div class="z-10 space-y-2 max-w-lg">
-              <span class="bg-emerald-500/20 text-emerald-300 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border border-emerald-500/30">PT Artha Safety Indonesia</span>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="bg-emerald-500/20 text-emerald-300 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border border-emerald-500/30">PT Artha Safety Indonesia</span>
+                <!-- BADGE DISIPLIN TERBAIK (ZETTBOT FEATURE) -->
+                <span id="badgeDisiplinHero" class="hidden bg-amber-400 text-slate-950 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border border-amber-300 shadow-sm items-center gap-1">
+                  <i class="fa-solid fa-star text-amber-900"></i> ⭐ Disiplin Terbaik
+                </span>
+              </div>
               <h1 class="text-2xl md:text-3xl font-extrabold" id="welcomeHeroText">Welcome, Arabella Chloe!</h1>
               <p class="text-slate-300 text-xs leading-relaxed">Sistem presensi presisi GPS, pengajuan cuti, jadwal dinas luar kota, dan dokumen BPJS & Kontrak digital terintegrasi.</p>
               <div class="pt-2 flex flex-wrap gap-2">
@@ -517,7 +523,7 @@
                     <th class="py-3 px-3">Nama Karyawan</th>
                     <th class="py-3 px-3">Periode Bulan</th>
                     <th class="py-3 px-3">Gaji Pokok</th>
-                    <th class="py-3 px-3">Tunjangan</th>
+                    <th class="py-3 px-3">Tunjangan & Bonus</th>
                     <th class="py-3 px-3">Total Potongan</th>
                     <th class="py-3 px-3">THP (Gaji Bersih)</th>
                     <th class="py-3 px-3 text-center">Cetak Slip</th>
@@ -725,13 +731,18 @@
               <td class="py-2 text-right font-mono text-emerald-600" id="printAllowance">Rp 1.500.000</td>
               <td class="py-2 text-right font-mono text-slate-400">-</td>
             </tr>
+            <tr id="printOnTimeBonusRow">
+              <td class="py-2 text-emerald-600 font-semibold" id="printOnTimeBonusLabel">Bonus Ketepatan Waktu / Disiplin Penuh (0x Telat)</td>
+              <td class="py-2 text-right font-mono text-emerald-600" id="printOnTimeBonus">Rp 50.000</td>
+              <td class="py-2 text-right font-mono text-slate-400">-</td>
+            </tr>
             <tr id="printEncashedHolidayRow" class="hidden">
               <td class="py-2 text-emerald-600 font-semibold" id="printEncashedHolidayLabel">Kompensasi Tabungan Libur Diuangkan</td>
               <td class="py-2 text-right font-mono text-emerald-600" id="printEncashedHolidayPay">Rp 0</td>
               <td class="py-2 text-right font-mono text-slate-400">-</td>
             </tr>
             <tr>
-              <td class="py-2 text-red-600 font-semibold" id="printLateDeductionLabel">Potongan Keterlambatan (0x Terlambat Tanpa Izin)</td>
+              <td class="py-2 text-red-600 font-semibold" id="printLateDeductionLabel">Potongan Keterlambatan (0x Denda)</td>
               <td class="py-2 text-right font-mono text-slate-400">-</td>
               <td class="py-2 text-right font-mono text-red-600" id="printLateDeduction">Rp 0</td>
             </tr>
@@ -1439,6 +1450,18 @@
         document.getElementById('payslipLeaveCount').innerText = res.stats.leaveBalance + ' Hari';
         document.getElementById('payslipSavedHolidays').innerText = res.stats.savedHolidays + ' Hari';
         
+        // UPDATE BADGE DISIPLIN TERBAIK PADA HERO DASHBOARD
+        const badgeDisiplin = document.getElementById('badgeDisiplinHero');
+        if (badgeDisiplin) {
+          if (res.stats && res.stats.isDisciplined) {
+            badgeDisiplin.classList.remove('hidden');
+            badgeDisiplin.classList.add('inline-flex');
+          } else {
+            badgeDisiplin.classList.add('hidden');
+            badgeDisiplin.classList.remove('inline-flex');
+          }
+        }
+
         if (res.stats.pendingRequestsCount > 0) {
           const badge = document.getElementById('badgePendingCount');
           badge.innerText = res.stats.pendingRequestsCount;
@@ -2246,11 +2269,13 @@
       }
 
       cachedData.payslips.forEach((p, idx) => {
+        const totalAllowanceAndBonus = (parseInt(p.ALLOWANCE||0) + parseInt(p.ON_TIME_BONUS||0) + parseInt(p.ENCASHED_HOLIDAY_PAY||0));
+
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + p.FULL_NAME + "<p class='text-[10px] text-slate-400 font-mono'>" + p.EMP_ID + "</p></td>" +
           "<td class='py-3 px-3 font-semibold text-slate-700'>" + p.PERIOD + "</td>" +
           "<td class='py-3 px-3 font-mono'>Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID') + "</td>" +
-          "<td class='py-3 px-3 font-mono text-emerald-600'>Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID') + "</td>" +
+          "<td class='py-3 px-3 font-mono text-emerald-600'>Rp " + totalAllowanceAndBonus.toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 font-mono text-red-500'>Rp " + parseInt(p.DEDUCTIONS||0).toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 font-mono font-bold text-slate-900'>Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID') + "</td>" +
           "<td class='py-3 px-3 text-center'>" +
@@ -2274,6 +2299,16 @@
 
       document.getElementById('printBasicSalary').innerText = "Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID');
       document.getElementById('printAllowance').innerText = "Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID');
+
+      // BONUS KETEPATAN WAKTU / DISIPLIN PENUH (0x Terlambat)
+      const onTimeBonusRow = document.getElementById('printOnTimeBonusRow');
+      if (p.ON_TIME_BONUS > 0) {
+        onTimeBonusRow.classList.remove('hidden');
+        document.getElementById('printOnTimeBonus').innerText = "Rp " + parseInt(p.ON_TIME_BONUS||0).toLocaleString('id-ID');
+        document.getElementById('printOnTimeBonusLabel').innerText = "Bonus Ketepatan Waktu / Disiplin Penuh (0x Telat)";
+      } else {
+        onTimeBonusRow.classList.add('hidden');
+      }
 
       const encashedRow = document.getElementById('printEncashedHolidayRow');
       if (p.ENCASHED_HOLIDAYS > 0) {
