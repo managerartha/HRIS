@@ -296,13 +296,13 @@
             </div>
 
             <div class="space-y-6">
-              <!-- MINI CALENDAR WIDGET -->
+              <!-- MINI CALENDAR WIDGET (DYNAMIC REAL-TIME) -->
               <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                 <div class="flex items-center justify-between mb-4">
-                  <h4 class="font-extrabold text-xs text-slate-800" id="calendarMonthYear">Agustus 2026</h4>
+                  <h4 class="font-extrabold text-xs text-slate-800" id="calendarMonthYear">Memuat Kalender...</h4>
                   <div class="flex gap-1 text-slate-400 text-xs">
-                    <button onclick="changeCalendarMonth(-1)" class="px-2 py-1 hover:bg-slate-100 rounded-md"><i class="fa-solid fa-chevron-left"></i></button>
-                    <button onclick="changeCalendarMonth(1)" class="px-2 py-1 hover:bg-slate-100 rounded-md"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button onclick="changeCalendarMonth(-1)" class="px-2 py-1 hover:bg-slate-100 rounded-md" title="Bulan Sebelumnya"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button onclick="changeCalendarMonth(1)" class="px-2 py-1 hover:bg-slate-100 rounded-md" title="Bulan Berikutnya"><i class="fa-solid fa-chevron-right"></i></button>
                   </div>
                 </div>
 
@@ -672,7 +672,7 @@
     </div>
   </div>
 
-  <!-- MODAL CETAK SLIP GAJI (PRINT LAYOUT FORMAL DENGAN KASBON & DANA HARI LIBUR) -->
+  <!-- MODAL CETAK SLIP GAJI (PRINT LAYOUT FORMAL) -->
   <div id="modalPrintPayslip" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 text-slate-800 my-6">
       
@@ -683,7 +683,7 @@
         </div>
         <div class="text-right">
           <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-extrabold uppercase inline-block mb-1">SLIP GAJI RESMI</span>
-          <p class="text-xs font-bold text-slate-600" id="printPayPeriod">Periode: Agustus 2026</p>
+          <p class="text-xs font-bold text-slate-600" id="printPayPeriod">Periode: -</p>
         </div>
       </div>
 
@@ -798,7 +798,7 @@
         </div>
         <div class="text-right">
           <span class="px-3 py-1 bg-amber-100 text-amber-900 rounded-lg text-xs font-extrabold uppercase inline-block mb-1">LAPORAN REKAPITULASI PRESENSI</span>
-          <p class="text-xs font-bold text-slate-600" id="printReportPeriod">Periode: Agustus 2026</p>
+          <p class="text-xs font-bold text-slate-600" id="printReportPeriod">Periode: -</p>
         </div>
       </div>
 
@@ -826,6 +826,7 @@
             <option value="2025">2025</option>
             <option value="2026">2026</option>
             <option value="2027">2027</option>
+            <option value="2028">2028</option>
           </select>
         </div>
       </div>
@@ -1106,7 +1107,7 @@
     </div>
   </div>
 
-  <!-- MODAL ADD/EDIT EMPLOYEE (LENGKAP PENGATURAN POTONGAN BPJS, KASBON & DANA TABUNGAN LIBUR) -->
+  <!-- MODAL ADD/EDIT EMPLOYEE -->
   <div id="modalEmployee" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1246,7 +1247,8 @@
     let mediaStream = null;
     let profileMediaStream = null;
     
-    let currentCalendarDate = new Date(2026, 7, 1);
+    // KALENDER OTOMATIS REAL-TIME DENGAN BULAN & TAHUN AKTIF
+    let currentCalendarDate = new Date();
     
     // PAGINATION CONTROLS
     let currentAttPage = 1;
@@ -2389,13 +2391,27 @@
         grid.innerHTML += '<span class="text-slate-200 py-1.5"></span>';
       }
 
+      const realToday = new Date();
+      const isCurrentMonthAndYear = (realToday.getFullYear() === year && realToday.getMonth() === month);
+
       for (let day = 1; day <= daysInMonth; day++) {
-        let hasEvent = cachedData.agendas.some(a => a.DATE && a.DATE.startsWith(String(day).padStart(2, '0')));
-        let isToday = (day === 25 && month === 7) ? 'bg-emerald-600 text-white rounded-full font-bold shadow-md' : 'hover:bg-slate-100 text-slate-700 rounded-full py-1.5';
+        const dayStr = String(day).padStart(2, '0');
+        const monthStr = String(month + 1).padStart(2, '0');
+        const fullDateCheck = dayStr + '/' + monthStr + '/' + year;
+
+        let hasEvent = cachedData.agendas.some(a => {
+          if (!a.DATE) return false;
+          const aTrim = a.DATE.trim();
+          return aTrim === fullDateCheck || aTrim.startsWith(dayStr + '/' + monthStr);
+        });
+
+        let isToday = (isCurrentMonthAndYear && day === realToday.getDate()) 
+          ? 'bg-emerald-600 text-white rounded-full font-bold shadow-md' 
+          : 'hover:bg-slate-100 text-slate-700 rounded-full py-1.5';
 
         let dot = hasEvent ? '<span class="w-1.5 h-1.5 bg-amber-500 rounded-full inline-block ml-0.5"></span>' : '';
 
-        grid.innerHTML += '<span class="py-1.5 ' + isToday + ' flex items-center justify-center">' + day + dot + '</span>';
+        grid.innerHTML += '<span class="py-1.5 ' + isToday + ' flex items-center justify-center cursor-pointer">' + day + dot + '</span>';
       }
     }
   </script>
