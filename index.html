@@ -1256,7 +1256,7 @@
     // ============================================================================
     // KONFIGURASI UTAMA BACKEND APPS SCRIPT (GITHUB PAGES FRONTEND)
     // ============================================================================
-    const APPS_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwikmWKn55J0V64tj351DS2fyHOn42336FN_tNF53PsXYUp_5c0CzjgRUN2LRV1iWrM2A/exec";
 
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10', WORK_START_TIME: '08:00', WORK_END_TIME: '17:00' };
@@ -1288,7 +1288,7 @@
     };
 
     async function apiCall(action, payload = {}) {
-      if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbwikmWKn55J0V64tj351DS2fyHOn42336FN_tNF53PsXYUp_5c0CzjgRUN2LRV1iWrM2A/exec")) {
+      if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("PASTE_YOUR")) {
         showToast("Buka index.html di GitHub & pasang URL APPS_SCRIPT_URL Anda!", true);
         throw new Error("URL Apps Script belum dikonfigurasi.");
       }
