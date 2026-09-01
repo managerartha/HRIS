@@ -1301,11 +1301,20 @@
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
-        const data = await response.json();
+        
+        const rawText = await response.text();
+        
+        // PENCEGAH CRASH: Jika respons bukan JSON (misal HTML login / izin Apps Script)
+        if (rawText.trim().startsWith('<') || rawText.includes('<!DOCTYPE') || rawText.includes('<html')) {
+          showToast("Akses Ditolak: Berikan izin Google Drive & set Web App ke 'Anyone'!", true);
+          return { success: false, message: "Akses Apps Script membutuhkan otorisasi izin Drive atau hak akses 'Anyone'." };
+        }
+
+        const data = JSON.parse(rawText);
         return data;
       } catch (err) {
         console.error("API Call Error:", err);
-        showToast("Error Koneksi API: " + err.message, true);
+        showToast("Error API: " + err.message, true);
         return { success: false, message: err.message };
       }
     }
@@ -1325,7 +1334,7 @@
       toast.classList.remove('translate-y-20', 'opacity-0');
       setTimeout(() => {
         toast.classList.add('translate-y-20', 'opacity-0');
-      }, 3500);
+      }, 4000);
     }
 
     async function handleLogin() {
