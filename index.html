@@ -424,6 +424,7 @@
                     <th class="py-3 px-3">Kategori</th>
                     <th class="py-3 px-3">Periode</th>
                     <th class="py-3 px-3">Alasan</th>
+                    <th class="py-3 px-3">Lampiran Bukti</th>
                     <th class="py-3 px-3">Status</th>
                     <th class="py-3 px-3">Catatan Admin</th>
                   </tr>
@@ -612,6 +613,7 @@
                     <th class="py-3 px-3">Jenis Pengajuan</th>
                     <th class="py-3 px-3">Periode</th>
                     <th class="py-3 px-3">Alasan</th>
+                    <th class="py-3 px-3">Lampiran Bukti</th>
                     <th class="py-3 px-3">Status</th>
                     <th class="py-3 px-3 text-center">Tindakan Admin</th>
                   </tr>
@@ -999,7 +1001,7 @@
     </div>
   </div>
 
-  <!-- MODAL PENGAJUAN HR -->
+  <!-- MODAL PENGAJUAN HR (DENGAN UPLOAD FILE LANGSUNG DEVICE) -->
   <div id="modalRequest" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1035,14 +1037,31 @@
           <textarea id="reqReason" required rows="3" placeholder="Jelaskan alasan pengajuan secara detail..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"></textarea>
         </div>
 
+        <!-- UPLOAD BERKAS LANGSUNG DARI HP / KOMPUTER -->
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Link Lampiran / Surat Dokter (Opsional)</label>
-          <input type="url" id="reqDocUrl" placeholder="https://drive.google.com/..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+          <label class="block text-xs font-bold text-slate-600 mb-1">Lampiran / Surat Dokter (Opsional)</label>
+          <div class="relative border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-2xl p-3 text-center bg-slate-50 transition cursor-pointer" onclick="document.getElementById('reqFileInput').click()">
+            <input type="file" id="reqFileInput" accept="image/png, image/jpeg, image/jpg, application/pdf" class="hidden" onchange="handleReqFileSelected(event)">
+            <div id="reqFileUploadPlaceholder" class="space-y-1">
+              <i class="fa-solid fa-cloud-arrow-up text-xl text-emerald-600"></i>
+              <p class="text-xs font-bold text-slate-700">Pilih Berkas Lampiran (PNG, JPG, PDF)</p>
+              <p class="text-[10px] text-slate-400">Klik untuk memilih file langsung dari perangkat Anda</p>
+            </div>
+            <div id="reqFileSelectedInfo" class="hidden items-center justify-between bg-emerald-100 text-emerald-900 p-2 rounded-xl text-xs">
+              <div class="flex items-center gap-2 truncate">
+                <i class="fa-solid fa-file-circle-check text-emerald-700 text-base"></i>
+                <span id="reqFileNameDisplay" class="font-bold truncate">berkas.pdf</span>
+              </div>
+              <button type="button" onclick="event.stopPropagation(); clearReqFile();" class="text-slate-400 hover:text-red-500 font-bold ml-2">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
           <button type="button" onclick="closeRequestModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Batal</button>
-          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md">Kirim Pengajuan</button>
+          <button type="submit" id="btnSubmitRequest" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md">Kirim Pengajuan</button>
         </div>
       </form>
     </div>
@@ -1237,7 +1256,7 @@
     // ============================================================================
     // KONFIGURASI UTAMA BACKEND APPS SCRIPT (GITHUB PAGES FRONTEND)
     // ============================================================================
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwikmWKn55J0V64tj351DS2fyHOn42336FN_tNF53PsXYUp_5c0CzjgRUN2LRV1iWrM2A/exec";
+    const APPS_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
 
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10', WORK_START_TIME: '08:00', WORK_END_TIME: '17:00' };
@@ -1246,6 +1265,10 @@
     let currentGeoLocation = { lat: 0, lng: 0 };
     let mediaStream = null;
     let profileMediaStream = null;
+
+    // FILE ATTACHMENT PENGAJUAN HR
+    let reqAttachedFileBase64 = '';
+    let reqAttachedFileName = '';
     
     // KALENDER OTOMATIS REAL-TIME DENGAN BULAN & TAHUN AKTIF
     let currentCalendarDate = new Date();
@@ -1265,7 +1288,7 @@
     };
 
     async function apiCall(action, payload = {}) {
-      if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("PASTE_YOUR")) {
+      if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbwikmWKn55J0V64tj351DS2fyHOn42336FN_tNF53PsXYUp_5c0CzjgRUN2LRV1iWrM2A/exec")) {
         showToast("Buka index.html di GitHub & pasang URL APPS_SCRIPT_URL Anda!", true);
         throw new Error("URL Apps Script belum dikonfigurasi.");
       }
@@ -1633,7 +1656,6 @@
         let badge = '<span class="text-emerald-700 font-bold">TEPAT WAKTU</span>';
         
         if (a.STATUS === 'TERLAMBAT') {
-          // Pengecekan apakah karyawan memiliki Izin Terlambat yang Disetujui (Approved) pada tanggal bersangkutan
           const hasApprovedLateLeave = cachedData.requests && cachedData.requests.some(req => 
             req.EMP_ID === a.EMP_ID && 
             req.TYPE === 'Izin Terlambat' && 
@@ -2076,14 +2098,60 @@
     }
 
     function openRequestModal() {
+      clearReqFile();
       document.getElementById('modalRequest').classList.remove('hidden');
     }
 
     function closeRequestModal() {
+      clearReqFile();
       document.getElementById('modalRequest').classList.add('hidden');
     }
 
+    function handleReqFileSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (file.size > 15 * 1024 * 1024) {
+        showToast("Ukuran file terlalu besar! Maksimal 15MB.", true);
+        clearReqFile();
+        return;
+      }
+
+      reqAttachedFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        reqAttachedFileBase64 = e.target.result;
+        document.getElementById('reqFileUploadPlaceholder').classList.add('hidden');
+        const infoBox = document.getElementById('reqFileSelectedInfo');
+        infoBox.classList.remove('hidden');
+        infoBox.classList.add('flex');
+        document.getElementById('reqFileNameDisplay').innerText = file.name;
+        showToast("Berkas " + file.name + " siap dikirim!");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearReqFile() {
+      reqAttachedFileBase64 = '';
+      reqAttachedFileName = '';
+      const input = document.getElementById('reqFileInput');
+      if (input) input.value = '';
+      const ph = document.getElementById('reqFileUploadPlaceholder');
+      if (ph) ph.classList.remove('hidden');
+      const infoBox = document.getElementById('reqFileSelectedInfo');
+      if (infoBox) {
+        infoBox.classList.add('hidden');
+        infoBox.classList.remove('flex');
+      }
+    }
+
     async function submitRequestForm() {
+      const btn = document.getElementById('btnSubmitRequest');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengunggah...';
+      }
+
       const payload = {
         empId: currentUser.EMP_ID,
         fullName: currentUser.FULL_NAME,
@@ -2091,7 +2159,9 @@
         startDate: document.getElementById('reqStartDate').value,
         endDate: document.getElementById('reqEndDate').value,
         reason: document.getElementById('reqReason').value,
-        docUrl: document.getElementById('reqDocUrl').value
+        fileBase64: reqAttachedFileBase64,
+        fileName: reqAttachedFileName,
+        docUrl: '-'
       };
 
       const newReqLocal = {
@@ -2101,17 +2171,24 @@
         START_DATE: payload.startDate,
         END_DATE: payload.endDate,
         REASON: payload.reason,
+        DOC_ATTACHMENT: reqAttachedFileBase64 ? 'Mengunggah...' : '-',
         STATUS: 'PENDING',
         ADMIN_NOTE: '-'
       };
       cachedData.requests.unshift(newReqLocal);
       renderUserRequestsTable();
 
-      showToast("Pengajuan berhasil dikirim!");
+      showToast("Sedang mengirim pengajuan & mengunggah berkas...");
       closeRequestModal();
 
       const res = await apiCall('submitRequest', payload);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = 'Kirim Pengajuan';
+      }
+
       if (res.success) {
+        showToast(res.message);
         loadDashboardData();
       } else {
         showToast(res.message, true);
@@ -2122,7 +2199,7 @@
       const tbody = document.getElementById('tblUserRequests');
       tbody.innerHTML = '';
       if (!cachedData.requests || cachedData.requests.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Belum ada riwayat pengajuan.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="py-4 text-center text-slate-400">Belum ada riwayat pengajuan.</td></tr>';
         return;
       }
 
@@ -2131,12 +2208,20 @@
         if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
         if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
 
+        let docBtn = '<span class="text-slate-400">-</span>';
+        if (r.DOC_ATTACHMENT && r.DOC_ATTACHMENT !== '-' && String(r.DOC_ATTACHMENT).startsWith('http')) {
+          docBtn = "<a href='" + r.DOC_ATTACHMENT + "' target='_blank' class='px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition'><i class='fa-solid fa-paperclip'></i> Buka Bukti</a>";
+        } else if (r.DOC_ATTACHMENT === 'Mengunggah...') {
+          docBtn = "<span class='text-amber-500 font-bold text-[10px]'><i class='fa-solid fa-spinner fa-spin mr-1'></i>Upload...</span>";
+        }
+
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "</td>" +
           "<td class='py-3 px-3 text-slate-500'>" + r.SUBMIT_DATE + "</td>" +
           "<td class='py-3 px-3 font-semibold text-emerald-600'>" + r.TYPE + "</td>" +
           "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
           "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
+          "<td class='py-3 px-3'>" + docBtn + "</td>" +
           "<td class='py-3 px-3'>" + badge + "</td>" +
           "<td class='py-3 px-3 text-slate-400'>" + (r.ADMIN_NOTE || '-') + "</td>" +
         "</tr>";
@@ -2181,7 +2266,6 @@
       document.getElementById('printBasicSalary').innerText = "Rp " + parseInt(p.BASIC_SALARY||0).toLocaleString('id-ID');
       document.getElementById('printAllowance').innerText = "Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID');
 
-      // Penerimaan tambahan: Kompensasi Tabungan Hari Libur Diuangkan
       const encashedRow = document.getElementById('printEncashedHolidayRow');
       if (p.ENCASHED_HOLIDAYS > 0) {
         encashedRow.classList.remove('hidden');
@@ -2191,12 +2275,10 @@
         encashedRow.classList.add('hidden');
       }
 
-      // Potongan Keterlambatan
       const excusedText = p.EXCUSED_LATE_COUNT > 0 ? " [" + p.EXCUSED_LATE_COUNT + "x Izin Disetujui]" : "";
       document.getElementById('printLateDeductionLabel').innerText = "Potongan Keterlambatan (" + (p.LATE_COUNT||0) + "x Denda)" + excusedText;
       document.getElementById('printLateDeduction').innerText = "Rp " + parseInt(p.LATE_DEDUCTION||0).toLocaleString('id-ID');
 
-      // Potongan BPJS TK & Kesehatan
       document.getElementById('printBpjsTkDeduction').innerText = "Rp " + parseInt(p.BPJS_TK_AMOUNT||0).toLocaleString('id-ID');
 
       const kesRow = document.getElementById('printBpjsKesRow');
@@ -2207,7 +2289,6 @@
         kesRow.classList.add('hidden');
       }
 
-      // Potongan Kasbon
       const kasbonRow = document.getElementById('printKasbonRow');
       if (p.KASBON_AMOUNT > 0) {
         kasbonRow.classList.remove('hidden');
@@ -2353,7 +2434,7 @@
       const tbody = document.getElementById('tblAdminApprovals');
       tbody.innerHTML = '';
       if (!cachedData.requests || cachedData.requests.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">Tidak ada data pengajuan.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="py-4 text-center text-slate-400">Tidak ada data pengajuan.</td></tr>';
         return;
       }
 
@@ -2362,11 +2443,16 @@
         if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
         if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
 
+        let docBtn = '<span class="text-slate-400">-</span>';
+        if (r.DOC_ATTACHMENT && r.DOC_ATTACHMENT !== '-' && String(r.DOC_ATTACHMENT).startsWith('http')) {
+          docBtn = "<a href='" + r.DOC_ATTACHMENT + "' target='_blank' class='px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-800 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition shadow-sm'><i class='fa-solid fa-paperclip text-emerald-600'></i> Lihat Bukti</a>";
+        }
+
         let actions = '-';
         if (r.STATUS === 'PENDING') {
           actions = "<div class='flex items-center justify-center gap-1'>" +
-            "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"APPROVED\")' class='px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:bg-emerald-700'><i class='fa-solid fa-check'></i> Setujui</button>" +
-            "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"REJECTED\")' class='px-2.5 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700'><i class='fa-solid fa-xmark'></i> Tolak</button>" +
+            "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"APPROVED\")' class='px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:bg-emerald-700 shadow-sm'><i class='fa-solid fa-check'></i> Setujui</button>" +
+            "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"REJECTED\")' class='px-2.5 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700 shadow-sm'><i class='fa-solid fa-xmark'></i> Tolak</button>" +
           "</div>";
         }
 
@@ -2376,6 +2462,7 @@
           "<td class='py-3 px-3 font-bold text-emerald-600'>" + r.TYPE + "</td>" +
           "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
           "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
+          "<td class='py-3 px-3'>" + docBtn + "</td>" +
           "<td class='py-3 px-3'>" + badge + "</td>" +
           "<td class='py-3 px-3 text-center'>" + actions + "</td>" +
         "</tr>";
