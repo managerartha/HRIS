@@ -1542,6 +1542,42 @@
       document.getElementById('modalPhotoViewer').classList.add('hidden');
     }
 
+    function isDateBetweenStr(targetDateStr, startDateStr, endDateStr) {
+      try {
+        const parseDate = (str) => {
+          if (!str) return new Date();
+          str = String(str).trim();
+          let d = new Date();
+          if (str.includes('/')) {
+            const p = str.split('/');
+            if (p.length === 3) d = new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+          } else if (str.includes('-')) {
+            const p = str.split('-');
+            if (p.length === 3) {
+              if (p[0].length === 4) d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+              else d = new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+            }
+          } else {
+            d = new Date(str);
+          }
+          return d;
+        };
+
+        const target = parseDate(targetDateStr);
+        target.setHours(0, 0, 0, 0);
+
+        const start = parseDate(startDateStr);
+        start.setHours(0, 0, 0, 0);
+
+        const end = parseDate(endDateStr);
+        end.setHours(23, 59, 59, 999);
+
+        return target.getTime() >= start.getTime() && target.getTime() <= end.getTime();
+      } catch (e) {
+        return false;
+      }
+    }
+
     function openAttendanceReportModal() {
       const now = new Date();
       const currentMonth = now.getMonth();
@@ -1594,9 +1630,23 @@
       }
 
       filtered.forEach(a => {
-        let badge = a.STATUS === 'TEPAT WAKTU' ? 
-          '<span class="text-emerald-700 font-bold">TEPAT WAKTU</span>' : 
-          '<span class="text-amber-700 font-bold">TERLAMBAT</span>';
+        let badge = '<span class="text-emerald-700 font-bold">TEPAT WAKTU</span>';
+        
+        if (a.STATUS === 'TERLAMBAT') {
+          // Pengecekan apakah karyawan memiliki Izin Terlambat yang Disetujui (Approved) pada tanggal bersangkutan
+          const hasApprovedLateLeave = cachedData.requests && cachedData.requests.some(req => 
+            req.EMP_ID === a.EMP_ID && 
+            req.TYPE === 'Izin Terlambat' && 
+            req.STATUS === 'APPROVED' && 
+            isDateBetweenStr(a.DATE, req.START_DATE, req.END_DATE)
+          );
+
+          if (hasApprovedLateLeave) {
+            badge = '<span class="text-emerald-700 font-bold"><i class="fa-solid fa-circle-check mr-1"></i>TERLAMBAT (IZIN DISETUJUI)</span>';
+          } else {
+            badge = '<span class="text-amber-700 font-bold">TERLAMBAT</span>';
+          }
+        }
 
         tbody.innerHTML += "<tr>" +
           "<td class='py-2 px-3 font-mono text-slate-600'>" + a.DATE + "</td>" +
