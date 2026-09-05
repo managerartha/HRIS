@@ -36,7 +36,7 @@
     .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-    /* STYLE KHUSUS CETAK SLIP GAJI & LAPORAN PRESENSI PDF (MULTI-PAGE & KOP FIX) */
+    /* STYLE KHUSUS CETAK SLIP GAJI & LAPORAN PRESENSI PDF (TERISOLASI & BERSIH) */
     @media print {
       @page {
         size: A4 portrait;
@@ -53,6 +53,7 @@
         padding: 0 !important;
       }
 
+      /* Sembunyikan semua elemen aplikasi dan modal yang tertutup saat mencetak */
       #loginScreen,
       #appContainer,
       #modalManualPayslip,
@@ -63,10 +64,17 @@
       #modalDuty,
       #modalEmployee,
       #toast,
-      .no-print {
+      .no-print,
+      .hidden,
+      [hidden],
+      #modalPrintAttendanceReport.hidden,
+      #modalPrintAttendanceReport.hidden *,
+      #modalPrintPayslip.hidden,
+      #modalPrintPayslip.hidden * {
         display: none !important;
       }
 
+      /* Tampilkan hanya modal aktif yang tidak berkelas .hidden */
       #modalPrintAttendanceReport:not(.hidden),
       #modalPrintPayslip:not(.hidden) {
         display: block !important;
@@ -83,8 +91,8 @@
         border: none !important;
       }
 
-      #modalPrintAttendanceReport > div,
-      #modalPrintPayslip > div {
+      #modalPrintAttendanceReport:not(.hidden) > div,
+      #modalPrintPayslip:not(.hidden) > div {
         display: block !important;
         position: static !important;
         max-width: 100% !important;
@@ -100,7 +108,6 @@
       .overflow-x-auto,
       .overflow-y-auto {
         overflow: visible !important;
-        display: block !important;
       }
 
       table {
@@ -1003,7 +1010,7 @@
       <!-- TOMBOL AKSI CETAK MODAL -->
       <div class="pt-4 border-t border-slate-100 flex justify-end gap-3 no-print">
         <button type="button" onclick="closePrintPayslipModal()" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Tutup</button>
-        <button type="button" onclick="triggerPrintProcess()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
+        <button type="button" onclick="triggerPrintProcess('payslip')" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-print"></i> Cetak / Simpan PDF
         </button>
       </div>
@@ -1097,7 +1104,7 @@
       <!-- TOMBOL AKSI CETAK LAPORAN -->
       <div class="pt-4 border-t border-slate-100 flex justify-end gap-3 no-print">
         <button type="button" onclick="closeAttendanceReportModal()" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Tutup</button>
-        <button type="button" onclick="triggerPrintProcess()" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
+        <button type="button" onclick="triggerPrintProcess('report')" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-print"></i> Cetak PDF Laporan
         </button>
       </div>
@@ -1866,6 +1873,10 @@
     }
 
     async function openAttendanceReportModal() {
+      // Pastikan modal slip gaji benar-benar ditutup
+      const payModal = document.getElementById('modalPrintPayslip');
+      if (payModal) payModal.classList.add('hidden');
+
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
@@ -2677,6 +2688,10 @@
     }
 
     function openPrintPayslipModal(payIdOrIndex) {
+      // Pastikan modal laporan presensi benar-benar ditutup
+      const repModal = document.getElementById('modalPrintAttendanceReport');
+      if (repModal) repModal.classList.add('hidden');
+
       let p = null;
       if (typeof payIdOrIndex === 'string') {
         p = cachedData.payslips.find(item => item.PAY_ID === payIdOrIndex);
@@ -2746,11 +2761,27 @@
       document.getElementById('modalPrintPayslip').classList.add('hidden');
     }
 
-    function triggerPrintProcess() {
+    function triggerPrintProcess(type) {
       const repModal = document.getElementById('modalPrintAttendanceReport');
       const payModal = document.getElementById('modalPrintPayslip');
-      if (repModal) repModal.scrollTop = 0;
-      if (payModal) payModal.scrollTop = 0;
+
+      // Isolasi modal yang dicetak agar tidak saling tumpang tindih
+      if (type === 'report') {
+        if (payModal) payModal.classList.add('hidden');
+        if (repModal) repModal.classList.remove('hidden');
+      } else if (type === 'payslip') {
+        if (repModal) repModal.classList.add('hidden');
+        if (payModal) payModal.classList.remove('hidden');
+      } else {
+        if (repModal && !repModal.classList.contains('hidden') && payModal) {
+          payModal.classList.add('hidden');
+        } else if (payModal && !payModal.classList.contains('hidden') && repModal) {
+          repModal.classList.add('hidden');
+        }
+      }
+
+      if (repModal && !repModal.classList.contains('hidden')) repModal.scrollTop = 0;
+      if (payModal && !payModal.classList.contains('hidden')) payModal.scrollTop = 0;
       window.scrollTo(0, 0);
 
       setTimeout(() => {
