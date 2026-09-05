@@ -36,12 +36,101 @@
     .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-    /* STYLE KHUSUS CETAK SLIP GAJI & LAPORAN PRESENSI PDF */
+    /* STYLE KHUSUS CETAK SLIP GAJI & LAPORAN PRESENSI PDF (MULTI-PAGE & KOP FIX) */
     @media print {
-      body * { visibility: hidden; }
-      #modalPrintPayslip, #modalPrintPayslip *, #modalPrintAttendanceReport, #modalPrintAttendanceReport * { visibility: visible; }
-      #modalPrintPayslip, #modalPrintAttendanceReport { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 0; margin: 0; }
-      .no-print { display: none !important; }
+      @page {
+        size: A4 portrait;
+        margin: 10mm 12mm 10mm 12mm;
+      }
+      html, body {
+        width: 100% !important;
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* Sembunyikan semua elemen aplikasi di layar belakang saat print */
+      #loginScreen,
+      #appContainer,
+      #modalManualPayslip,
+      #modalPhotoViewer,
+      #modalProfilePhoto,
+      #modalAgenda,
+      #modalRequest,
+      #modalDuty,
+      #modalEmployee,
+      #toast,
+      .no-print {
+        display: none !important;
+      }
+
+      /* Modal Cetak yang sedang aktif ditampilkan sebagai dokumen standar penuh */
+      #modalPrintAttendanceReport:not(.hidden),
+      #modalPrintPayslip:not(.hidden) {
+        display: block !important;
+        position: static !important;
+        inset: auto !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+
+      /* Hilangkan batas pembatas kartu agar mengalir alami ke halaman 2, 3, dst */
+      #modalPrintAttendanceReport > div,
+      #modalPrintPayslip > div {
+        display: block !important;
+        position: static !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        overflow: visible !important;
+      }
+
+      /* Nonaktifkan scroll container agar tidak memotong isi tabel ke halaman berikutnya */
+      .overflow-x-auto,
+      .overflow-y-auto {
+        overflow: visible !important;
+        display: block !important;
+      }
+
+      table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        page-break-inside: auto !important;
+      }
+
+      thead {
+        display: table-header-group !important;
+      }
+
+      tr {
+        page-break-inside: avoid !important;
+        page-break-after: auto !important;
+      }
+
+      tbody tr {
+        border-bottom: 1px solid #e2e8f0 !important;
+      }
+
+      /* Cegah blok tanda tangan terputus di tengah halaman */
+      .print-signatures {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
     }
   </style>
 </head>
@@ -730,8 +819,8 @@
                 <option value="Mei">Mei</option>
                 <option value="Juni">Juni</option>
                 <option value="Juli">Juli</option>
-                <option value="Agustus" selected>Agustus</option>
-                <option value="September">September</option>
+                <option value="Agustus">Agustus</option>
+                <option value="September" selected>September</option>
                 <option value="Oktober">Oktober</option>
                 <option value="November">November</option>
                 <option value="Desember">Desember</option>
@@ -900,7 +989,7 @@
       </div>
 
       <!-- KOLOM TANDA TANGAN FORMAL SLIP GAJI -->
-      <div class="pt-6 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs">
+      <div class="pt-6 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs print-signatures">
         <div class="space-y-12">
           <p class="font-bold text-slate-600">Bagian Keuangan & HRD,</p>
           <div>
@@ -929,7 +1018,7 @@
   </div>
 
   <!-- MODAL LAPORAN PRESENSI PDF (ADMIN ONLY) -->
-  <div id="modalPrintAttendanceReport" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+  <div id="modalPrintAttendanceReport" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-start justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-4xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 text-slate-800 my-6">
       
       <!-- LOGO RESMI KOP SURAT LAPORAN -->
@@ -943,7 +1032,7 @@
         </div>
       </div>
 
-      <!-- FILTER PERIODE BULAN & TAHUN -->
+      <!-- FILTER PERIODE BULAN & TAHUN (HANYA DITAMPILKAN DI SCREEN, DI-HIDE SAAT PRINT) -->
       <div class="flex flex-wrap items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200 no-print gap-2">
         <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
           <i class="fa-solid fa-filter text-amber-600"></i> Pilih Periode Laporan:
@@ -972,7 +1061,7 @@
         </div>
       </div>
 
-      <!-- TABEL REKAPITULASI LAPORAN -->
+      <!-- TABEL REKAPITULASI LAPORAN (MENDUKUNG MULTI-PAGE BREAKDOWN) -->
       <div class="space-y-3">
         <h4 class="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">Daftar Kehadiran & Status Presensi Seluruh Karyawan</h4>
         <div class="overflow-x-auto">
@@ -994,7 +1083,7 @@
       </div>
 
       <!-- KOLOM TANDA TANGAN FORMAL LAPORAN PRESENSI PDF -->
-      <div class="pt-8 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs">
+      <div class="pt-8 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs print-signatures">
         <div class="space-y-12">
           <p class="font-bold text-slate-600">Dibuat Oleh (HRD),</p>
           <div>
@@ -1729,43 +1818,68 @@
       document.getElementById('modalPhotoViewer').classList.add('hidden');
     }
 
+    function parseDateParts(dateStr) {
+      if (!dateStr) return null;
+      const str = String(dateStr).trim();
+      let day, month, year;
+      if (str.includes('/')) {
+        const p = str.split('/');
+        if (p.length === 3) {
+          if (p[0].length === 4) {
+            year = parseInt(p[0], 10);
+            month = parseInt(p[1], 10) - 1;
+            day = parseInt(p[2], 10);
+          } else {
+            day = parseInt(p[0], 10);
+            month = parseInt(p[1], 10) - 1;
+            year = parseInt(p[2], 10);
+          }
+        }
+      } else if (str.includes('-')) {
+        const p = str.split('-');
+        if (p.length === 3) {
+          if (p[0].length === 4) {
+            year = parseInt(p[0], 10);
+            month = parseInt(p[1], 10) - 1;
+            day = parseInt(p[2], 10);
+          } else {
+            day = parseInt(p[0], 10);
+            month = parseInt(p[1], 10) - 1;
+            year = parseInt(p[2], 10);
+          }
+        }
+      } else {
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) {
+          return { day: d.getDate(), month: d.getMonth(), year: d.getFullYear(), timestamp: d.getTime() };
+        }
+      }
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        const ts = new Date(year, month, day).getTime();
+        return { day, month, year, timestamp: ts };
+      }
+      return null;
+    }
+
     function isDateBetweenStr(targetDateStr, startDateStr, endDateStr) {
       try {
-        const parseDate = (str) => {
-          if (!str) return new Date();
-          str = String(str).trim();
-          let d = new Date();
-          if (str.includes('/')) {
-            const p = str.split('/');
-            if (p.length === 3) d = new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
-          } else if (str.includes('-')) {
-            const p = str.split('-');
-            if (p.length === 3) {
-              if (p[0].length === 4) d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
-              else d = new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
-            }
-          } else {
-            d = new Date(str);
-          }
-          return d;
-        };
+        const da = parseDateParts(targetDateStr);
+        const sa = parseDateParts(startDateStr);
+        const ea = parseDateParts(endDateStr);
 
-        const target = parseDate(targetDateStr);
-        target.setHours(0, 0, 0, 0);
+        if (!da || !sa || !ea) return false;
 
-        const start = parseDate(startDateStr);
-        start.setHours(0, 0, 0, 0);
+        const target = new Date(da.year, da.month, da.day, 0, 0, 0, 0).getTime();
+        const start = new Date(sa.year, sa.month, sa.day, 0, 0, 0, 0).getTime();
+        const end = new Date(ea.year, ea.month, ea.day, 23, 59, 59, 999).getTime();
 
-        const end = parseDate(endDateStr);
-        end.setHours(23, 59, 59, 999);
-
-        return target.getTime() >= start.getTime() && target.getTime() <= end.getTime();
+        return target >= start && target <= end;
       } catch (e) {
         return false;
       }
     }
 
-    function openAttendanceReportModal() {
+    async function openAttendanceReportModal() {
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
@@ -1775,8 +1889,23 @@
       if (mSelect) mSelect.value = currentMonth;
       if (ySelect) ySelect.value = currentYear;
 
+      // Render awal dari data cache
       filterAttendanceReport();
-      document.getElementById('modalPrintAttendanceReport').classList.remove('hidden');
+      const modal = document.getElementById('modalPrintAttendanceReport');
+      modal.classList.remove('hidden');
+      modal.scrollTop = 0;
+
+      // Re-fetch silent data terbaru agar presensi hari ini (tgl 5) otomatis terupdate
+      try {
+        const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
+        if (res.success && res.recentAttendance) {
+          cachedData.attendance = res.recentAttendance;
+          cachedData.requests = res.requests || [];
+          filterAttendanceReport();
+        }
+      } catch (err) {
+        console.warn('Silent refresh error:', err);
+      }
     }
 
     function filterAttendanceReport() {
@@ -1800,13 +1929,12 @@
         return;
       }
 
+      // Filter dengan parser tanggal universal
       const filtered = cachedData.attendance.filter(a => {
         if (!a.DATE) return false;
-        const parts = a.DATE.split('/');
-        if (parts.length === 3) {
-          const dMonth = parseInt(parts[1], 10) - 1;
-          const dYear = parseInt(parts[2], 10);
-          return dMonth === selMonth && dYear === selYear;
+        const p = parseDateParts(a.DATE);
+        if (p) {
+          return p.month === selMonth && p.year === selYear;
         }
         return false;
       });
@@ -1815,6 +1943,16 @@
         tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Tidak ada data presensi pada periode ' + periodStr + '.</td></tr>';
         return;
       }
+
+      // Urutkan data secara menurun dari tanggal terbaru (5 September lebih dulu)
+      filtered.sort((a, b) => {
+        const da = parseDateParts(a.DATE);
+        const db = parseDateParts(b.DATE);
+        const tsa = da ? da.timestamp : 0;
+        const tsb = db ? db.timestamp : 0;
+        if (tsb !== tsa) return tsb - tsa;
+        return String(b.CHECKIN_TIME || '').localeCompare(String(a.CHECKIN_TIME || ''));
+      });
 
       filtered.forEach(a => {
         let badge = '<span class="text-emerald-700 font-bold">TEPAT WAKTU</span>';
@@ -2618,7 +2756,9 @@
 
       document.getElementById('printNetSalary').innerText = "Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID');
 
-      document.getElementById('modalPrintPayslip').classList.remove('hidden');
+      const modal = document.getElementById('modalPrintPayslip');
+      modal.classList.remove('hidden');
+      modal.scrollTop = 0;
     }
 
     function closePrintPayslipModal() {
@@ -2626,7 +2766,16 @@
     }
 
     function triggerPrintProcess() {
-      window.print();
+      // Pastikan scroll berada di koordinat paling atas sebelum print dialog muncul
+      const repModal = document.getElementById('modalPrintAttendanceReport');
+      const payModal = document.getElementById('modalPrintPayslip');
+      if (repModal) repModal.scrollTop = 0;
+      if (payModal) payModal.scrollTop = 0;
+      window.scrollTo(0, 0);
+
+      setTimeout(() => {
+        window.print();
+      }, 50);
     }
 
     function toggleBpjsKesInput() {
@@ -2855,21 +3004,4 @@
         const monthStr = String(month + 1).padStart(2, '0');
         const fullDateCheck = dayStr + '/' + monthStr + '/' + year;
 
-        let hasEvent = cachedData.agendas.some(a => {
-          if (!a.DATE) return false;
-          const aTrim = a.DATE.trim();
-          return aTrim === fullDateCheck || aTrim.startsWith(dayStr + '/' + monthStr);
-        });
-
-        let isToday = (isCurrentMonthAndYear && day === realToday.getDate()) 
-          ? 'bg-emerald-600 text-white rounded-full font-bold shadow-md' 
-          : 'hover:bg-slate-100 text-slate-700 rounded-full py-1.5';
-
-        let dot = hasEvent ? '<span class="w-1.5 h-1.5 bg-amber-500 rounded-full inline-block ml-0.5"></span>' : '';
-
-        grid.innerHTML += '<span class="py-1.5 ' + isToday + ' flex items-center justify-center cursor-pointer">' + day + dot + '</span>';
-      }
-    }
-  </script>
-</body>
-</html>
+        let hasEvent = cachedData.agendas.some
