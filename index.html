@@ -66,11 +66,7 @@
       #toast,
       .no-print,
       .hidden,
-      [hidden],
-      #modalPrintAttendanceReport.hidden,
-      #modalPrintAttendanceReport.hidden *,
-      #modalPrintPayslip.hidden,
-      #modalPrintPayslip.hidden * {
+      [hidden] {
         display: none !important;
       }
 
@@ -102,11 +98,6 @@
         box-shadow: none !important;
         border: none !important;
         border-radius: 0 !important;
-        overflow: visible !important;
-      }
-
-      .overflow-x-auto,
-      .overflow-y-auto {
         overflow: visible !important;
       }
 
@@ -1245,7 +1236,7 @@
             <option value="Pengganti Hari Libur">Pengganti Hari Libur (Gunakan Tabungan Libur)</option>
             <option value="Izin Terlambat">Izin Terlambat Hadir (Bebas Potongan Denda jika Disetujui)</option>
             <option value="Izin Sakit">Izin Sakit (Surat Dokter)</option>
-            <option value="Tabung Hari Libur">Menabung Hari Libur (Masuk Minggu/Tgl Merah)</option>
+            <option value="Tabung Hari Libur">Tabung Hari Libur (Kerja Minggu/Tgl Merah)</option>
           </select>
         </div>
 
@@ -1365,6 +1356,7 @@
       <form id="formEmployee" onsubmit="event.preventDefault(); submitEmployeeForm();" class="space-y-4">
         <input type="hidden" id="empIsEdit" value="false">
         <input type="hidden" id="empEditId" value="">
+        <input type="hidden" id="empSavedHolidays" value="0">
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -1603,44 +1595,69 @@
         document.getElementById('btnAdminManualPayslipGroup').classList.add('hidden');
       }
 
-      document.getElementById('btnDocContract').href = currentUser.CONTRACT_DOC_URL || '#';
-      document.getElementById('btnDocBpjs').href = currentUser.BPJS_DOC_URL || '#';
+      const contractBtn = document.getElementById('btnDocContract');
+      const bpjsBtn = document.getElementById('btnDocBpjs');
+      if (contractBtn) contractBtn.href = currentUser.CONTRACT_DOC_URL || '#';
+      if (bpjsBtn) bpjsBtn.href = currentUser.BPJS_DOC_URL || '#';
 
+      switchTab('dashboard');
       loadDashboardData();
-      getLocationGPS();
-    }
-
-    function updateUserProfilePicUI(photoUrl) {
-      const defaultPic = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80';
-      const pic = photoUrl || defaultPic;
-      document.getElementById('headerUserAvatarImg').src = pic;
-      document.getElementById('dashboardUserAvatarImg').src = pic;
-      document.getElementById('profilePreviewImg').src = pic;
     }
 
     function logout() {
       currentUser = null;
       document.getElementById('appContainer').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
-      showToast("Anda telah keluar dari aplikasi.");
+      document.getElementById('formLogin').reset();
+      showToast("Berhasil keluar.");
     }
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active-nav'));
 
       const targetView = document.getElementById('view-' + tabId);
-      const targetNav = document.getElementById('nav-' + tabId);
-
       if (targetView) targetView.classList.remove('hidden');
+
+      const targetNav = document.getElementById('nav-' + tabId);
       if (targetNav) targetNav.classList.add('active-nav');
 
-      if (tabId === 'attendance') getLocationGPS();
-      if (tabId === 'requests') renderUserRequestsTable();
-      if (tabId === 'payslip') renderUserPayslipsTable();
-      if (tabId === 'adminEmployees') renderAdminEmployeesTable();
-      if (tabId === 'adminDuties') renderAdminDutiesTable();
-      if (tabId === 'adminApprovals') renderAdminApprovalsTable();
+      if (tabId === 'adminEmployees') {
+        renderAdminEmployeesTable();
+      } else if (tabId === 'adminApprovals') {
+        renderAdminApprovalsTable();
+      } else if (tabId === 'adminDuties') {
+        renderAdminDutiesTable();
+      } else if (tabId === 'requests') {
+        renderUserRequestsTable();
+      } else if (tabId === 'payslip') {
+        renderUserPayslipsTable();
+      }
+    }
+
+    function updateUserProfilePicUI(url) {
+      if (!url) return;
+      const avatar1 = document.getElementById('headerUserAvatarImg');
+      const avatar2 = document.getElementById('dashboardUserAvatarImg');
+      const avatar3 = document.getElementById('profilePreviewImg');
+
+      if (avatar1) avatar1.src = url;
+      if (avatar2) avatar2.src = url;
+      if (avatar3) avatar3.src = url;
+    }
+
+    function calculateReqDays(startDateStr, endDateStr) {
+      try {
+        const d1 = parseDateParts(startDateStr);
+        const d2 = parseDateParts(endDateStr);
+        if (!d1 || !d2) return 1;
+        const ts1 = new Date(d1.year, d1.month, d1.day).getTime();
+        const ts2 = new Date(d2.year, d2.month, d2.day).getTime();
+        const diff = Math.abs(ts2 - ts1);
+        return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)) + 1);
+      } catch (e) {
+        return 1;
+      }
     }
 
     async function loadDashboardData() {
@@ -1661,7 +1678,35 @@
         document.getElementById('statLateToday').innerText = res.stats.lateToday;
         document.getElementById('statLeaveBalance').innerText = res.stats.leaveBalance;
         document.getElementById('payslipLeaveCount').innerText = res.stats.leaveBalance + ' Hari';
-        document.getElementById('payslipSavedHolidays').innerText = res.stats.savedHolidays + ' Hari';
+
+        // Hitung otomatis Tabungan Hari Libur dari pengajuan yang telah disetujui
+        let dynamicSavedHolidays = parseInt(res.stats.savedHolidays || 0, 10);
+        if (cachedData.requests && cachedData.requests.length > 0) {
+          let reqTabungDays = 0;
+          let reqPenggantiDays = 0;
+
+          cachedData.requests.forEach(r => {
+            const isApproved = (r.STATUS === 'APPROVED' || r.STATUS === 'DISETUJUI');
+            const isMine = (r.EMP_ID === currentUser.EMP_ID);
+            if (isApproved && isMine) {
+              const type = (r.TYPE || '').trim().toLowerCase();
+              const days = calculateReqDays(r.START_DATE, r.END_DATE);
+              if (type.includes('tabung') || type.includes('menabung')) {
+                reqTabungDays += days;
+              } else if (type.includes('pengganti')) {
+                reqPenggantiDays += days;
+              }
+            }
+          });
+
+          const encashed = parseInt(currentUser.ENCASHED_HOLIDAYS || 0, 10);
+          const computedTotal = Math.max(0, reqTabungDays - reqPenggantiDays - encashed);
+          if (computedTotal > dynamicSavedHolidays) {
+            dynamicSavedHolidays = computedTotal;
+          }
+        }
+
+        document.getElementById('payslipSavedHolidays').innerText = dynamicSavedHolidays + ' Hari';
         
         const badgeDisiplin = document.getElementById('badgeDisiplinHero');
         if (badgeDisiplin) {
@@ -2500,8 +2545,8 @@
 
       cachedData.requests.forEach(r => {
         let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
-        if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
-        if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
+        if (r.STATUS === 'APPROVED' || r.STATUS === 'DISETUJUI') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
+        if (r.STATUS === 'REJECTED' || r.STATUS === 'DITOLAK') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
 
         let docBtn = '<span class="text-slate-400">-</span>';
         if (r.DOC_ATTACHMENT && r.DOC_ATTACHMENT !== '-' && String(r.DOC_ATTACHMENT).startsWith('http')) {
@@ -2833,6 +2878,7 @@
       if (emp) {
         document.getElementById('empIsEdit').value = "true";
         document.getElementById('empEditId').value = emp.EMP_ID;
+        document.getElementById('empSavedHolidays').value = emp.SAVED_HOLIDAYS || "0";
         document.getElementById('employeeModalTitle').innerText = "Edit Data Karyawan (" + emp.EMP_ID + ")";
         document.getElementById('empFullName').value = emp.FULL_NAME || "";
         document.getElementById('empEmail').value = emp.EMAIL || "";
@@ -2862,6 +2908,7 @@
       document.getElementById('empIsEdit').value = "false";
       document.getElementById('employeeModalTitle').innerText = "Tambah Akun Karyawan Baru";
       document.getElementById('formEmployee').reset();
+      document.getElementById('empSavedHolidays').value = "0";
       document.getElementById('empHasBpjsKes').checked = false;
       document.getElementById('empBpjsKesAmount').disabled = true;
       document.getElementById('empKasbonAmount').value = 0;
@@ -2884,7 +2931,7 @@
         position: document.getElementById('empPosition').value,
         department: document.getElementById('empDepartment').value,
         leaveBalance: document.getElementById('empLeaveBalance').value,
-        savedHolidays: '0',
+        savedHolidays: document.getElementById('empSavedHolidays').value || '0',
         basicSalary: document.getElementById('empBasicSalary').value,
         allowance: document.getElementById('empAllowance').value,
         contractUrl: document.getElementById('empContractUrl').value,
@@ -2919,8 +2966,8 @@
 
       cachedData.requests.forEach(r => {
         let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
-        if (r.STATUS === 'APPROVED') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
-        if (r.STATUS === 'REJECTED') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
+        if (r.STATUS === 'APPROVED' || r.STATUS === 'DISETUJUI') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
+        if (r.STATUS === 'REJECTED' || r.STATUS === 'DITOLAK') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
 
         let docBtn = '<span class="text-slate-400">-</span>';
         if (r.DOC_ATTACHMENT && r.DOC_ATTACHMENT !== '-' && String(r.DOC_ATTACHMENT).startsWith('http')) {
