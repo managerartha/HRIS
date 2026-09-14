@@ -1686,6 +1686,19 @@
         cachedData.duties = res.duties || [];
         cachedData.attendance = res.recentAttendance || [];
 
+        if (cachedData.payslips && cachedData.payslips.length > 0) {
+          cachedData.payslips.forEach(p => {
+            if (p.STATUS !== 'TERBIT MANUAL' && parseInt(p.LATE_COUNT || 0, 10) === 0 && parseInt(p.ON_TIME_BONUS || 0, 10) === 0) {
+              p.ON_TIME_BONUS = 50000;
+              const basic = parseInt(p.BASIC_SALARY || 0, 10);
+              const allow = parseInt(p.ALLOWANCE || 0, 10);
+              const encashedPay = parseInt(p.ENCASHED_HOLIDAY_PAY || 0, 10);
+              const ded = parseInt(p.DEDUCTIONS || 0, 10);
+              p.NET_SALARY = (basic + allow + 50000 + encashedPay) - ded;
+            }
+          });
+        }
+
         document.getElementById('statTotalEmployees').innerText = res.stats.totalEmployees;
         document.getElementById('statPresentToday').innerText = res.stats.presentToday;
         document.getElementById('statLateToday').innerText = res.stats.lateToday;
@@ -2783,9 +2796,10 @@
       document.getElementById('printAllowance').innerText = "Rp " + parseInt(p.ALLOWANCE||0).toLocaleString('id-ID');
 
       const onTimeBonusRow = document.getElementById('printOnTimeBonusRow');
-      if (p.ON_TIME_BONUS > 0) {
+      const bonusVal = parseInt(p.ON_TIME_BONUS || 0, 10);
+      if (bonusVal > 0) {
         onTimeBonusRow.classList.remove('hidden');
-        document.getElementById('printOnTimeBonus').innerText = "Rp " + parseInt(p.ON_TIME_BONUS||0).toLocaleString('id-ID');
+        document.getElementById('printOnTimeBonus').innerText = "Rp " + bonusVal.toLocaleString('id-ID');
         document.getElementById('printOnTimeBonusLabel').innerText = "Bonus Ketepatan Waktu / Disiplin Penuh (0x Telat)";
       } else {
         onTimeBonusRow.classList.add('hidden');
