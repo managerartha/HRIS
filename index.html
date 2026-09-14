@@ -53,7 +53,6 @@
         padding: 0 !important;
       }
 
-      /* Sembunyikan semua elemen aplikasi dan modal yang tertutup saat mencetak */
       #loginScreen,
       #appContainer,
       #modalManualPayslip,
@@ -70,7 +69,6 @@
         display: none !important;
       }
 
-      /* Tampilkan hanya modal aktif yang tidak berkelas .hidden */
       #modalPrintAttendanceReport:not(.hidden),
       #modalPrintPayslip:not(.hidden) {
         display: block !important;
@@ -129,11 +127,9 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col justify-between">
 
-  <!-- SCREEN LOGIN -->
   <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
     <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6 border border-slate-100">
       
-      <!-- LOGO RESMI ARTHA SAFETY INDONESIA (LOGIN) -->
       <div class="text-center space-y-3 flex flex-col items-center">
         <div class="py-3 px-5 rounded-2xl bg-white border border-slate-100 inline-block shadow-sm">
           <img src="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png" alt="PT Artha Safety Indonesia" class="h-12 w-auto object-contain mx-auto" onerror="this.onerror=null; this.src='https://placehold.co/240x60/101935/ffffff?text=ARTHA+SAFETY';">
@@ -146,10 +142,10 @@
 
       <form id="formLogin" onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Email Perusahaan</label>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Email / ID Karyawan</label>
           <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400"><i class="fa-solid fa-envelope text-xs"></i></span>
-            <input type="email" id="loginEmail" required placeholder="email@arthasafety.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400"><i class="fa-solid fa-user-check text-xs"></i></span>
+            <input type="text" id="loginEmail" required placeholder="email@perusahaan.com atau EMP-xxxx" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
           </div>
         </div>
         <div>
@@ -168,10 +164,8 @@
     </div>
   </div>
 
-  <!-- CONTAINER UTAMA SETELAH LOGIN -->
   <div id="appContainer" class="hidden min-h-screen flex flex-col md:flex-row">
     
-    <!-- SIDEBAR LEFT -->
     <aside class="w-full md:w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col justify-between p-4 shadow-xl z-20">
       <div>
         <div class="flex items-center gap-2 px-3 py-2.5 mb-6 bg-white/95 rounded-2xl shadow-sm border border-white/20">
@@ -226,10 +220,8 @@
       </div>
     </aside>
 
-    <!-- CONTENT RIGHT -->
     <div class="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scroll">
       
-      <!-- HEADER TOP -->
       <header class="bg-white border-b border-slate-200 py-3.5 px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div class="relative w-72 hidden sm:block">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
@@ -257,7 +249,6 @@
         </div>
       </header>
 
-      <!-- MAIN CONTENT VIEW -->
       <main class="p-4 sm:p-6 space-y-6">
 
         <!-- VIEW 1: DASHBOARD -->
@@ -302,6 +293,7 @@
             </button>
           </div>
 
+          <!-- STATS CARDS -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between">
               <div>
@@ -382,7 +374,6 @@
             </div>
 
             <div class="space-y-6">
-              <!-- MINI CALENDAR WIDGET -->
               <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                 <div class="flex items-center justify-between mb-4">
                   <h4 class="font-extrabold text-xs text-slate-800" id="calendarMonthYear">Memuat Kalender...</h4>
@@ -399,7 +390,6 @@
                 </div>
               </div>
 
-              <!-- AGENDA & SHARED NOTES WIDGET -->
               <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                   <div>
@@ -419,7 +409,6 @@
           </div>
         </div>
 
-        <!-- VIEW 2: ABSENSI KAMERA & GPS -->
         <div id="view-attendance" class="tab-content hidden space-y-6">
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 max-w-3xl mx-auto">
             <div class="border-b border-slate-100 pb-4 mb-6 text-center">
@@ -429,12 +418,18 @@
               </p>
             </div>
 
+            <!-- KARTU INDIKATOR GPS DENGAN TOMBOL REFRESH CEPAT -->
             <div class="p-4 rounded-2xl border mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-slate-50 border-slate-200" id="attendanceLocationCard">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg" id="locationIconBox"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shrink-0" id="locationIconBox"><i class="fa-solid fa-location-dot"></i></div>
                 <div>
-                  <p class="font-bold text-slate-800" id="targetLocationTitle">PT Artha Safety Indonesia - Kantor Pusat HQ</p>
-                  <p class="text-slate-500 font-mono text-[11px]" id="currentGpsCoords">Mencari koordinat GPS...</p>
+                  <div class="flex items-center gap-2">
+                    <p class="font-bold text-slate-800" id="targetLocationTitle">PT Artha Safety Indonesia - Kantor Pusat HQ</p>
+                    <button onclick="getLocationGPS(true)" title="Perbarui titik GPS sekarang" class="p-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-md text-[10px] font-bold transition flex items-center gap-1">
+                      <i class="fa-solid fa-rotate text-emerald-600"></i> Refresh GPS
+                    </button>
+                  </div>
+                  <p class="text-slate-500 font-mono text-[11px] mt-0.5" id="currentGpsCoords">Mencari koordinat GPS...</p>
                 </div>
               </div>
               <div class="text-right">
@@ -488,7 +483,6 @@
           </div>
         </div>
 
-        <!-- VIEW 3: PENGAJUAN CUTI & IZIN -->
         <div id="view-requests" class="tab-content hidden space-y-6">
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -568,7 +562,6 @@
           </div>
         </div>
 
-        <!-- VIEW 5: SLIP GAJI & SISA CUTI -->
         <div id="view-payslip" class="tab-content hidden space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-gradient-to-br from-slate-900 to-emerald-950 rounded-3xl p-6 text-white shadow-lg flex items-center justify-between border border-emerald-500/20">
@@ -637,7 +630,6 @@
           </div>
         </div>
 
-        <!-- VIEW 6: ADMIN KELOLA KARYAWAN -->
         <div id="view-adminEmployees" class="tab-content hidden space-y-6">
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -670,7 +662,6 @@
           </div>
         </div>
 
-        <!-- VIEW 7: ADMIN DUTIES (DINAS LUAR KOTA) -->
         <div id="view-adminDuties" class="tab-content hidden space-y-6">
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -703,7 +694,6 @@
           </div>
         </div>
 
-        <!-- VIEW 8: ADMIN PERSETUJUAN -->
         <div id="view-adminApprovals" class="tab-content hidden space-y-6">
           <div>
             <h2 class="text-xl font-extrabold text-slate-900">Persetujuan Pengajuan Cuti & Izin</h2>
@@ -732,7 +722,6 @@
           </div>
         </div>
 
-        <!-- VIEW 9: ADMIN PENGATURAN KANTOR & JAM KERJA -->
         <div id="view-adminSettings" class="tab-content hidden space-y-6">
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 max-w-2xl mx-auto">
             <div class="border-b border-slate-100 pb-4 mb-6">
@@ -781,7 +770,6 @@
     </div>
   </div>
 
-  <!-- MODAL TERBITKAN SLIP GAJI MANUAL (KHUSUS ADMIN/KEUANGAN) -->
   <div id="modalManualPayslip" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -888,11 +876,9 @@
     </div>
   </div>
 
-  <!-- MODAL CETAK SLIP GAJI (PRINT LAYOUT FORMAL) -->
   <div id="modalPrintPayslip" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 text-slate-800 my-6">
       
-      <!-- LOGO RESMI KOP SURAT SLIP GAJI -->
       <div class="flex items-center justify-between border-b-2 border-slate-800 pb-4">
         <div class="flex items-center gap-3">
           <img src="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png" alt="PT Artha Safety Indonesia" class="h-11 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/220x55/101935/ffffff?text=ARTHA+SAFETY';">
@@ -903,7 +889,6 @@
         </div>
       </div>
 
-      <!-- RINCIAN KARYAWAN -->
       <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl text-xs border border-slate-200">
         <div>
           <p class="text-slate-400 font-bold uppercase text-[10px]">Nama Karyawan</p>
@@ -917,7 +902,6 @@
         </div>
       </div>
 
-      <!-- TABEL RINCIAN GAJI & POTONGAN -->
       <div class="space-y-3">
         <h4 class="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">Rincian Penghasilan & Potongan</h4>
         <table class="w-full text-xs text-left border-collapse">
@@ -979,7 +963,6 @@
         </table>
       </div>
 
-      <!-- KOLOM TANDA TANGAN FORMAL SLIP GAJI -->
       <div class="pt-6 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs print-signatures">
         <div class="space-y-12">
           <p class="font-bold text-slate-600">Bagian Keuangan & HRD,</p>
@@ -998,7 +981,6 @@
         </div>
       </div>
 
-      <!-- TOMBOL AKSI CETAK MODAL -->
       <div class="pt-4 border-t border-slate-100 flex justify-end gap-3 no-print">
         <button type="button" onclick="closePrintPayslipModal()" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Tutup</button>
         <button type="button" onclick="triggerPrintProcess('payslip')" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
@@ -1008,11 +990,9 @@
     </div>
   </div>
 
-  <!-- MODAL LAPORAN PRESENSI PDF (ADMIN ONLY) -->
   <div id="modalPrintAttendanceReport" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-start justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-4xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 text-slate-800 my-6">
       
-      <!-- LOGO RESMI KOP SURAT LAPORAN -->
       <div class="flex items-center justify-between border-b-2 border-slate-800 pb-4">
         <div class="flex items-center gap-3">
           <img src="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png" alt="PT Artha Safety Indonesia" class="h-11 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/220x55/101935/ffffff?text=ARTHA+SAFETY';">
@@ -1023,7 +1003,6 @@
         </div>
       </div>
 
-      <!-- FILTER PERIODE BULAN & TAHUN (HANYA DITAMPILKAN DI SCREEN, DI-HIDE SAAT PRINT) -->
       <div class="flex flex-wrap items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200 no-print gap-2">
         <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
           <i class="fa-solid fa-filter text-amber-600"></i> Pilih Periode Laporan:
@@ -1052,7 +1031,6 @@
         </div>
       </div>
 
-      <!-- TABEL REKAPITULASI LAPORAN (MENDUKUNG MULTI-PAGE BREAKDOWN) -->
       <div class="space-y-3">
         <h4 class="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">Daftar Kehadiran & Status Presensi Seluruh Karyawan</h4>
         <div class="overflow-x-auto">
@@ -1073,7 +1051,6 @@
         </div>
       </div>
 
-      <!-- KOLOM TANDA TANGAN FORMAL LAPORAN PRESENSI PDF -->
       <div class="pt-8 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs print-signatures">
         <div class="space-y-12">
           <p class="font-bold text-slate-600">Dibuat Oleh (HRD),</p>
@@ -1092,7 +1069,6 @@
         </div>
       </div>
 
-      <!-- TOMBOL AKSI CETAK LAPORAN -->
       <div class="pt-4 border-t border-slate-100 flex justify-end gap-3 no-print">
         <button type="button" onclick="closeAttendanceReportModal()" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Tutup</button>
         <button type="button" onclick="triggerPrintProcess('report')" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
@@ -1102,7 +1078,6 @@
     </div>
   </div>
 
-  <!-- MODAL VIEWER FOTO PRESENSI -->
   <div id="modalPhotoViewer" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1141,7 +1116,6 @@
     </div>
   </div>
 
-  <!-- MODAL EDIT FOTO PROFIL -->
   <div id="modalProfilePhoto" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1178,7 +1152,6 @@
     </div>
   </div>
 
-  <!-- MODAL ADD AGENDA -->
   <div id="modalAgenda" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1220,7 +1193,6 @@
     </div>
   </div>
 
-  <!-- MODAL PENGAJUAN HR (DENGAN UPLOAD FILE LANGSUNG DEVICE) -->
   <div id="modalRequest" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1256,7 +1228,6 @@
           <textarea id="reqReason" required rows="3" placeholder="Jelaskan alasan pengajuan secara detail..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"></textarea>
         </div>
 
-        <!-- UPLOAD BERKAS LANGSUNG DARI HP / KOMPUTER -->
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Lampiran / Surat Dokter (Opsional)</label>
           <div class="relative border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-2xl p-3 text-center bg-slate-50 transition cursor-pointer" onclick="document.getElementById('reqFileInput').click()">
@@ -1286,7 +1257,6 @@
     </div>
   </div>
 
-  <!-- MODAL TUGAS DINAS LUAR KOTA -->
   <div id="modalDuty" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1345,7 +1315,6 @@
     </div>
   </div>
 
-  <!-- MODAL ADD/EDIT EMPLOYEE -->
   <div id="modalEmployee" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1462,7 +1431,6 @@
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION POPUP -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
       <i id="toastIcon" class="fa-solid fa-circle-info text-emerald-400"></i>
@@ -1470,11 +1438,7 @@
     </div>
   </div>
 
-  <!-- CLIENT-SIDE LOGIC & SCRIPTS -->
   <script>
-    // ============================================================================
-    // KONFIGURASI UTAMA BACKEND APPS SCRIPT (GITHUB PAGES FRONTEND)
-    // ============================================================================
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwikmWKn55J0V64tj351DS2fyHOn42336FN_tNF53PsXYUp_5c0CzjgRUN2LRV1iWrM2A/exec";
 
     let currentUser = null;
@@ -1482,6 +1446,7 @@
     let activeDutyAssignment = null;
     let capturedPhotoBase64 = '';
     let currentGeoLocation = { lat: 0, lng: 0 };
+    let isFetchingGps = false;
     let mediaStream = null;
     let profileMediaStream = null;
 
@@ -1552,9 +1517,16 @@
     }
 
     async function handleLogin() {
-      const email = document.getElementById('loginEmail').value;
-      const pass = document.getElementById('loginPassword').value;
+      const emailInput = document.getElementById('loginEmail');
+      const passInput = document.getElementById('loginPassword');
+      const email = (emailInput ? emailInput.value : '').trim();
+      const pass = (passInput ? passInput.value : '').trim();
       const btn = document.getElementById('btnLoginSubmit');
+
+      if (!email || !pass) {
+        showToast("Harap masukkan Email / ID Karyawan dan Kata Sandi!", true);
+        return;
+      }
 
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Memeriksa...';
@@ -1567,7 +1539,7 @@
         currentUser = res.user;
         onLoginSuccess();
       } else {
-        showToast(res.message || "Gagal masuk. Periksa email & password.", true);
+        showToast(res.message || "Gagal masuk. Periksa kembali ID/Email & kata sandi.", true);
       }
     }
 
@@ -1622,7 +1594,9 @@
       const targetNav = document.getElementById('nav-' + tabId);
       if (targetNav) targetNav.classList.add('active-nav');
 
-      if (tabId === 'adminEmployees') {
+      if (tabId === 'attendance') {
+        getLocationGPS(true);
+      } else if (tabId === 'adminEmployees') {
         renderAdminEmployeesTable();
       } else if (tabId === 'adminApprovals') {
         renderAdminApprovalsTable();
@@ -1631,7 +1605,46 @@
       } else if (tabId === 'requests') {
         renderUserRequestsTable();
       } else if (tabId === 'payslip') {
+        updateSavedHolidaysDisplay();
         renderUserPayslipsTable();
+      }
+    }
+
+    function updateSavedHolidaysDisplay() {
+      if (!currentUser) return;
+      let dynamicSavedHolidays = parseInt(currentUser.SAVED_HOLIDAYS || 0, 10);
+      
+      if (cachedData.requests && cachedData.requests.length > 0) {
+        let reqTabungDays = 0;
+        let reqPenggantiDays = 0;
+        const myEmpId = String(currentUser.EMP_ID || '').trim().toUpperCase();
+
+        cachedData.requests.forEach(r => {
+          const status = String(r.STATUS || '').trim().toUpperCase();
+          const isApproved = (status === 'APPROVED' || status === 'DISETUJUI');
+          const isMine = (String(r.EMP_ID || '').trim().toUpperCase() === myEmpId);
+
+          if (isApproved && isMine) {
+            const type = (r.TYPE || '').trim().toLowerCase();
+            const days = calculateReqDays(r.START_DATE, r.END_DATE);
+            if (type.includes('tabung') || type.includes('menabung')) {
+              reqTabungDays += days;
+            } else if (type.includes('pengganti')) {
+              reqPenggantiDays += days;
+            }
+          }
+        });
+
+        const encashed = parseInt(currentUser.ENCASHED_HOLIDAYS || 0, 10);
+        const computedTotal = Math.max(0, reqTabungDays - reqPenggantiDays - encashed);
+        if (computedTotal > dynamicSavedHolidays) {
+          dynamicSavedHolidays = computedTotal;
+        }
+      }
+
+      const holidayEl = document.getElementById('payslipSavedHolidays');
+      if (holidayEl) {
+        holidayEl.innerText = dynamicSavedHolidays + ' Hari';
       }
     }
 
@@ -1679,34 +1692,7 @@
         document.getElementById('statLeaveBalance').innerText = res.stats.leaveBalance;
         document.getElementById('payslipLeaveCount').innerText = res.stats.leaveBalance + ' Hari';
 
-        // Hitung otomatis Tabungan Hari Libur dari pengajuan yang telah disetujui
-        let dynamicSavedHolidays = parseInt(res.stats.savedHolidays || 0, 10);
-        if (cachedData.requests && cachedData.requests.length > 0) {
-          let reqTabungDays = 0;
-          let reqPenggantiDays = 0;
-
-          cachedData.requests.forEach(r => {
-            const isApproved = (r.STATUS === 'APPROVED' || r.STATUS === 'DISETUJUI');
-            const isMine = (r.EMP_ID === currentUser.EMP_ID);
-            if (isApproved && isMine) {
-              const type = (r.TYPE || '').trim().toLowerCase();
-              const days = calculateReqDays(r.START_DATE, r.END_DATE);
-              if (type.includes('tabung') || type.includes('menabung')) {
-                reqTabungDays += days;
-              } else if (type.includes('pengganti')) {
-                reqPenggantiDays += days;
-              }
-            }
-          });
-
-          const encashed = parseInt(currentUser.ENCASHED_HOLIDAYS || 0, 10);
-          const computedTotal = Math.max(0, reqTabungDays - reqPenggantiDays - encashed);
-          if (computedTotal > dynamicSavedHolidays) {
-            dynamicSavedHolidays = computedTotal;
-          }
-        }
-
-        document.getElementById('payslipSavedHolidays').innerText = dynamicSavedHolidays + ' Hari';
+        updateSavedHolidaysDisplay();
         
         const badgeDisiplin = document.getElementById('badgeDisiplinHero');
         if (badgeDisiplin) {
@@ -1747,7 +1733,7 @@
         renderUserPayslipsTable();
         initMiniCalendar();
 
-        getLocationGPS();
+        getLocationGPS(false);
       }
     }
 
@@ -1918,7 +1904,6 @@
     }
 
     async function openAttendanceReportModal() {
-      // Pastikan modal slip gaji benar-benar ditutup
       const payModal = document.getElementById('modalPrintPayslip');
       if (payModal) payModal.classList.add('hidden');
 
@@ -2025,55 +2010,97 @@
       document.getElementById('modalPrintAttendanceReport').classList.add('hidden');
     }
 
-    function getLocationGPS() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          pos => {
-            currentGeoLocation.lat = pos.coords.latitude;
-            currentGeoLocation.lng = pos.coords.longitude;
-            
-            document.getElementById('currentGpsCoords').innerText = 
-              pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6);
+    function applyGpsCoordinates(lat, lng) {
+      currentGeoLocation.lat = lat;
+      currentGeoLocation.lng = lng;
 
-            let officeLat, officeLng, maxRad, targetName;
-
-            if (activeDutyAssignment) {
-              officeLat = parseFloat(activeDutyAssignment.LATITUDE);
-              officeLng = parseFloat(activeDutyAssignment.LONGITUDE);
-              maxRad = parseFloat(activeDutyAssignment.RADIUS_METERS || '50');
-              targetName = "📍 Dinas: " + activeDutyAssignment.LOCATION_NAME;
-
-              document.getElementById('targetLocationTitle').innerText = targetName;
-              document.getElementById('attendanceNoticeText').innerHTML = 
-                "Presensi diizinkan pada <b class='text-amber-600'>" + targetName + "</b> maksimal radius <b class='text-emerald-600'>" + maxRad + " Meter</b> (Jam Masuk: " + (officeSettings.WORK_START_TIME || '08:00') + " WIB).";
-            } else {
-              officeLat = parseFloat(officeSettings.OFFICE_LAT || '-6.175392');
-              officeLng = parseFloat(officeSettings.OFFICE_LNG || '106.827153');
-              maxRad = parseFloat(officeSettings.MAX_RADIUS_METERS || '10');
-              targetName = officeSettings.OFFICE_NAME || "PT Artha Safety Indonesia - Kantor Pusat HQ";
-
-              document.getElementById('targetLocationTitle').innerText = targetName;
-              document.getElementById('displayOfficeRadius').innerText = maxRad + ' Meter';
-            }
-
-            const distance = calculateDistanceMeters(officeLat, officeLng, currentGeoLocation.lat, currentGeoLocation.lng);
-            const badge = document.getElementById('distanceMeterBadge');
-
-            if (distance <= maxRad) {
-              badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700";
-              badge.innerText = distance + " Meter (Di dalam Radius)";
-            } else {
-              badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700";
-              badge.innerText = distance + " Meter (Di Luar Radius " + maxRad + "m)";
-            }
-          },
-          err => {
-            document.getElementById('currentGpsCoords').innerText = "Akses GPS Ditolak / Tidak Tersedia";
-            showToast("Izin GPS dibutuhkan untuk absensi!", true);
-          },
-          { enableHighAccuracy: true }
-        );
+      const coordsEl = document.getElementById('currentGpsCoords');
+      if (coordsEl) {
+        coordsEl.innerText = lat.toFixed(6) + ', ' + lng.toFixed(6);
       }
+
+      let officeLat, officeLng, maxRad, targetName;
+
+      if (activeDutyAssignment) {
+        officeLat = parseFloat(activeDutyAssignment.LATITUDE);
+        officeLng = parseFloat(activeDutyAssignment.LONGITUDE);
+        maxRad = parseFloat(activeDutyAssignment.RADIUS_METERS || '50');
+        targetName = "📍 Dinas: " + activeDutyAssignment.LOCATION_NAME;
+
+        document.getElementById('targetLocationTitle').innerText = targetName;
+        document.getElementById('attendanceNoticeText').innerHTML = 
+          "Presensi diizinkan pada <b class='text-amber-600'>" + targetName + "</b> maksimal radius <b class='text-emerald-600'>" + maxRad + " Meter</b> (Jam Masuk: " + (officeSettings.WORK_START_TIME || '08:00') + " WIB).";
+      } else {
+        officeLat = parseFloat(officeSettings.OFFICE_LAT || '-6.175392');
+        officeLng = parseFloat(officeSettings.OFFICE_LNG || '106.827153');
+        maxRad = parseFloat(officeSettings.MAX_RADIUS_METERS || '10');
+        targetName = officeSettings.OFFICE_NAME || "PT Artha Safety Indonesia - Kantor Pusat HQ";
+
+        document.getElementById('targetLocationTitle').innerText = targetName;
+        document.getElementById('displayOfficeRadius').innerText = maxRad + ' Meter';
+      }
+
+      const distance = calculateDistanceMeters(officeLat, officeLng, currentGeoLocation.lat, currentGeoLocation.lng);
+      const badge = document.getElementById('distanceMeterBadge');
+
+      if (badge) {
+        if (distance <= maxRad) {
+          badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700";
+          badge.innerText = distance + " Meter (Di dalam Radius)";
+        } else {
+          badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700";
+          badge.innerText = distance + " Meter (Di Luar Radius " + maxRad + "m)";
+        }
+      }
+    }
+
+    function getLocationGPS(isManual = false) {
+      if (!navigator.geolocation) {
+        document.getElementById('currentGpsCoords').innerText = "Browser tidak mendukung GPS";
+        showToast("Browser tidak mendukung GPS", true);
+        return;
+      }
+
+      if (isFetchingGps && !isManual) return;
+      isFetchingGps = true;
+
+      const coordsEl = document.getElementById('currentGpsCoords');
+      const badge = document.getElementById('distanceMeterBadge');
+
+      if (isManual) {
+        if (coordsEl) coordsEl.innerText = "Memperbarui titik koordinat...";
+        if (badge) badge.innerText = "Menghitung...";
+      }
+
+      // 1. Upaya Cepat (Cache/Jaringan Cepat - timeout 3.5 detik)
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          applyGpsCoordinates(pos.coords.latitude, pos.coords.longitude);
+          isFetchingGps = false;
+        },
+        err => {
+          // 2. Fallback: Presisi Tinggi dengan batas waktu 6.5 detik
+          navigator.geolocation.getCurrentPosition(
+            pos2 => {
+              applyGpsCoordinates(pos2.coords.latitude, pos2.coords.longitude);
+              isFetchingGps = false;
+            },
+            err2 => {
+              isFetchingGps = false;
+              if (coordsEl) coordsEl.innerText = "Sinyal GPS lemah / Belum diizinkan";
+              if (badge) {
+                badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700";
+                badge.innerText = "GPS Belum Terkunci";
+              }
+              if (isManual) {
+                showToast("Pastikan izin lokasi HP aktif & berada di area terbuka.", true);
+              }
+            },
+            { enableHighAccuracy: true, timeout: 6500, maximumAge: 30000 }
+          );
+        },
+        { enableHighAccuracy: false, timeout: 3500, maximumAge: 60000 }
+      );
     }
 
     function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -2194,7 +2221,8 @@
       }
 
       if (currentGeoLocation.lat === 0) {
-        showToast("Lokasi GPS belum terdeteksi. Aktifkan GPS HP/Browser Anda.", true);
+        showToast("Lokasi GPS belum terdeteksi. Mencari lokasi...", true);
+        getLocationGPS(true);
         return;
       }
 
@@ -2733,7 +2761,6 @@
     }
 
     function openPrintPayslipModal(payIdOrIndex) {
-      // Pastikan modal laporan presensi benar-benar ditutup
       const repModal = document.getElementById('modalPrintAttendanceReport');
       if (repModal) repModal.classList.add('hidden');
 
@@ -2810,19 +2837,12 @@
       const repModal = document.getElementById('modalPrintAttendanceReport');
       const payModal = document.getElementById('modalPrintPayslip');
 
-      // Isolasi modal yang dicetak agar tidak saling tumpang tindih
       if (type === 'report') {
         if (payModal) payModal.classList.add('hidden');
         if (repModal) repModal.classList.remove('hidden');
       } else if (type === 'payslip') {
         if (repModal) repModal.classList.add('hidden');
         if (payModal) payModal.classList.remove('hidden');
-      } else {
-        if (repModal && !repModal.classList.contains('hidden') && payModal) {
-          payModal.classList.add('hidden');
-        } else if (payModal && !payModal.classList.contains('hidden') && repModal) {
-          repModal.classList.add('hidden');
-        }
       }
 
       if (repModal && !repModal.classList.contains('hidden')) repModal.scrollTop = 0;
