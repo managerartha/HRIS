@@ -1467,7 +1467,7 @@
       attendance: []
     };
 
-    async function apiCall(action, payload = {}) {
+    async function apiCall(action, payload = {}, retryCount = 0) {
       if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("PASTE_YOUR")) {
         showToast("Buka index.html di GitHub & pasang URL APPS_SCRIPT_URL Anda!", true);
         throw new Error("URL Apps Script belum dikonfigurasi.");
@@ -1485,6 +1485,10 @@
         const rawText = await response.text();
         
         if (rawText.trim().startsWith('<') || rawText.includes('<!DOCTYPE') || rawText.includes('<html')) {
+          if (retryCount < 1 && action === 'getDashboardData') {
+            await new Promise(r => setTimeout(r, 1000));
+            return await apiCall(action, payload, retryCount + 1);
+          }
           showToast("Akses Ditolak: Berikan izin Google Drive & set Web App ke 'Anyone'!", true);
           return { success: false, message: "Akses Apps Script membutuhkan otorisasi izin Drive atau hak akses 'Anyone'." };
         }
@@ -1493,6 +1497,10 @@
         return data;
       } catch (err) {
         console.error("API Call Error:", err);
+        if (retryCount < 1 && action === 'getDashboardData') {
+          await new Promise(r => setTimeout(r, 1000));
+          return await apiCall(action, payload, retryCount + 1);
+        }
         showToast("Error API: " + err.message, true);
         return { success: false, message: err.message };
       }
