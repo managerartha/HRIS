@@ -228,7 +228,12 @@
           <input type="text" placeholder="Cari fitur, karyawan..." class="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
 
-        <div class="flex items-center gap-4 ml-auto">
+        <div class="flex items-center gap-3 ml-auto">
+          <button onclick="refreshData()" title="Perbarui Data dari Spreadsheet" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrows-rotate text-emerald-600"></i>
+            <span class="hidden sm:inline">Refresh Data</span>
+          </button>
+          
           <button class="relative p-2 text-slate-500 hover:text-emerald-600 rounded-xl hover:bg-slate-100">
             <i class="fa-regular fa-bell text-lg"></i>
             <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -668,9 +673,14 @@
               <h2 class="text-xl font-extrabold text-slate-900">Penugasan Dinas Luar Kota</h2>
               <p class="text-xs text-slate-500">Atur titik GPS khusus & radius absensi bagi karyawan bertugas di luar HQ</p>
             </div>
-            <button onclick="openDutyModal()" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
-              <i class="fa-solid fa-briefcase"></i> Tambah Tugas Dinas Baru
-            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="refreshData()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+                <i class="fa-solid fa-arrows-rotate text-emerald-600"></i> Sinkron Spreadsheet
+              </button>
+              <button onclick="openDutyModal()" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2">
+                <i class="fa-solid fa-briefcase"></i> Tambah Tugas Dinas Baru
+              </button>
+            </div>
           </div>
 
           <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
@@ -1610,6 +1620,7 @@
         renderAdminApprovalsTable();
       } else if (tabId === 'adminDuties') {
         renderAdminDutiesTable();
+        loadDashboardData();
       } else if (tabId === 'requests') {
         renderUserRequestsTable();
       } else if (tabId === 'payslip') {
@@ -1754,8 +1765,19 @@
         renderUserPayslipsTable();
         initMiniCalendar();
 
+        renderAdminDutiesTable();
+        renderAdminEmployeesTable();
+        renderAdminApprovalsTable();
+
         getLocationGPS(false);
       }
+    }
+
+    async function refreshData() {
+      if (!currentUser) return;
+      showToast("Menyinkronkan data dari Spreadsheet...");
+      await loadDashboardData();
+      showToast("Data terbaru berhasil diperbarui!");
     }
 
     function renderRecentAttendanceTable(list) {
