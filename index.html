@@ -2314,6 +2314,14 @@
       renderAttendanceReportResume(selMonth, selYear, periodStr);
     }
 
+    function normalizeDateStandard(dateStr) {
+      const p = parseDateParts(dateStr);
+      if (!p) return null;
+      const d = String(p.day).padStart(2, '0');
+      const m = String(p.month + 1).padStart(2, '0');
+      return d + '/' + m + '/' + p.year;
+    }
+
     function renderAttendanceReportResume(selMonth, selYear, periodStr) {
       const container = document.getElementById('reportSummaryCards');
       if (!container) return;
@@ -2342,7 +2350,7 @@
           existing.days += days;
           existing.details.push(req.TYPE + ' (' + days + ' hari)');
           cutiMap.set(uId, existing);
-        } else if (typeLower.includes('pengganti') || typeLower.includes('libur')) {
+        } else if (typeLower.includes('pengganti') || (typeLower.includes('libur') && !typeLower.includes('tabung'))) {
           const existing = liburMap.get(uId) || { name: uName, empId: uId, days: 0, details: [] };
           existing.days += days;
           existing.details.push(days + ' hari');
@@ -2354,13 +2362,22 @@
       const isCurrentMonth = (now.getMonth() === selMonth && now.getFullYear() === selYear);
       const maxDayToCheck = isCurrentMonth ? now.getDate() : 31;
 
-      // Ambil tanggal kerja aktif (tanggal yang memiliki minimal 1 presensi)
-      const workDatesSet = new Set();
+      // Ambil seluruh tanggal kerja aktif yang memiliki kehadiran di bulan terpilih (dinormalisasi)
+      const workDatesMap = new Map();
       (cachedData.attendance || []).forEach(a => {
+        if (!a.DATE) return;
         const p = parseDateParts(a.DATE);
         if (p && p.month === selMonth && p.year === selYear && p.day <= maxDayToCheck) {
-          workDatesSet.add(a.DATE);
+          const norm = normalizeDateStandard(a.DATE);
+          if (norm && !workDatesMap.has(norm)) {
+            workDatesMap.set(norm, p.timestamp);
+          }
         }
+      });
+
+      // Urutkan tanggal kerja secara kronologis
+      const sortedWorkDates = Array.from(workDatesMap.keys()).sort((a, b) => {
+        return (workDatesMap.get(a) || 0) - (workDatesMap.get(b) || 0);
       });
 
       const alphaMap = new Map();
@@ -2373,29 +2390,46 @@
         let userAlphaDays = 0;
         const alphaDates = [];
 
-        workDatesSet.forEach(dateStr => {
-          const hasAtt = (cachedData.attendance || []).some(a => 
-            String(a.EMP_ID || '').trim().toUpperCase() === uId && 
-            String(a.DATE || '').trim() === dateStr &&
-            a.CHECKIN_TIME && a.CHECKIN_TIME !== '-'
-          );
+        sortedWorkDates.forEach(normDate => {
+          // 1. Cek apakah karyawan hadir presensi (menggunakan normalisasi tanggal)
+          const hasAtt = (cachedData.attendance || []).some(a => {
+            if (String(a.EMP_ID || '').trim().toUpperCase() !== uId) return false;
+            const aNorm = normalizeDateStandard(a.DATE);
+            return aNorm === normDate && a.CHECKIN_TIME && a.CHECKIN_TIME !== '-';
+          });
           if (hasAtt) return;
 
-          const hasDuty = (cachedData.duties || []).some(d =>
-            String(d.EMP_ID || '').trim().toUpperCase() === uId &&
-            isDateBetweenStr(dateStr, d.START_DATE, d.END_DATE)
-          );
+          // 2. Cek apakah sedang dalam penugasan dinas luar kota
+          const hasDuty = (cachedData.duties || []).some(d => {
+            if (String(d.EMP_ID || '').trim().toUpperCase() !== uId) return false;
+            return isDateBetweenStr(normDate, d.START_DATE, d.END_DATE);
+          });
           if (hasDuty) return;
 
-          const hasReq = (cachedData.requests || []).some(r =>
-            String(r.EMP_ID || '').trim().toUpperCase() === uId &&
-            (String(r.STATUS || '').toUpperCase() === 'APPROVED' || String(r.STATUS || '').toUpperCase() === 'DISETUJUI') &&
-            isDateBetweenStr(dateStr, r.START_DATE, r.END_DATE)
-          );
-          if (hasReq) return;
+          // 3. Cek apakah memiliki pengajuan izin ketidakhadiran resmi yang DISETUJUI
+          // (Hanya Cuti, Izin Sakit, dan Libur Pengganti yang membebaskan dari Alpha; Izin Terlambat & Tabung Libur TIDAK membebaskan Alpha)
+          const hasApprovedLeave = (cachedData.requests || []).some(r => {
+            if (String(r.EMP_ID || '').trim().toUpperCase() !== uId) return false;
+            const status = String(r.STATUS || '').trim().toUpperCase();
+            if (status !== 'APPROVED' && status !== 'DISETUJUI') return false;
 
+            const typeClean = String(r.TYPE || '').trim().toLowerCase();
+            const isExcusedType = typeClean.includes('cuti') || 
+                                  typeClean.includes('sakit') || 
+                                  typeClean.includes('pengganti') || 
+                                  (typeClean.includes('libur') && !typeClean.includes('tabung'));
+
+            if (!isExcusedType || typeClean.includes('terlambat') || typeClean.includes('tabung')) {
+              return false;
+            }
+
+            return isDateBetweenStr(normDate, r.START_DATE, r.END_DATE);
+          });
+          if (hasApprovedLeave) return;
+
+          // Jika tidak ada absensi, tidak ada tugas dinas, dan tidak ada izin/cuti sah -> Dihitung ALPHA
           userAlphaDays++;
-          alphaDates.push(dateStr);
+          alphaDates.push(normDate.substring(0, 5)); // Simpan format DD/MM (contoh: 03/09, 24/09)
         });
 
         if (userAlphaDays > 0) {
@@ -2433,15 +2467,21 @@
         liburHtml += '</ul>';
       }
 
-      // Render Card 3: Alpha (Tanpa Keterangan)
+      // Render Card 3: Alpha (Tanpa Keterangan) dengan rincian tanggal presisi
       let alphaHtml = '';
       if (alphaMap.size === 0) {
         alphaHtml = '<p class="text-emerald-600 font-bold text-[11px] py-1"><i class="fa-solid fa-circle-check mr-1"></i>Nihil (Seluruh karyawan hadir / berizin resmi).</p>';
       } else {
         alphaHtml = '<ul class="divide-y divide-red-100 space-y-1.5">';
         alphaMap.forEach(item => {
+          const datesDetail = item.dates && item.dates.length > 0 ? 
+            "<p class='text-[9px] text-red-500 font-mono mt-0.5'>Tgl: " + item.dates.join(', ') + "</p>" : "";
           alphaHtml += "<li class='pt-1 flex items-start justify-between'>" +
-            "<div><span class='font-bold text-slate-800'>" + item.name + "</span><p class='text-[10px] text-slate-400 font-mono'>" + item.empId + "</p></div>" +
+            "<div>" +
+              "<span class='font-bold text-slate-800'>" + item.name + "</span>" +
+              "<p class='text-[10px] text-slate-400 font-mono'>" + item.empId + "</p>" +
+              datesDetail +
+            "</div>" +
             "<span class='px-2 py-0.5 bg-red-100 text-red-700 rounded-lg text-[10px] font-extrabold shrink-0'>" + item.days + " Hari Alpha</span>" +
           "</li>";
         });
