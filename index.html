@@ -1694,7 +1694,7 @@
 
     async function loadDashboardData() {
       const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
-      if (res.success) {
+      if (res && res.success) {
         officeSettings = res.settings;
         activeDutyAssignment = res.activeDuty || null;
         
@@ -1783,6 +1783,11 @@
         renderAdminApprovalsTable();
 
         getLocationGPS(false);
+      } else {
+        console.error("Gagal loadDashboardData:", res);
+        if (res && res.message) {
+          showToast(res.message, true);
+        }
       }
     }
 
