@@ -1964,6 +1964,27 @@
       }
     }
 
+    function isUserDireksi(u) {
+      if (!u) return false;
+      const name = (u.FULL_NAME || '').toLowerCase();
+      const pos = (u.POSITION || '').toLowerCase();
+      const role = (u.ROLE || '').toLowerCase();
+      return pos.includes('direktur') || pos.includes('komisaris') || pos.includes('direksi') || pos.includes('pimpinan') ||
+             role.includes('director') || role.includes('direktur') ||
+             name.includes('ricardo') || name.includes('simbolon') || (/\berna\b/i).test(name);
+    }
+
+    function isUserRemote(u) {
+      if (!u) return false;
+      const name = (u.FULL_NAME || '').toLowerCase();
+      const pos = (u.POSITION || '').toLowerCase();
+      const dept = (u.DEPARTMENT || '').toLowerCase();
+      const isIrfan = (/\birfan\b/i).test(name);
+      const isRiana = (/\briana\b/i).test(name) && !name.includes('fitriana');
+      const isRemoteJob = pos.includes('remote') || pos.includes('wfh') || dept.includes('remote') || dept.includes('wfh');
+      return isIrfan || isRiana || isRemoteJob;
+    }
+
     async function openAttendanceReportModal() {
       const payModal = document.getElementById('modalPrintPayslip');
       if (payModal) payModal.classList.add('hidden');
@@ -1984,9 +2005,11 @@
 
       try {
         const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
-        if (res.success && res.recentAttendance) {
-          cachedData.attendance = res.recentAttendance;
-          cachedData.requests = res.requests || [];
+        if (res.success) {
+          if (res.recentAttendance) cachedData.attendance = res.recentAttendance;
+          if (res.requests) cachedData.requests = res.requests;
+          if (res.allUsers && res.allUsers.length > 0) cachedData.users = res.allUsers;
+          if (res.duties) cachedData.duties = res.duties;
           filterAttendanceReport();
         }
       } catch (err) {
@@ -2010,60 +2033,200 @@
       if (!tbody) return;
       tbody.innerHTML = '';
 
-      if (!cachedData.attendance || cachedData.attendance.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Tidak ada data rekap presensi.</td></tr>';
-        return;
-      }
-
-      const filtered = cachedData.attendance.filter(a => {
-        if (!a.DATE) return false;
+      // Kumpulkan seluruh tanggal kerja aktif yang memiliki catatan presensi atau pengajuan
+      const dateMap = new Map();
+      (cachedData.attendance || []).forEach(a => {
+        if (!a.DATE) return;
         const p = parseDateParts(a.DATE);
-        if (p) {
-          return p.month === selMonth && p.year === selYear;
+        if (p && p.month === selMonth && p.year === selYear) {
+          if (!dateMap.has(a.DATE)) dateMap.set(a.DATE, p.timestamp);
         }
-        return false;
       });
 
-      if (filtered.length === 0) {
+      (cachedData.requests || []).forEach(r => {
+        if (r.START_DATE) {
+          const p = parseDateParts(r.START_DATE);
+          if (p && p.month === selMonth && p.year === selYear) {
+            if (!dateMap.has(r.START_DATE)) dateMap.set(r.START_DATE, p.timestamp);
+          }
+        }
+      });
+
+      if (dateMap.size === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Tidak ada data presensi pada periode ' + periodStr + '.</td></tr>';
         return;
       }
 
-      filtered.sort((a, b) => {
-        const da = parseDateParts(a.DATE);
-        const db = parseDateParts(b.DATE);
-        const tsa = da ? da.timestamp : 0;
-        const tsb = db ? db.timestamp : 0;
-        if (tsb !== tsa) return tsb - tsa;
-        return String(b.CHECKIN_TIME || '').localeCompare(String(a.CHECKIN_TIME || ''));
+      // Urutkan tanggal dari yang terbaru ke terlama (descending)
+      const sortedDates = Array.from(dateMap.entries()).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+
+      // Kumpulkan daftar karyawan terdaftar
+      const empMap = new Map();
+      (cachedData.users || []).forEach(u => {
+        if (u && u.EMP_ID) empMap.set(String(u.EMP_ID).trim().toUpperCase(), u);
       });
-
-      filtered.forEach(a => {
-        let badge = '<span class="text-emerald-700 font-bold">TEPAT WAKTU</span>';
-        
-        if (a.STATUS === 'TERLAMBAT') {
-          const hasApprovedLateLeave = cachedData.requests && cachedData.requests.some(req => 
-            req.EMP_ID === a.EMP_ID && 
-            String(req.TYPE || '').trim().toLowerCase().includes('terlambat') && 
-            (String(req.STATUS || '').toUpperCase() === 'APPROVED' || String(req.STATUS || '').toUpperCase() === 'DISETUJUI') && 
-            isDateBetweenStr(a.DATE, req.START_DATE, req.END_DATE)
-          );
-
-          if (hasApprovedLateLeave) {
-            badge = '<span class="text-emerald-700 font-bold"><i class="fa-solid fa-circle-check mr-1"></i>TERLAMBAT (IZIN DISETUJUI)</span>';
-          } else {
-            badge = '<span class="text-amber-700 font-bold">TERLAMBAT</span>';
+      (cachedData.attendance || []).forEach(a => {
+        if (a && a.EMP_ID) {
+          const id = String(a.EMP_ID).trim().toUpperCase();
+          if (!empMap.has(id)) {
+            empMap.set(id, { EMP_ID: a.EMP_ID, FULL_NAME: a.FULL_NAME, POSITION: 'Karyawan', DEPARTMENT: '-' });
           }
         }
+      });
+      const allEmployees = Array.from(empMap.values());
 
-        tbody.innerHTML += "<tr>" +
-          "<td class='py-2 px-3 font-mono text-slate-600'>" + a.DATE + "</td>" +
-          "<td class='py-2 px-3 font-bold text-slate-900'>" + a.FULL_NAME + " (" + a.EMP_ID + ")</td>" +
-          "<td class='py-2 px-3 font-mono text-emerald-700'>" + (a.CHECKIN_TIME || '-') + "</td>" +
-          "<td class='py-2 px-3 font-mono text-slate-500'>" + (a.CHECKOUT_TIME || '-') + "</td>" +
-          "<td class='py-2 px-3 text-slate-600'>" + (a.LOCATION_NAME || 'PT Artha Safety Indonesia - Kantor Pusat HQ') + "</td>" +
-          "<td class='py-2 px-3'>" + badge + "</td>" +
-        "</tr>";
+      sortedDates.forEach(dateStr => {
+        const dayRows = [];
+
+        allEmployees.forEach(u => {
+          const uId = String(u.EMP_ID || '').trim().toUpperCase();
+          const att = (cachedData.attendance || []).find(a => 
+            String(a.EMP_ID || '').trim().toUpperCase() === uId && 
+            String(a.DATE || '').trim() === dateStr
+          );
+
+          if (att && att.CHECKIN_TIME && att.CHECKIN_TIME !== '-') {
+            // Kasus 1: Karyawan Hadir & Absen
+            let badge = '<span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-check mr-1"></i>TEPAT WAKTU</span>';
+            
+            if (att.STATUS === 'TERLAMBAT') {
+              const hasApprovedLate = (cachedData.requests || []).some(req => 
+                String(req.EMP_ID || '').trim().toUpperCase() === uId && 
+                String(req.TYPE || '').trim().toLowerCase().includes('terlambat') && 
+                (String(req.STATUS || '').toUpperCase() === 'APPROVED' || String(req.STATUS || '').toUpperCase() === 'DISETUJUI') && 
+                isDateBetweenStr(dateStr, req.START_DATE, req.END_DATE)
+              );
+
+              if (hasApprovedLate) {
+                badge = '<span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-circle-check mr-1"></i>TERLAMBAT (IZIN DISETUJUI)</span>';
+              } else {
+                badge = '<span class="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-clock mr-1"></i>TERLAMBAT</span>';
+              }
+            }
+
+            dayRows.push({
+              rank: 1,
+              dateStr: dateStr,
+              empName: (att.FULL_NAME || u.FULL_NAME) + ' (' + u.EMP_ID + ')',
+              checkin: att.CHECKIN_TIME,
+              checkout: att.CHECKOUT_TIME || '-',
+              location: att.LOCATION_NAME || 'PT Artha Safety Indonesia - Kantor Pusat HQ',
+              badge: badge,
+              checkinTimeRaw: att.CHECKIN_TIME
+            });
+          } else {
+            // Kasus 2: Karyawan Tidak Ada Absensi Jam Masuk
+            if (isUserDireksi(u)) {
+              // Status Direksi (Bebas Absensi GPS)
+              dayRows.push({
+                rank: 3,
+                dateStr: dateStr,
+                empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
+                checkin: '-',
+                checkout: '-',
+                location: 'Mobilitas Direksi',
+                badge: '<span class="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-user-tie mr-1 text-slate-500"></i>DIREKSI (EXEMPT)</span>',
+                checkinTimeRaw: '00:00'
+              });
+            } else if (isUserRemote(u)) {
+              // Status Karyawan Remote (WFH)
+              dayRows.push({
+                rank: 2,
+                dateStr: dateStr,
+                empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
+                checkin: '-',
+                checkout: '-',
+                location: 'Kerja Remote / WFH',
+                badge: '<span class="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-house-laptop mr-1 text-blue-500"></i>REMOTE (WFH)</span>',
+                checkinTimeRaw: '00:00'
+              });
+            } else {
+              // Periksa apakah sedang bertugas dinas luar kota
+              const duty = (cachedData.duties || []).find(d => 
+                String(d.EMP_ID || '').trim().toUpperCase() === uId && 
+                isDateBetweenStr(dateStr, d.START_DATE, d.END_DATE)
+              );
+
+              if (duty) {
+                dayRows.push({
+                  rank: 2,
+                  dateStr: dateStr,
+                  empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
+                  checkin: '-',
+                  checkout: '-',
+                  location: '📍 Dinas: ' + duty.LOCATION_NAME,
+                  badge: '<span class="text-orange-700 font-bold bg-orange-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-briefcase mr-1 text-orange-500"></i>DINAS LUAR KOTA</span>',
+                  checkinTimeRaw: '00:00'
+                });
+              } else {
+                // Periksa apakah memiliki pengajuan izin / cuti yang disetujui
+                const req = (cachedData.requests || []).find(r => 
+                  String(r.EMP_ID || '').trim().toUpperCase() === uId &&
+                  (String(r.STATUS || '').toUpperCase() === 'APPROVED' || String(r.STATUS || '').toUpperCase() === 'DISETUJUI') &&
+                  isDateBetweenStr(dateStr, r.START_DATE, r.END_DATE)
+                );
+
+                if (req) {
+                  const typeClean = (req.TYPE || '').toLowerCase();
+                  let reqBadge = '<span class="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-file-signature mr-1 text-amber-500"></i>IZIN RESMI</span>';
+                  let reqLoc = 'Izin Disetujui HR';
+
+                  if (typeClean.includes('cuti')) {
+                    reqBadge = '<span class="text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-umbrella-beach mr-1 text-purple-500"></i>CUTI TAHUNAN</span>';
+                    reqLoc = 'Izin Cuti Resmi';
+                  } else if (typeClean.includes('sakit')) {
+                    reqBadge = '<span class="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-notes-medical mr-1 text-amber-500"></i>IZIN SAKIT</span>';
+                    reqLoc = 'Surat Dokter / Sakit';
+                  } else if (typeClean.includes('pengganti') || typeClean.includes('tabung')) {
+                    reqBadge = '<span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-calendar-check mr-1 text-emerald-500"></i>LIBUR PENGGANTI</span>';
+                    reqLoc = 'Tabungan Libur';
+                  }
+
+                  dayRows.push({
+                    rank: 4,
+                    dateStr: dateStr,
+                    empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
+                    checkin: '-',
+                    checkout: '-',
+                    location: reqLoc,
+                    badge: reqBadge,
+                    checkinTimeRaw: '00:00'
+                  });
+                } else {
+                  // Tidak ada presensi & tidak ada izin apapun -> ALPHA (TIDAK HADIR)
+                  dayRows.push({
+                    rank: 5,
+                    dateStr: dateStr,
+                    empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
+                    checkin: '-',
+                    checkout: '-',
+                    location: '<span class="text-slate-400 italic">Tanpa Keterangan</span>',
+                    badge: '<span class="text-red-700 font-extrabold bg-red-100 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-circle-xmark mr-1 text-red-600"></i>ALPHA (TIDAK HADIR)</span>',
+                    checkinTimeRaw: '00:00'
+                  });
+                }
+              }
+            }
+          }
+        });
+
+        // Urutkan: Hadir di atas (berdasarkan jam masuk), disusul Remote/Dinas, Direksi, Cuti/Sakit, dan Alpha di bawah
+        dayRows.sort((a, b) => {
+          if (a.rank !== b.rank) return a.rank - b.rank;
+          if (a.rank === 1) return String(b.checkinTimeRaw || '').localeCompare(String(a.checkinTimeRaw || ''));
+          return a.empName.localeCompare(b.empName);
+        });
+
+        dayRows.forEach(item => {
+          tbody.innerHTML += "<tr>" +
+            "<td class='py-2 px-3 font-mono text-slate-600'>" + item.dateStr + "</td>" +
+            "<td class='py-2 px-3 font-bold text-slate-900'>" + item.empName + "</td>" +
+            "<td class='py-2 px-3 font-mono " + (item.checkin !== '-' ? "text-emerald-700 font-semibold" : "text-slate-400") + "'>" + item.checkin + "</td>" +
+            "<td class='py-2 px-3 font-mono text-slate-500'>" + item.checkout + "</td>" +
+            "<td class='py-2 px-3 text-slate-600'>" + item.location + "</td>" +
+            "<td class='py-2 px-3'>" + item.badge + "</td>" +
+          "</tr>";
+        });
       });
     }
 
