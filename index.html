@@ -1061,6 +1061,17 @@
         </div>
       </div>
 
+      <!-- RINGKASAN / RESUME KEHADIRAN, CUTI & ALPHA DI AKHIR LAPORAN -->
+      <div class="space-y-3 pt-3 border-t border-slate-200" id="reportSummarySection">
+        <h4 class="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1 flex items-center justify-between">
+          <span><i class="fa-solid fa-chart-simple text-amber-600 mr-1.5"></i> Ringkasan Ketidakhadiran, Cuti & Libur Pengganti (Bulan Ini)</span>
+          <span class="text-[10px] text-slate-400 font-normal">Rekapitulasi Periode Terpilih</span>
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs" id="reportSummaryCards">
+          <!-- Diisi otomatis oleh filterAttendanceReport() -->
+        </div>
+      </div>
+
       <div class="pt-8 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs print-signatures">
         <div class="space-y-12">
           <p class="font-bold text-slate-600">Dibuat Oleh (HRD),</p>
@@ -2232,6 +2243,235 @@
 
     function closeAttendanceReportModal() {
       document.getElementById('modalPrintAttendanceReport').classList.add('hidden');
+    }
+
+    function filterAttendanceReport() {
+      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+      const mSelect = document.getElementById('reportMonthSelect');
+      const ySelect = document.getElementById('reportYearSelect');
+      
+      const selMonth = mSelect ? parseInt(mSelect.value, 10) : new Date().getMonth();
+      const selYear = ySelect ? parseInt(ySelect.value, 10) : new Date().getFullYear();
+
+      const periodStr = monthNames[selMonth] + " " + selYear;
+      const reportPeriodEl = document.getElementById('printReportPeriod');
+      if (reportPeriodEl) reportPeriodEl.innerText = "Periode: " + periodStr;
+
+      const tbody = document.getElementById('tblReportAttendance');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      // 1. DAFTAR LOG PRESENSI REAL / ASLI (SEPERTI SEMULA TANPA BARIS REKAYASA)
+      const monthAttList = (cachedData.attendance || []).filter(item => {
+        if (!item.DATE) return false;
+        const p = parseDateParts(item.DATE);
+        return p && p.month === selMonth && p.year === selYear;
+      });
+
+      if (monthAttList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Tidak ada data kehadiran pada periode ' + periodStr + '.</td></tr>';
+      } else {
+        monthAttList.sort((a, b) => {
+          const pa = parseDateParts(a.DATE);
+          const pb = parseDateParts(b.DATE);
+          const tsa = pa ? pa.timestamp : 0;
+          const tsb = pb ? pb.timestamp : 0;
+          if (tsa !== tsb) return tsb - tsa;
+          return String(b.CHECKIN_TIME || '').localeCompare(String(a.CHECKIN_TIME || ''));
+        });
+
+        monthAttList.forEach(item => {
+          let badge = '<span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-check mr-1"></i>TEPAT WAKTU</span>';
+          
+          if (String(item.STATUS || '').toUpperCase() === 'TERLAMBAT') {
+            const uId = String(item.EMP_ID || '').trim().toUpperCase();
+            const hasApprovedLate = (cachedData.requests || []).some(req => 
+              String(req.EMP_ID || '').trim().toUpperCase() === uId && 
+              String(req.TYPE || '').trim().toLowerCase().includes('terlambat') && 
+              (String(req.STATUS || '').toUpperCase() === 'APPROVED' || String(req.STATUS || '').toUpperCase() === 'DISETUJUI') && 
+              isDateBetweenStr(item.DATE, req.START_DATE, req.END_DATE)
+            );
+
+            if (hasApprovedLate) {
+              badge = '<span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-circle-check mr-1"></i>TERLAMBAT (IZIN DISETUJUI)</span>';
+            } else {
+              badge = '<span class="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-clock mr-1"></i>TERLAMBAT</span>';
+            }
+          }
+
+          tbody.innerHTML += "<tr>" +
+            "<td class='py-2.5 px-3 font-mono text-slate-600'>" + item.DATE + "</td>" +
+            "<td class='py-2.5 px-3 font-bold text-slate-900'>" + item.FULL_NAME + " <span class='text-[10px] font-mono text-slate-400 font-normal'>(" + item.EMP_ID + ")</span></td>" +
+            "<td class='py-2.5 px-3 font-mono " + (item.CHECKIN_TIME && item.CHECKIN_TIME !== '-' ? "text-emerald-700 font-semibold" : "text-slate-400") + "'>" + (item.CHECKIN_TIME || '-') + "</td>" +
+            "<td class='py-2.5 px-3 font-mono text-slate-500'>" + (item.CHECKOUT_TIME || '-') + "</td>" +
+            "<td class='py-2.5 px-3 text-slate-600'>" + (item.LOCATION_NAME || 'PT Artha Safety Indonesia - Kantor Pusat HQ') + "</td>" +
+            "<td class='py-2.5 px-3'>" + badge + "</td>" +
+          "</tr>";
+        });
+      }
+
+      // 2. HITUNG & TAMPILKAN RESUME KETIDAKHADIRAN, CUTI, & LIBUR PENGGANTI
+      renderAttendanceReportResume(selMonth, selYear, periodStr);
+    }
+
+    function renderAttendanceReportResume(selMonth, selYear, periodStr) {
+      const container = document.getElementById('reportSummaryCards');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const cutiMap = new Map();
+      const liburMap = new Map();
+
+      (cachedData.requests || []).forEach(req => {
+        const status = String(req.STATUS || '').trim().toUpperCase();
+        if (status !== 'APPROVED' && status !== 'DISETUJUI') return;
+
+        const pStart = parseDateParts(req.START_DATE);
+        const pEnd = parseDateParts(req.END_DATE);
+        const inThisMonth = (pStart && pStart.month === selMonth && pStart.year === selYear) ||
+                            (pEnd && pEnd.month === selMonth && pEnd.year === selYear);
+        if (!inThisMonth) return;
+
+        const uId = String(req.EMP_ID || '').trim().toUpperCase();
+        const uName = req.FULL_NAME || uId;
+        const typeLower = String(req.TYPE || '').trim().toLowerCase();
+        const days = calculateReqDays(req.START_DATE, req.END_DATE);
+
+        if (typeLower.includes('cuti') || typeLower.includes('sakit')) {
+          const existing = cutiMap.get(uId) || { name: uName, empId: uId, days: 0, details: [] };
+          existing.days += days;
+          existing.details.push(req.TYPE + ' (' + days + ' hari)');
+          cutiMap.set(uId, existing);
+        } else if (typeLower.includes('pengganti') || typeLower.includes('libur')) {
+          const existing = liburMap.get(uId) || { name: uName, empId: uId, days: 0, details: [] };
+          existing.days += days;
+          existing.details.push(days + ' hari');
+          liburMap.set(uId, existing);
+        }
+      });
+
+      const now = new Date();
+      const isCurrentMonth = (now.getMonth() === selMonth && now.getFullYear() === selYear);
+      const maxDayToCheck = isCurrentMonth ? now.getDate() : 31;
+
+      // Ambil tanggal kerja aktif (tanggal yang memiliki minimal 1 presensi)
+      const workDatesSet = new Set();
+      (cachedData.attendance || []).forEach(a => {
+        const p = parseDateParts(a.DATE);
+        if (p && p.month === selMonth && p.year === selYear && p.day <= maxDayToCheck) {
+          workDatesSet.add(a.DATE);
+        }
+      });
+
+      const alphaMap = new Map();
+
+      (cachedData.users || []).forEach(u => {
+        if (!u || !u.EMP_ID) return;
+        if (isUserDireksi(u) || isUserRemote(u)) return; // Direksi & Remote bebas Alpha
+
+        const uId = String(u.EMP_ID).trim().toUpperCase();
+        let userAlphaDays = 0;
+        const alphaDates = [];
+
+        workDatesSet.forEach(dateStr => {
+          const hasAtt = (cachedData.attendance || []).some(a => 
+            String(a.EMP_ID || '').trim().toUpperCase() === uId && 
+            String(a.DATE || '').trim() === dateStr &&
+            a.CHECKIN_TIME && a.CHECKIN_TIME !== '-'
+          );
+          if (hasAtt) return;
+
+          const hasDuty = (cachedData.duties || []).some(d =>
+            String(d.EMP_ID || '').trim().toUpperCase() === uId &&
+            isDateBetweenStr(dateStr, d.START_DATE, d.END_DATE)
+          );
+          if (hasDuty) return;
+
+          const hasReq = (cachedData.requests || []).some(r =>
+            String(r.EMP_ID || '').trim().toUpperCase() === uId &&
+            (String(r.STATUS || '').toUpperCase() === 'APPROVED' || String(r.STATUS || '').toUpperCase() === 'DISETUJUI') &&
+            isDateBetweenStr(dateStr, r.START_DATE, r.END_DATE)
+          );
+          if (hasReq) return;
+
+          userAlphaDays++;
+          alphaDates.push(dateStr);
+        });
+
+        if (userAlphaDays > 0) {
+          alphaMap.set(uId, { name: u.FULL_NAME, empId: u.EMP_ID, days: userAlphaDays, dates: alphaDates });
+        }
+      });
+
+      // Render Card 1: Cuti & Izin Sakit
+      let cutiHtml = '';
+      if (cutiMap.size === 0) {
+        cutiHtml = '<p class="text-slate-400 italic text-[11px] py-1">Tidak ada karyawan cuti / sakit (Nihil).</p>';
+      } else {
+        cutiHtml = '<ul class="divide-y divide-purple-100 space-y-1.5">';
+        cutiMap.forEach(item => {
+          cutiHtml += "<li class='pt-1 flex items-start justify-between'>" +
+            "<div><span class='font-bold text-slate-800'>" + item.name + "</span><p class='text-[10px] text-slate-400 font-mono'>" + item.empId + "</p></div>" +
+            "<span class='px-2 py-0.5 bg-purple-100 text-purple-700 rounded-lg text-[10px] font-extrabold shrink-0'>" + item.days + " Hari</span>" +
+          "</li>";
+        });
+        cutiHtml += '</ul>';
+      }
+
+      // Render Card 2: Libur Pengganti
+      let liburHtml = '';
+      if (liburMap.size === 0) {
+        liburHtml = '<p class="text-slate-400 italic text-[11px] py-1">Tidak ada libur pengganti (Nihil).</p>';
+      } else {
+        liburHtml = '<ul class="divide-y divide-emerald-100 space-y-1.5">';
+        liburMap.forEach(item => {
+          liburHtml += "<li class='pt-1 flex items-start justify-between'>" +
+            "<div><span class='font-bold text-slate-800'>" + item.name + "</span><p class='text-[10px] text-slate-400 font-mono'>" + item.empId + "</p></div>" +
+            "<span class='px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-extrabold shrink-0'>" + item.days + " Hari Libur</span>" +
+          "</li>";
+        });
+        liburHtml += '</ul>';
+      }
+
+      // Render Card 3: Alpha (Tanpa Keterangan)
+      let alphaHtml = '';
+      if (alphaMap.size === 0) {
+        alphaHtml = '<p class="text-emerald-600 font-bold text-[11px] py-1"><i class="fa-solid fa-circle-check mr-1"></i>Nihil (Seluruh karyawan hadir / berizin resmi).</p>';
+      } else {
+        alphaHtml = '<ul class="divide-y divide-red-100 space-y-1.5">';
+        alphaMap.forEach(item => {
+          alphaHtml += "<li class='pt-1 flex items-start justify-between'>" +
+            "<div><span class='font-bold text-slate-800'>" + item.name + "</span><p class='text-[10px] text-slate-400 font-mono'>" + item.empId + "</p></div>" +
+            "<span class='px-2 py-0.5 bg-red-100 text-red-700 rounded-lg text-[10px] font-extrabold shrink-0'>" + item.days + " Hari Alpha</span>" +
+          "</li>";
+        });
+        alphaHtml += '</ul>';
+      }
+
+      container.innerHTML = 
+        "<div class='p-3 bg-purple-50/50 rounded-2xl border border-purple-100 space-y-2'>" +
+          "<div class='flex items-center justify-between pb-1.5 border-b border-purple-100'>" +
+            "<span class='font-extrabold text-[11px] text-purple-900 flex items-center gap-1.5'><i class='fa-solid fa-umbrella-beach text-purple-600'></i> Cuti & Izin Sakit</span>" +
+            "<span class='text-[10px] font-bold text-purple-600'>" + cutiMap.size + " Karyawan</span>" +
+          "</div>" +
+          cutiHtml +
+        "</div>" +
+
+        "<div class='p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100 space-y-2'>" +
+          "<div class='flex items-center justify-between pb-1.5 border-b border-emerald-100'>" +
+            "<span class='font-extrabold text-[11px] text-emerald-900 flex items-center gap-1.5'><i class='fa-solid fa-calendar-check text-emerald-600'></i> Pengganti Hari Libur</span>" +
+            "<span class='text-[10px] font-bold text-emerald-600'>" + liburMap.size + " Karyawan</span>" +
+          "</div>" +
+          liburHtml +
+        "</div>" +
+
+        "<div class='p-3 bg-red-50/50 rounded-2xl border border-red-100 space-y-2'>" +
+          "<div class='flex items-center justify-between pb-1.5 border-b border-red-100'>" +
+            "<span class='font-extrabold text-[11px] text-red-900 flex items-center gap-1.5'><i class='fa-solid fa-triangle-exclamation text-red-600'></i> Tanpa Keterangan (Alpha)</span>" +
+            "<span class='text-[10px] font-bold text-red-600'>" + alphaMap.size + " Karyawan</span>" +
+          "</div>" +
+          alphaHtml +
+        "</div>";
     }
 
     function applyGpsCoordinates(lat, lng) {
