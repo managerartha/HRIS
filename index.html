@@ -1727,47 +1727,46 @@
 
         if (cachedData.payslips && cachedData.payslips.length > 0) {
           cachedData.payslips.forEach(p => {
-            if (p.STATUS !== 'TERBIT MANUAL') {
-              const targetUser = (cachedData.users || []).find(u => String(u.EMP_ID || '').trim().toUpperCase() === String(p.EMP_ID || '').trim().toUpperCase());
-              if (targetUser) {
-                p.FULL_NAME = targetUser.FULL_NAME || p.FULL_NAME;
-                p.POSITION = targetUser.POSITION || p.POSITION;
-                p.DEPARTMENT = targetUser.DEPARTMENT || p.DEPARTMENT;
-                if (targetUser.BASIC_SALARY !== undefined && targetUser.BASIC_SALARY !== '') p.BASIC_SALARY = targetUser.BASIC_SALARY;
-                if (targetUser.ALLOWANCE !== undefined && targetUser.ALLOWANCE !== '') p.ALLOWANCE = targetUser.ALLOWANCE;
-                if (targetUser.BPJS_TK_AMOUNT !== undefined && targetUser.BPJS_TK_AMOUNT !== '') p.BPJS_TK_AMOUNT = targetUser.BPJS_TK_AMOUNT;
-                if (targetUser.HAS_BPJS_KES !== undefined) p.HAS_BPJS_KES = targetUser.HAS_BPJS_KES;
-                if (targetUser.BPJS_KES_AMOUNT !== undefined && targetUser.BPJS_KES_AMOUNT !== '') p.BPJS_KES_AMOUNT = targetUser.BPJS_KES_AMOUNT;
-                if (targetUser.KASBON_AMOUNT !== undefined && targetUser.KASBON_AMOUNT !== '') p.KASBON_AMOUNT = targetUser.KASBON_AMOUNT;
-                if (targetUser.ENCASHED_HOLIDAYS !== undefined && targetUser.ENCASHED_HOLIDAYS !== '') {
-                  p.ENCASHED_HOLIDAYS = targetUser.ENCASHED_HOLIDAYS;
-                  p.ENCASHED_HOLIDAY_PAY = parseInt(p.ENCASHED_HOLIDAYS || 0, 10) * 50000;
-                }
+            const targetUser = (cachedData.users || []).find(u => String(u.EMP_ID || '').trim().toUpperCase() === String(p.EMP_ID || '').trim().toUpperCase());
+            if (targetUser) {
+              p.FULL_NAME = targetUser.FULL_NAME || p.FULL_NAME;
+              p.POSITION = targetUser.POSITION || p.POSITION;
+              p.DEPARTMENT = targetUser.DEPARTMENT || p.DEPARTMENT;
+              if (targetUser.BASIC_SALARY !== undefined && targetUser.BASIC_SALARY !== '') p.BASIC_SALARY = targetUser.BASIC_SALARY;
+              if (targetUser.ALLOWANCE !== undefined && targetUser.ALLOWANCE !== '') p.ALLOWANCE = targetUser.ALLOWANCE;
+              if (targetUser.BPJS_TK_AMOUNT !== undefined && targetUser.BPJS_TK_AMOUNT !== '') p.BPJS_TK_AMOUNT = targetUser.BPJS_TK_AMOUNT;
+              if (targetUser.HAS_BPJS_KES !== undefined) p.HAS_BPJS_KES = targetUser.HAS_BPJS_KES;
+              if (targetUser.BPJS_KES_AMOUNT !== undefined && targetUser.BPJS_KES_AMOUNT !== '') p.BPJS_KES_AMOUNT = targetUser.BPJS_KES_AMOUNT;
+              if (targetUser.KASBON_AMOUNT !== undefined && targetUser.KASBON_AMOUNT !== '') p.KASBON_AMOUNT = targetUser.KASBON_AMOUNT;
+              if (targetUser.ENCASHED_HOLIDAYS !== undefined && targetUser.ENCASHED_HOLIDAYS !== '') {
+                p.ENCASHED_HOLIDAYS = targetUser.ENCASHED_HOLIDAYS;
+                p.ENCASHED_HOLIDAY_PAY = parseInt(p.ENCASHED_HOLIDAYS || 0, 10) * 50000;
               }
-
-              const lateCount = parseInt(p.LATE_COUNT || 0, 10);
-              const penalizedCount = (lateCount >= 3) ? (lateCount - 2) : 0;
-              const lateDed = penalizedCount * 50000;
-              p.LATE_DEDUCTION = lateDed;
-
-              const isExemptBonus = targetUser ? (isUserDireksi(targetUser) || isUserRemote(targetUser)) : false;
-              if (isExemptBonus) {
-                p.ON_TIME_BONUS = 0;
-              } else if (lateCount === 0 && parseInt(p.ON_TIME_BONUS || 0, 10) === 0) {
-                p.ON_TIME_BONUS = 50000;
-              }
-              const basic = parseInt(p.BASIC_SALARY || 0, 10);
-              const allow = parseInt(p.ALLOWANCE || 0, 10);
-              const bonus = parseInt(p.ON_TIME_BONUS || 0, 10);
-              const encashedPay = parseInt(p.ENCASHED_HOLIDAY_PAY || 0, 10);
-              const bpjsTk = parseInt(p.BPJS_TK_AMOUNT || 0, 10);
-              const hasKes = String(p.HAS_BPJS_KES).toUpperCase() === 'TRUE';
-              const bpjsKes = hasKes ? parseInt(p.BPJS_KES_AMOUNT || 0, 10) : 0;
-              const kasbon = parseInt(p.KASBON_AMOUNT || 0, 10);
-
-              p.DEDUCTIONS = lateDed + bpjsTk + bpjsKes + kasbon;
-              p.NET_SALARY = (basic + allow + bonus + encashedPay) - p.DEDUCTIONS;
             }
+
+            const lateCount = parseInt(p.LATE_COUNT || 0, 10);
+            const penalizedCount = (lateCount >= 3) ? (lateCount - 2) : 0;
+            const lateDed = (p.STATUS === 'TERBIT MANUAL') ? parseInt(p.LATE_DEDUCTION || 0, 10) : (penalizedCount * 50000);
+            p.LATE_DEDUCTION = lateDed;
+
+            const isExemptBonus = isBonusExempt(targetUser) || isBonusExempt(p);
+            if (isExemptBonus) {
+              p.ON_TIME_BONUS = 0;
+            } else if (p.STATUS !== 'TERBIT MANUAL') {
+              p.ON_TIME_BONUS = (lateCount === 0) ? 50000 : 0;
+            }
+
+            const basic = parseInt(p.BASIC_SALARY || 0, 10);
+            const allow = parseInt(p.ALLOWANCE || 0, 10);
+            const bonus = parseInt(p.ON_TIME_BONUS || 0, 10);
+            const encashedPay = parseInt(p.ENCASHED_HOLIDAY_PAY || 0, 10);
+            const bpjsTk = parseInt(p.BPJS_TK_AMOUNT || 0, 10);
+            const hasKes = String(p.HAS_BPJS_KES).toUpperCase() === 'TRUE';
+            const bpjsKes = hasKes ? parseInt(p.BPJS_KES_AMOUNT || 0, 10) : 0;
+            const kasbon = parseInt(p.KASBON_AMOUNT || 0, 10);
+
+            p.DEDUCTIONS = lateDed + bpjsTk + bpjsKes + kasbon;
+            p.NET_SALARY = (basic + allow + bonus + encashedPay) - p.DEDUCTIONS;
           });
         }
 
@@ -2004,16 +2003,28 @@
       }
     }
 
-    function isUserDireksi(u) {
+    function isBonusExempt(u) {
       if (!u) return false;
-      const name = (u.FULL_NAME || '').toLowerCase();
-      const pos = (u.POSITION || '').toLowerCase();
-      const role = (u.ROLE || '').toLowerCase();
-      const empId = String(u.EMP_ID || '').toUpperCase();
-      return empId === 'EMP-0012' || empId === 'EMP-0013' ||
-             pos.includes('direktur') || pos.includes('komisaris') || pos.includes('direksi') || pos.includes('pimpinan') ||
-             role.includes('director') || role.includes('direktur') ||
-             name.includes('ricardo') || name.includes('simbolon') || (/\berna\b/i).test(name);
+      const empId = String(u.EMP_ID || '').trim().toUpperCase();
+      const name = String(u.FULL_NAME || '').toLowerCase();
+      const pos = String(u.POSITION || '').toLowerCase();
+      const role = String(u.ROLE || '').toLowerCase();
+      const dept = String(u.DEPARTMENT || '').toLowerCase();
+
+      // Permanen bebas bonus: Erna (EMP-0013), Ricardo (EMP-0012), Irfan (EMP-0008), Riana (EMP-0003)
+      if (empId === 'EMP-0012' || empId === 'EMP-0013' || empId === 'EMP-0008' || empId === 'EMP-0003') return true;
+      if (name.includes('ricardo') || name.includes('simbolon')) return true;
+      if ((/\berna\b/i).test(name)) return true;
+      if ((/\birfan\b/i).test(name)) return true;
+      if ((/\briana\b/i).test(name) && !name.includes('fitriana')) return true;
+      if (pos.includes('direktur') || pos.includes('director') || pos.includes('komisaris') || pos.includes('direksi') || pos.includes('pimpinan')) return true;
+      if (role.includes('director') || role.includes('direktur')) return true;
+      if (pos.includes('remote') || pos.includes('wfh') || dept.includes('remote') || dept.includes('wfh')) return true;
+      return false;
+    }
+
+    function isUserDireksi(u) {
+      return isBonusExempt(u) && !isUserRemote(u);
     }
 
     function isUserRemote(u) {
@@ -3251,6 +3262,10 @@
       }
 
       filteredPayslips.forEach((p) => {
+        if (isBonusExempt(p)) {
+          p.ON_TIME_BONUS = 0;
+          p.NET_SALARY = (parseInt(p.BASIC_SALARY||0, 10) + parseInt(p.ALLOWANCE||0, 10) + parseInt(p.ENCASHED_HOLIDAY_PAY||0, 10)) - parseInt(p.DEDUCTIONS||0, 10);
+        }
         const totalAllowanceAndBonus = (parseInt(p.ALLOWANCE||0) + parseInt(p.ON_TIME_BONUS||0) + parseInt(p.ENCASHED_HOLIDAY_PAY||0));
         const safePayId = (p.PAY_ID || '').replace(/'/g, "\\'");
 
@@ -3379,6 +3394,10 @@
       
       if (!p) return;
 
+      if (isBonusExempt(p)) {
+        p.ON_TIME_BONUS = 0;
+      }
+
       document.getElementById('printPayPeriod').innerText = "Periode: " + p.PERIOD;
       document.getElementById('printEmpName').innerText = p.FULL_NAME;
       document.getElementById('printEmpId').innerText = "ID: " + p.EMP_ID;
@@ -3431,7 +3450,13 @@
         kasbonRow.classList.add('hidden');
       }
 
-      document.getElementById('printNetSalary').innerText = "Rp " + parseInt(p.NET_SALARY||0).toLocaleString('id-ID');
+      const basicVal = parseInt(p.BASIC_SALARY||0, 10);
+      const allowVal = parseInt(p.ALLOWANCE||0, 10);
+      const encashedPayVal = parseInt(p.ENCASHED_HOLIDAY_PAY||0, 10);
+      const totDedVal = parseInt(p.DEDUCTIONS||0, 10);
+      const finalNet = (basicVal + allowVal + bonusVal + encashedPayVal) - totDedVal;
+
+      document.getElementById('printNetSalary').innerText = "Rp " + finalNet.toLocaleString('id-ID');
 
       const modal = document.getElementById('modalPrintPayslip');
       modal.classList.remove('hidden');
