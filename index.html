@@ -1728,6 +1728,23 @@
         if (cachedData.payslips && cachedData.payslips.length > 0) {
           cachedData.payslips.forEach(p => {
             if (p.STATUS !== 'TERBIT MANUAL') {
+              const targetUser = (cachedData.users || []).find(u => String(u.EMP_ID || '').trim().toUpperCase() === String(p.EMP_ID || '').trim().toUpperCase());
+              if (targetUser) {
+                p.FULL_NAME = targetUser.FULL_NAME || p.FULL_NAME;
+                p.POSITION = targetUser.POSITION || p.POSITION;
+                p.DEPARTMENT = targetUser.DEPARTMENT || p.DEPARTMENT;
+                if (targetUser.BASIC_SALARY !== undefined && targetUser.BASIC_SALARY !== '') p.BASIC_SALARY = targetUser.BASIC_SALARY;
+                if (targetUser.ALLOWANCE !== undefined && targetUser.ALLOWANCE !== '') p.ALLOWANCE = targetUser.ALLOWANCE;
+                if (targetUser.BPJS_TK_AMOUNT !== undefined && targetUser.BPJS_TK_AMOUNT !== '') p.BPJS_TK_AMOUNT = targetUser.BPJS_TK_AMOUNT;
+                if (targetUser.HAS_BPJS_KES !== undefined) p.HAS_BPJS_KES = targetUser.HAS_BPJS_KES;
+                if (targetUser.BPJS_KES_AMOUNT !== undefined && targetUser.BPJS_KES_AMOUNT !== '') p.BPJS_KES_AMOUNT = targetUser.BPJS_KES_AMOUNT;
+                if (targetUser.KASBON_AMOUNT !== undefined && targetUser.KASBON_AMOUNT !== '') p.KASBON_AMOUNT = targetUser.KASBON_AMOUNT;
+                if (targetUser.ENCASHED_HOLIDAYS !== undefined && targetUser.ENCASHED_HOLIDAYS !== '') {
+                  p.ENCASHED_HOLIDAYS = targetUser.ENCASHED_HOLIDAYS;
+                  p.ENCASHED_HOLIDAY_PAY = parseInt(p.ENCASHED_HOLIDAYS || 0, 10) * 50000;
+                }
+              }
+
               const lateCount = parseInt(p.LATE_COUNT || 0, 10);
               const penalizedCount = (lateCount >= 3) ? (lateCount - 2) : 0;
               const lateDed = penalizedCount * 50000;
