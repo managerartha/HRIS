@@ -1750,7 +1750,10 @@
               const lateDed = penalizedCount * 50000;
               p.LATE_DEDUCTION = lateDed;
 
-              if (lateCount === 0 && parseInt(p.ON_TIME_BONUS || 0, 10) === 0) {
+              const isExemptBonus = targetUser ? (isUserDireksi(targetUser) || isUserRemote(targetUser)) : false;
+              if (isExemptBonus) {
+                p.ON_TIME_BONUS = 0;
+              } else if (lateCount === 0 && parseInt(p.ON_TIME_BONUS || 0, 10) === 0) {
                 p.ON_TIME_BONUS = 50000;
               }
               const basic = parseInt(p.BASIC_SALARY || 0, 10);
@@ -2006,7 +2009,9 @@
       const name = (u.FULL_NAME || '').toLowerCase();
       const pos = (u.POSITION || '').toLowerCase();
       const role = (u.ROLE || '').toLowerCase();
-      return pos.includes('direktur') || pos.includes('komisaris') || pos.includes('direksi') || pos.includes('pimpinan') ||
+      const empId = String(u.EMP_ID || '').toUpperCase();
+      return empId === 'EMP-0012' || empId === 'EMP-0013' ||
+             pos.includes('direktur') || pos.includes('komisaris') || pos.includes('direksi') || pos.includes('pimpinan') ||
              role.includes('director') || role.includes('direktur') ||
              name.includes('ricardo') || name.includes('simbolon') || (/\berna\b/i).test(name);
     }
@@ -2016,8 +2021,9 @@
       const name = (u.FULL_NAME || '').toLowerCase();
       const pos = (u.POSITION || '').toLowerCase();
       const dept = (u.DEPARTMENT || '').toLowerCase();
-      const isIrfan = (/\birfan\b/i).test(name);
-      const isRiana = (/\briana\b/i).test(name) && !name.includes('fitriana');
+      const empId = String(u.EMP_ID || '').toUpperCase();
+      const isIrfan = (/\birfan\b/i).test(name) || empId === 'EMP-0008';
+      const isRiana = ((/\briana\b/i).test(name) && !name.includes('fitriana')) || empId === 'EMP-0003';
       const isRemoteJob = pos.includes('remote') || pos.includes('wfh') || dept.includes('remote') || dept.includes('wfh');
       return isIrfan || isRiana || isRemoteJob;
     }
