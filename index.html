@@ -2446,7 +2446,7 @@
         }
       });
 
-      // Hitung Keterlambatan Hadir (Late check-ins) beserta rincian tanggalnya
+      // Hitung Keterlambatan Hadir (Hanya yang terlambat murni tanpa izin disetujui)
       const lateMap = new Map();
       (cachedData.attendance || []).forEach(a => {
         if (!a.DATE) return;
@@ -2469,14 +2469,14 @@
           isDateBetweenStr(a.DATE, req.START_DATE, req.END_DATE)
         );
 
-        const isExcused = statusUpper.includes('IZIN') || hasApprovedLate;
-        const dateLabel = isExcused ? (dateShort + ' [Izin]') : dateShort;
+        // Abaikan jika keterlambatan memiliki dispensasi izin resmi yang disetujui
+        if (statusUpper.includes('IZIN') || hasApprovedLate) return;
 
         const existing = lateMap.get(uId) || { name: uName, empId: uId, count: 0, dates: [], rawDates: [] };
         if (!existing.rawDates.includes(dateShort)) {
           existing.rawDates.push(dateShort);
           existing.count++;
-          existing.dates.push(dateLabel);
+          existing.dates.push(dateShort);
         }
         lateMap.set(uId, existing);
       });
@@ -2514,7 +2514,7 @@
       // Render Card 3: Keterlambatan Hadir
       let lateHtml = '';
       if (lateMap.size === 0) {
-        lateHtml = '<p class="text-emerald-600 font-bold text-[11px] py-1"><i class="fa-solid fa-circle-check mr-1"></i>Nihil (Seluruh karyawan tepat waktu).</p>';
+        lateHtml = '<p class="text-emerald-600 font-bold text-[11px] py-1"><i class="fa-solid fa-circle-check mr-1"></i>Nihil (Seluruh karyawan tepat waktu / berizin).</p>';
       } else {
         lateHtml = '<ul class="divide-y divide-amber-100 space-y-1.5">';
         lateMap.forEach(item => {
