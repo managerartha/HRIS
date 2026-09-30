@@ -118,6 +118,15 @@
         border-bottom: 1px solid #e2e8f0 !important;
       }
 
+      #reportSummarySection {
+        page-break-inside: auto !important;
+      }
+
+      #reportSummaryCards > div {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
       .print-signatures {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
@@ -1064,10 +1073,10 @@
       <!-- RINGKASAN / RESUME KEHADIRAN, CUTI & ALPHA DI AKHIR LAPORAN -->
       <div class="space-y-3 pt-3 border-t border-slate-200" id="reportSummarySection">
         <h4 class="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1 flex items-center justify-between">
-          <span><i class="fa-solid fa-chart-simple text-amber-600 mr-1.5"></i> Ringkasan Ketidakhadiran, Cuti & Libur Pengganti (Bulan Ini)</span>
+          <span><i class="fa-solid fa-chart-simple text-amber-600 mr-1.5"></i> Ringkasan Ketidakhadiran, Keterlambatan, Cuti & Libur Pengganti (Bulan Ini)</span>
           <span class="text-[10px] text-slate-400 font-normal">Rekapitulasi Periode Terpilih</span>
         </h4>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs" id="reportSummaryCards">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs" id="reportSummaryCards">
           <!-- Diisi otomatis oleh filterAttendanceReport() -->
         </div>
       </div>
@@ -2437,6 +2446,41 @@
         }
       });
 
+      // Hitung Keterlambatan Hadir (Late check-ins) beserta rincian tanggalnya
+      const lateMap = new Map();
+      (cachedData.attendance || []).forEach(a => {
+        if (!a.DATE) return;
+        const p = parseDateParts(a.DATE);
+        if (!p || p.month !== selMonth || p.year !== selYear) return;
+
+        const statusUpper = String(a.STATUS || '').trim().toUpperCase();
+        if (!statusUpper.includes('TERLAMBAT')) return;
+
+        const uId = String(a.EMP_ID || '').trim().toUpperCase();
+        const uName = a.FULL_NAME || uId;
+        const norm = normalizeDateStandard(a.DATE);
+        const dateShort = norm ? norm.substring(0, 5) : String(a.DATE).substring(0, 5);
+
+        // Periksa apakah keterlambatan ini memiliki pengajuan izin terlambat yang disetujui
+        const hasApprovedLate = (cachedData.requests || []).some(req => 
+          String(req.EMP_ID || '').trim().toUpperCase() === uId && 
+          String(req.TYPE || '').trim().toLowerCase().includes('terlambat') && 
+          (String(req.STATUS || '').toUpperCase() === 'APPROVED' || String(req.STATUS || '').toUpperCase() === 'DISETUJUI') && 
+          isDateBetweenStr(a.DATE, req.START_DATE, req.END_DATE)
+        );
+
+        const isExcused = statusUpper.includes('IZIN') || hasApprovedLate;
+        const dateLabel = isExcused ? (dateShort + ' [Izin]') : dateShort;
+
+        const existing = lateMap.get(uId) || { name: uName, empId: uId, count: 0, dates: [], rawDates: [] };
+        if (!existing.rawDates.includes(dateShort)) {
+          existing.rawDates.push(dateShort);
+          existing.count++;
+          existing.dates.push(dateLabel);
+        }
+        lateMap.set(uId, existing);
+      });
+
       // Render Card 1: Cuti & Izin Sakit
       let cutiHtml = '';
       if (cutiMap.size === 0) {
@@ -2467,7 +2511,34 @@
         liburHtml += '</ul>';
       }
 
-      // Render Card 3: Alpha (Tanpa Keterangan) dengan rincian tanggal presisi
+      // Render Card 3: Keterlambatan Hadir
+      let lateHtml = '';
+      if (lateMap.size === 0) {
+        lateHtml = '<p class="text-emerald-600 font-bold text-[11px] py-1"><i class="fa-solid fa-circle-check mr-1"></i>Nihil (Seluruh karyawan tepat waktu).</p>';
+      } else {
+        lateHtml = '<ul class="divide-y divide-amber-100 space-y-1.5">';
+        lateMap.forEach(item => {
+          // Urutkan tanggal keterlambatan secara kronologis
+          item.dates.sort((a, b) => {
+            const dayA = parseInt(a.substring(0, 2), 10) || 0;
+            const dayB = parseInt(b.substring(0, 2), 10) || 0;
+            return dayA - dayB;
+          });
+          const datesDetail = item.dates && item.dates.length > 0 ? 
+            "<p class='text-[9px] text-amber-600 font-mono mt-0.5'>Tgl: " + item.dates.join(', ') + "</p>" : "";
+          lateHtml += "<li class='pt-1 flex items-start justify-between'>" +
+            "<div>" +
+              "<span class='font-bold text-slate-800'>" + item.name + "</span>" +
+              "<p class='text-[10px] text-slate-400 font-mono'>" + item.empId + "</p>" +
+              datesDetail +
+            "</div>" +
+            "<span class='px-2 py-0.5 bg-amber-100 text-amber-700 rounded-lg text-[10px] font-extrabold shrink-0'>" + item.count + " Hari Telat</span>" +
+          "</li>";
+        });
+        lateHtml += '</ul>';
+      }
+
+      // Render Card 4: Alpha (Tanpa Keterangan) dengan rincian tanggal presisi
       let alphaHtml = '';
       if (alphaMap.size === 0) {
         alphaHtml = '<p class="text-emerald-600 font-bold text-[11px] py-1"><i class="fa-solid fa-circle-check mr-1"></i>Nihil (Seluruh karyawan hadir / berizin resmi).</p>';
@@ -2503,6 +2574,14 @@
             "<span class='text-[10px] font-bold text-emerald-600'>" + liburMap.size + " Karyawan</span>" +
           "</div>" +
           liburHtml +
+        "</div>" +
+
+        "<div class='p-3 bg-amber-50/50 rounded-2xl border border-amber-100 space-y-2'>" +
+          "<div class='flex items-center justify-between pb-1.5 border-b border-amber-100'>" +
+            "<span class='font-extrabold text-[11px] text-amber-900 flex items-center gap-1.5'><i class='fa-solid fa-clock text-amber-600'></i> Keterlambatan Hadir</span>" +
+            "<span class='text-[10px] font-bold text-amber-600'>" + lateMap.size + " Karyawan</span>" +
+          "</div>" +
+          lateHtml +
         "</div>" +
 
         "<div class='p-3 bg-red-50/50 rounded-2xl border border-red-100 space-y-2'>" +
