@@ -9,6 +9,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     tailwind.config = {
@@ -749,6 +751,14 @@
             </div>
 
             <form id="formOfficeSettings" onsubmit="event.preventDefault(); saveOfficeSettings();" class="space-y-4">
+              <div class="p-3 bg-emerald-50/60 border border-emerald-100 rounded-2xl space-y-2">
+          <label class="block text-xs font-bold text-slate-700"><i class="fa-solid fa-map-location-dot text-emerald-600 mr-1"></i> Ambil Lokasi dari Link Google Maps</label>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="officeMapsLink" placeholder="Tempel link Google Maps, contoh: https://maps.app.goo.gl/xxxx" class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+            <button type="button" onclick="applyMapsLink('office')" id="officeMapsBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-location-crosshairs mr-1"></i> Ambil Lokasi</button>
+          </div>
+          <p class="text-[10px] text-slate-500">Di Google Maps: tekan lama (HP) / klik kanan (laptop) tepat di gedung → <b>Bagikan / Share</b> → <b>Salin link</b>, lalu tempel di sini. Latitude, longitude & area absen terisi otomatis.</p>
+        </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">Latitude Kantor HQ</label>
@@ -765,6 +775,11 @@
                 <input type="number" id="settingMaxRadius" required value="10" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-600">
                 <p class="text-[10px] text-slate-400 mt-1">Saran: minimal 30–50 meter. GPS HP di dalam gedung biasanya meleset 10–30 meter, radius 10 meter membuat karyawan yang sudah di kantor sering gagal absen.</p>
               </div>
+
+        <div id="officeMapWrap" class="hidden space-y-1">
+          <div id="officeMap" class="w-full h-56 rounded-2xl border border-slate-200 overflow-hidden z-0"></div>
+          <p class="text-[10px] text-slate-500"><i class="fa-solid fa-circle-info mr-1"></i>Lingkaran hijau = area yang diizinkan untuk absen. Titik merah bisa digeser untuk menyesuaikan posisi.</p>
+        </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                 <div>
@@ -1304,14 +1319,15 @@
     </div>
   </div>
 
-  <div id="modalDuty" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+  <div id="modalDuty" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center hidden p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 class="font-extrabold text-base text-slate-800">Penugasan Dinas Luar Kota Karyawan</h3>
+        <h3 class="font-extrabold text-base text-slate-800" id="dutyModalTitle">Penugasan Dinas Luar Kota Karyawan</h3>
         <button onclick="closeDutyModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="formDuty" onsubmit="event.preventDefault(); submitDutyForm();" class="space-y-4">
+        <input type="hidden" id="dutyEditId" value="">
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Pilih Karyawan yang Ditugaskan</label>
           <select id="dutyEmpId" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none">
@@ -1321,6 +1337,15 @@
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lokasi Proyek / Dinas</label>
           <input type="text" id="dutyLocationName" required placeholder="Contoh: Proyek Safety Factory Cilegon" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+        </div>
+
+        <div class="p-3 bg-emerald-50/60 border border-emerald-100 rounded-2xl space-y-2">
+          <label class="block text-xs font-bold text-slate-700"><i class="fa-solid fa-map-location-dot text-emerald-600 mr-1"></i> Ambil Lokasi dari Link Google Maps</label>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="dutyMapsLink" placeholder="Tempel link Google Maps, contoh: https://maps.app.goo.gl/xxxx" class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+            <button type="button" onclick="applyMapsLink('duty')" id="dutyMapsBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-location-crosshairs mr-1"></i> Ambil Lokasi</button>
+          </div>
+          <p class="text-[10px] text-slate-500">Di Google Maps: tekan lama (HP) / klik kanan (laptop) tepat di gedung → <b>Bagikan / Share</b> → <b>Salin link</b>, lalu tempel di sini. Latitude, longitude & area absen terisi otomatis.</p>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -1349,6 +1374,11 @@
           </div>
         </div>
 
+        <div id="dutyMapWrap" class="hidden space-y-1">
+          <div id="dutyMap" class="w-full h-56 rounded-2xl border border-slate-200 overflow-hidden z-0"></div>
+          <p class="text-[10px] text-slate-500"><i class="fa-solid fa-circle-info mr-1"></i>Lingkaran hijau = area yang diizinkan untuk absen. Titik merah bisa digeser untuk menyesuaikan posisi.</p>
+        </div>
+
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Alasan / Tugas Pekerjaan</label>
           <textarea id="dutyReason" required rows="2" placeholder="Detail tugas dinas..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"></textarea>
@@ -1356,7 +1386,7 @@
 
         <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
           <button type="button" onclick="closeDutyModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Batal</button>
-          <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md">Simpan Tugas Dinas</button>
+          <button type="submit" id="btnSubmitDuty" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md">Simpan Tugas Dinas</button>
         </div>
       </form>
     </div>
@@ -1711,6 +1741,8 @@
       } else if (tabId === 'payslip') {
         updateSavedHolidaysDisplay();
         renderUserPayslipsTable();
+      } else if (tabId === 'adminSettings') {
+        setTimeout(() => renderLocationMap('office'), 50);
       }
     }
 
@@ -2666,7 +2698,8 @@
             if (err.code === 1) {
               const coordsEl2 = document.getElementById('currentGpsCoords');
               if (coordsEl2) coordsEl2.innerText = "Izin lokasi ditolak";
-              showToast(gpsLastError, true);
+              const onAttendanceTab = !document.getElementById('view-attendance').classList.contains('hidden');
+              if (isManual || onAttendanceTab) showToast(gpsLastError, true);
               finishGps(gotAny);
             }
             // Error lain (GPS belum siap / timeout sesaat) sering hanya sementara di HP:
@@ -3002,13 +3035,44 @@
       }
     }
 
-    function openDutyModal() {
+    // dutyId kosong = tambah baru; diisi = edit penugasan yang sudah ada
+    function openDutyModal(dutyId) {
       const select = document.getElementById('dutyEmpId');
       select.innerHTML = '';
       cachedData.users.forEach(u => {
-        select.innerHTML += "<option value='" + u.EMP_ID + "'>" + u.FULL_NAME + " (" + u.EMP_ID + " - " + u.POSITION + ")</option>";
+        select.innerHTML += "<option value='" + esc(u.EMP_ID) + "'>" + esc(u.FULL_NAME) + " (" + esc(u.EMP_ID) + " - " + esc(u.POSITION) + ")</option>";
       });
+
+      const duty = dutyId ? (cachedData.duties || []).find(d => d.DUTY_ID === dutyId) : null;
+      document.getElementById('formDuty').reset();
+      document.getElementById('dutyMapsLink').value = '';
+      document.getElementById('dutyEditId').value = duty ? duty.DUTY_ID : '';
+      document.getElementById('dutyModalTitle').innerText = duty ? ('Edit Tugas Dinas (' + duty.DUTY_ID + ')') : 'Penugasan Dinas Luar Kota Karyawan';
+      document.getElementById('btnSubmitDuty').innerText = duty ? 'Simpan Perubahan' : 'Simpan Tugas Dinas';
+
+      if (duty) {
+        if (!Array.from(select.options).some(o => o.value === duty.EMP_ID)) {
+          select.innerHTML += "<option value='" + esc(duty.EMP_ID) + "'>" + esc(duty.FULL_NAME) + " (" + esc(duty.EMP_ID) + ")</option>";
+        }
+        select.value = duty.EMP_ID;
+        document.getElementById('dutyLocationName').value = duty.LOCATION_NAME || '';
+        document.getElementById('dutyLat').value = duty.LATITUDE || '';
+        document.getElementById('dutyLng').value = duty.LONGITUDE || '';
+        document.getElementById('dutyRadius').value = duty.RADIUS_METERS || 50;
+        document.getElementById('dutyStartDate').value = toIsoDateInput(duty.START_DATE);
+        document.getElementById('dutyEndDate').value = toIsoDateInput(duty.END_DATE);
+        document.getElementById('dutyReason').value = duty.REASON || '';
+      }
+
       document.getElementById('modalDuty').classList.remove('hidden');
+      if (duty) renderLocationMap('duty'); else document.getElementById('dutyMapWrap').classList.add('hidden');
+    }
+
+    // 'dd/mm/yyyy' -> 'yyyy-mm-dd' untuk input kalender
+    function toIsoDateInput(dateStr) {
+      const p = parseDateParts(dateStr);
+      if (!p) return '';
+      return p.year + '-' + String(p.month + 1).padStart(2, '0') + '-' + String(p.day).padStart(2, '0');
     }
 
     function closeDutyModal() {
@@ -3016,7 +3080,9 @@
     }
 
     async function submitDutyForm() {
+      const editId = document.getElementById('dutyEditId').value;
       const payload = {
+        dutyId: editId,
         empId: document.getElementById('dutyEmpId').value,
         locationName: document.getElementById('dutyLocationName').value,
         lat: document.getElementById('dutyLat').value,
@@ -3028,7 +3094,7 @@
         createdBy: currentUser.FULL_NAME
       };
 
-      const res = await apiCall('addDutyAssignment', payload);
+      const res = await apiCall(editId ? 'updateDutyAssignment' : 'addDutyAssignment', payload);
       if (res.success) {
         showToast(res.message);
         closeDutyModal();
@@ -3054,7 +3120,10 @@
           "<td class='py-3 px-3 font-bold text-emerald-600'>" + d.RADIUS_METERS + " m</td>" +
           "<td class='py-3 px-3 text-slate-600 font-medium'>" + d.START_DATE + " s/d " + d.END_DATE + "</td>" +
           "<td class='py-3 px-3 text-slate-500'>" + esc(d.REASON) + "</td>" +
-          "<td class='py-3 px-3 text-center'><button onclick='deleteDuty(\"" + d.DUTY_ID + "\")' class='text-red-500 hover:underline font-bold text-[11px]'><i class='fa-solid fa-trash'></i> Hapus</button></td>" +
+          "<td class='py-3 px-3 text-center whitespace-nowrap'>" +
+            "<button onclick='openDutyModal(\"" + d.DUTY_ID + "\")' class='text-emerald-600 hover:underline font-bold text-[11px] mr-3'><i class='fa-solid fa-pen-to-square'></i> Edit</button>" +
+            "<button onclick='deleteDuty(\"" + d.DUTY_ID + "\")' class='text-red-500 hover:underline font-bold text-[11px]'><i class='fa-solid fa-trash'></i> Hapus</button>" +
+          "</td>" +
         "</tr>";
       });
     }
@@ -3167,6 +3236,16 @@
       }
     }
 
+    // Keterangan kapan & oleh siapa HR memproses pengajuan
+    function approvalInfoHtml(r) {
+      if (!r || !r.APPROVED_AT) return '';
+      const st = String(r.STATUS || '').toUpperCase();
+      const label = (st === 'REJECTED' || st === 'DITOLAK') ? 'Ditolak' : 'ACC HR';
+      const by = (r.APPROVED_BY && r.APPROVED_BY !== '-') ? ' oleh ' + esc(r.APPROVED_BY) : '';
+      return "<p class='text-[9px] text-slate-500 mt-1 leading-tight whitespace-nowrap'><i class='fa-regular fa-calendar-check mr-0.5'></i>" + label + ": " + esc(r.APPROVED_AT) + "</p>" +
+        (by ? "<p class='text-[9px] text-slate-400 leading-tight'>" + by.trim() + "</p>" : '');
+    }
+
     function renderUserRequestsTable() {
       const tbody = document.getElementById('tblUserRequests');
       tbody.innerHTML = '';
@@ -3194,7 +3273,7 @@
           "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
           "<td class='py-3 px-3 text-slate-600'>" + esc(r.REASON) + "</td>" +
           "<td class='py-3 px-3'>" + docBtn + "</td>" +
-          "<td class='py-3 px-3'>" + badge + "</td>" +
+          "<td class='py-3 px-3'>" + badge + approvalInfoHtml(r) + "</td>" +
           "<td class='py-3 px-3 text-slate-400'>" + esc(r.ADMIN_NOTE || '-') + "</td>" +
         "</tr>";
       });
@@ -3644,7 +3723,7 @@
           "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
           "<td class='py-3 px-3 text-slate-600'>" + esc(r.REASON) + "</td>" +
           "<td class='py-3 px-3'>" + docBtn + "</td>" +
-          "<td class='py-3 px-3'>" + badge + "</td>" +
+          "<td class='py-3 px-3'>" + badge + approvalInfoHtml(r) + "</td>" +
           "<td class='py-3 px-3 text-center'>" + actions + "</td>" +
         "</tr>";
       });
@@ -3720,6 +3799,127 @@
         btn.innerHTML = oldHtml;
       }
     }
+
+    // ================= LINK GOOGLE MAPS & PETA AREA ABSEN =================
+    const LOC_FIELDS = {
+      office: { lat: 'settingOfficeLat', lng: 'settingOfficeLng', radius: 'settingMaxRadius', name: null },
+      duty: { lat: 'dutyLat', lng: 'dutyLng', radius: 'dutyRadius', name: 'dutyLocationName' }
+    };
+    const locMaps = {};
+
+    // Cari koordinat di link Google Maps panjang / teks "lat, lng"
+    function extractCoordsFromText(text) {
+      let t = String(text || '');
+      try { t = decodeURIComponent(t); } catch (e) {}
+      const patterns = [
+        /!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/,
+        /[?&](?:q|query|ll|sll|destination|daddr|center)=(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/,
+        /\/search\/(-?\d{1,2}\.\d+),\s*\+?(-?\d{1,3}\.\d+)/,
+        /@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/,
+        /^\s*(-?\d{1,2}\.\d+)\s*[,; ]\s*(-?\d{1,3}\.\d+)\s*$/
+      ];
+      for (const re of patterns) {
+        const m = t.match(re);
+        if (m) {
+          const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+          if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0)) return { lat, lng };
+        }
+      }
+      return null;
+    }
+
+    function extractPlaceName(url) {
+      const m = String(url || '').match(/\/maps\/place\/([^/@?]+)/);
+      if (!m) return '';
+      try { return decodeURIComponent(m[1].replace(/\+/g, ' ')).trim(); } catch (e) { return m[1].replace(/\+/g, ' '); }
+    }
+
+    async function applyMapsLink(prefix) {
+      const f = LOC_FIELDS[prefix];
+      const input = document.getElementById(prefix + 'MapsLink');
+      const btn = document.getElementById(prefix + 'MapsBtn');
+      const raw = (input.value || '').trim();
+      if (!raw) { showToast("Tempel dulu link Google Maps-nya.", true); return; }
+
+      let coords = extractCoordsFromText(raw);
+      let name = extractPlaceName(raw);
+
+      if (!coords) {
+        if (!/^https?:\/\//i.test(raw) && !/goo\.gl|google\./i.test(raw)) {
+          showToast("Format tidak dikenali. Tempel link Google Maps atau koordinat seperti -6.175392, 106.827153", true);
+          return;
+        }
+        // Link pendek (maps.app.goo.gl) dibuka oleh server
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Membaca link...';
+        const res = await apiCall('resolveMapsLink', { url: raw });
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+        if (!res || !res.success) { showToast((res && res.message) || "Gagal membaca link Google Maps.", true); return; }
+        coords = { lat: parseFloat(res.lat), lng: parseFloat(res.lng) };
+        name = name || res.name || '';
+      }
+
+      document.getElementById(f.lat).value = coords.lat.toFixed(7);
+      document.getElementById(f.lng).value = coords.lng.toFixed(7);
+      if (f.name && name) {
+        const nameEl = document.getElementById(f.name);
+        if (nameEl && !nameEl.value.trim()) nameEl.value = name;
+      }
+      const radEl = document.getElementById(f.radius);
+      if (radEl && (!radEl.value || parseFloat(radEl.value) < 30)) radEl.value = 50;
+      renderLocationMap(prefix);
+      showToast("Lokasi berhasil diambil: " + coords.lat.toFixed(6) + ", " + coords.lng.toFixed(6) + (name ? " (" + name + ")" : "") + ". Jangan lupa klik Simpan.");
+    }
+
+    function renderLocationMap(prefix) {
+      const f = LOC_FIELDS[prefix];
+      const wrap = document.getElementById(prefix + 'MapWrap');
+      const el = document.getElementById(prefix + 'Map');
+      if (!wrap || !el) return;
+      const lat = parseCoord(document.getElementById(f.lat).value, NaN);
+      const lng = parseCoord(document.getElementById(f.lng).value, NaN);
+      const radius = parseCoord(document.getElementById(f.radius).value, 50) || 50;
+      if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) { wrap.classList.add('hidden'); return; }
+      if (typeof L === 'undefined') { wrap.classList.add('hidden'); return; } // peta gagal dimuat, input tetap bisa dipakai
+      wrap.classList.remove('hidden');
+
+      let m = locMaps[prefix];
+      if (!m) {
+        const map = L.map(el, { scrollWheelZoom: false }).setView([lat, lng], 17);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+        const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        const circle = L.circle([lat, lng], { radius: radius, color: '#059669', fillColor: '#10b981', fillOpacity: 0.2, weight: 2 }).addTo(map);
+        marker.on('drag', e => circle.setLatLng(e.target.getLatLng()));
+        marker.on('dragend', e => {
+          const p = e.target.getLatLng();
+          document.getElementById(f.lat).value = p.lat.toFixed(7);
+          document.getElementById(f.lng).value = p.lng.toFixed(7);
+        });
+        m = locMaps[prefix] = { map, marker, circle };
+      }
+      m.marker.setLatLng([lat, lng]);
+      m.circle.setLatLng([lat, lng]);
+      m.circle.setRadius(radius);
+      setTimeout(() => {
+        m.map.invalidateSize();
+        m.map.fitBounds(m.circle.getBounds(), { padding: [20, 20], maxZoom: 18 });
+      }, 60);
+    }
+
+    // Peta ikut berubah saat latitude / longitude / radius diketik manual
+    window.addEventListener('DOMContentLoaded', () => {
+      Object.keys(LOC_FIELDS).forEach(prefix => {
+        const f = LOC_FIELDS[prefix];
+        [f.lat, f.lng, f.radius].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('change', () => renderLocationMap(prefix));
+        });
+        const link = document.getElementById(prefix + 'MapsLink');
+        if (link) link.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyMapsLink(prefix); } });
+      });
+    });
 
     function changeCalendarMonth(delta) {
       currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);

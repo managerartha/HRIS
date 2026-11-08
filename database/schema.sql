@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS requests (
   doc_attachment  VARCHAR(500) NOT NULL DEFAULT '-',
   status          VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
   approved_by     VARCHAR(150) NOT NULL DEFAULT '-',
+  approved_at     DATETIME     NULL,
   admin_note      TEXT,
   created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_requests_emp (emp_id)

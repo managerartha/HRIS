@@ -268,6 +268,10 @@ function import_parts(array $parts, bool $wipe): array
         import_duties($sheets['DUTIES'] ?? [], $rep['DUTIES']);
     }
 
+    // Tanggal ACC pengajuan lama diambil dari agenda "Sistem HR" yang dibuat saat ACC
+    ensure_schema();
+    backfill_request_approved_at();
+
     $tables = [];
     foreach ($rep as $sheet => $r) {
         $accounted = $r->imported + $r->merged + $r->existing + count($r->skipped);

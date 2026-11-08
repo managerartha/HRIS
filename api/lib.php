@@ -386,6 +386,7 @@ function out_request(array $r): array
         'DOC_ATTACHMENT' => public_url($r['doc_attachment']),
         'STATUS' => $r['status'],
         'APPROVED_BY' => $r['approved_by'],
+        'APPROVED_AT' => !empty($r['approved_at']) ? date('d/m/Y H:i', strtotime($r['approved_at'])) : '',
         'ADMIN_NOTE' => (string)($r['admin_note'] ?? '-'),
     ];
 }
@@ -516,4 +517,145 @@ function build_backup_zip(string $zipPath, bool $includeFiles): void
         }
     }
     $zip->close();
+}
+
+/* ------------------------------------------------------------------ */
+/* Pembaruan struktur database otomatis (tanpa perlu buka phpMyAdmin)  */
+/* ------------------------------------------------------------------ */
+
+function ensure_schema(): void
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    // v2: tanggal HR memproses (ACC / tolak) pengajuan
+    if (!q_one("SHOW COLUMNS FROM requests LIKE 'approved_at'")) {
+        db()->exec('ALTER TABLE requests ADD COLUMN approved_at DATETIME NULL AFTER approved_by');
+        backfill_request_approved_at();
+    }
+}
+
+/**
+ * Pengajuan lama (dari spreadsheet) tidak punya tanggal ACC. Saat ACC, sistem lama selalu membuat agenda
+ * "Nama - Jenis" oleh "Sistem HR" -> waktu pembuatan agenda itu = waktu HR menyetujui.
+ */
+function backfill_request_approved_at(): void
+{
+    q("UPDATE requests r
+         JOIN (SELECT created_by_id, title, date, MIN(created_at) AS created_at FROM agendas
+                WHERE created_by = 'Sistem HR' GROUP BY created_by_id, title, date) a
+           ON a.created_by_id = r.emp_id AND a.title = CONCAT(r.full_name, ' - ', r.type) AND a.date <=> r.start_date
+          SET r.approved_at = a.created_at
+        WHERE r.approved_at IS NULL AND UPPER(r.status) IN ('APPROVED', 'DISETUJUI')");
+}
+
+/* ------------------------------------------------------------------ */
+/* Link Google Maps -> koordinat                                         */
+/* ------------------------------------------------------------------ */
+
+function valid_latlng($lat, $lng): bool
+{
+    return is_numeric($lat) && is_numeric($lng) && abs((float)$lat) <= 90 && abs((float)$lng) <= 180
+        && !((float)$lat == 0.0 && (float)$lng == 0.0);
+}
+
+/** Cari koordinat di teks / URL Google Maps. Urutan: titik pin (!3d!4d), parameter q/ll, lalu @lat,lng. */
+function maps_extract_coords(string $text): ?array
+{
+    $t = rawurldecode(html_entity_decode($text));
+    $patterns = [
+        '/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/',
+        '/[?&](?:q|query|ll|sll|destination|daddr|center)=(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/',
+        '/\/search\/(-?\d{1,2}\.\d+),\s*\+?(-?\d{1,3}\.\d+)/',
+        '/@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/',
+        '/^\s*(-?\d{1,2}\.\d+)\s*[,; ]\s*(-?\d{1,3}\.\d+)\s*$/',
+    ];
+    foreach ($patterns as $p) {
+        if (preg_match($p, $t, $m) && valid_latlng($m[1], $m[2])) {
+            return [(float)$m[1], (float)$m[2]];
+        }
+    }
+    return null;
+}
+
+function maps_extract_name(string $url): string
+{
+    if (preg_match('#/maps/place/([^/@?]+)#', $url, $m)) {
+        return trim(str_replace('+', ' ', rawurldecode($m[1])));
+    }
+    return '';
+}
+
+function maps_host_allowed(string $url): bool
+{
+    $p = parse_url($url);
+    if (!$p || !in_array(strtolower($p['scheme'] ?? ''), ['http', 'https'], true)) return false;
+    return (bool)preg_match('/(^|\.)(goo\.gl|google\.com|google\.co\.id)$/i', (string)($p['host'] ?? ''));
+}
+
+/**
+ * Buka link pendek (maps.app.goo.gl / goo.gl/maps) dan ikuti redirect -> koordinat.
+ * Hanya domain Google yang diizinkan.
+ */
+function maps_resolve_link(string $url): array
+{
+    $url = trim($url);
+    if (preg_match('#https?://\S+#', $url, $m)) $url = $m[0];
+    $direct = maps_extract_coords($url);
+    if ($direct) return ['lat' => $direct[0], 'lng' => $direct[1], 'name' => maps_extract_name($url)];
+    if (!maps_host_allowed($url)) throw new ApiError('Link bukan link Google Maps. Contoh: https://maps.app.goo.gl/xxxx');
+    if (!function_exists('curl_init')) throw new ApiError('Server tidak mendukung pembacaan link pendek. Buka link di browser, lalu copy link panjangnya.');
+
+    $name = '';
+    for ($hop = 0; $hop < 8; $hop++) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HEADER => true,
+            CURLOPT_TIMEOUT => 12,
+            CURLOPT_CONNECTTIMEOUT => 6,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+            CURLOPT_HTTPHEADER => ['Accept-Language: id,en;q=0.8', 'Cookie: CONSENT=YES+cb; SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAmlkIAEaBgiA_LyaBg'],
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+        ]);
+        $resp = curl_exec($ch);
+        if ($resp === false) {
+            $err = curl_error($ch);
+            curl_close($ch);
+            throw new ApiError('Gagal membuka link Google Maps (' . $err . ').');
+        }
+        $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $hsize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        curl_close($ch);
+        $headers = substr($resp, 0, $hsize);
+        $body = substr($resp, $hsize, 3000000);
+
+        if ($code >= 300 && $code < 400 && preg_match('/^location:\s*(\S+)/im', $headers, $m)) {
+            $next = $m[1];
+            if (str_starts_with($next, '/')) {
+                $p = parse_url($url);
+                $next = $p['scheme'] . '://' . $p['host'] . $next;
+            }
+            // Halaman persetujuan cookie Google: ambil tujuan aslinya
+            if (preg_match('#consent\.google\.[^/]+/.*[?&]continue=([^&]+)#', $next, $c)) $next = rawurldecode($c[1]);
+            $name = $name ?: maps_extract_name($next);
+            $found = maps_extract_coords($next);
+            if ($found) return ['lat' => $found[0], 'lng' => $found[1], 'name' => $name ?: maps_extract_name($next)];
+            if (!maps_host_allowed($next)) throw new ApiError('Link mengarah ke luar Google Maps.');
+            $url = $next;
+            continue;
+        }
+        // Halaman akhir: cari koordinat di isi halaman
+        if (preg_match('/APP_INITIALIZATION_STATE=\[\[\[[-\d.e]+,(-?\d{1,3}\.\d+),(-?\d{1,2}\.\d+)\]/', $body, $m) && valid_latlng($m[2], $m[1])) {
+            return ['lat' => (float)$m[2], 'lng' => (float)$m[1], 'name' => $name];
+        }
+        if (preg_match('/center=(-?\d{1,2}\.\d+)(?:%2C|,)(-?\d{1,3}\.\d+)/i', $body, $m) && valid_latlng($m[1], $m[2])) {
+            return ['lat' => (float)$m[1], 'lng' => (float)$m[2], 'name' => $name];
+        }
+        $found = maps_extract_coords($body);
+        if ($found) return ['lat' => $found[0], 'lng' => $found[1], 'name' => $name];
+        break;
+    }
+    throw new ApiError('Koordinat tidak ditemukan di link ini. Di Google Maps, tekan lama / klik kanan tepat di titik lokasi, lalu bagikan link titik tersebut (atau copy angka koordinatnya).');
 }

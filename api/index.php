@@ -37,6 +37,7 @@ try {
         throw new ApiError('Data request POST kosong atau tidak valid.', 400);
     }
     $action = (string)($data['action'] ?? '');
+    ensure_schema();
 
     if ($action === 'login') {
         $res = action_login($data);
@@ -44,8 +45,8 @@ try {
         $res = action_logout($data);
     } else {
         $me = require_session($data);
-        $adminOnly = ['addDutyAssignment', 'deleteDutyAssignment', 'updateRequestStatus', 'saveEmployee',
-            'saveManualPayslip', 'updateOfficeSettings'];
+        $adminOnly = ['addDutyAssignment', 'updateDutyAssignment', 'deleteDutyAssignment', 'updateRequestStatus', 'saveEmployee',
+            'saveManualPayslip', 'updateOfficeSettings', 'resolveMapsLink'];
         if (in_array($action, $adminOnly, true) && $me['role'] !== 'ADMIN') {
             throw new ApiError('Akses ditolak: fitur ini khusus Admin.', 403);
         }
@@ -56,7 +57,9 @@ try {
             case 'addAgenda': $res = action_add_agenda($me, $data); break;
             case 'deleteAgenda': $res = action_delete_agenda($me, $data); break;
             case 'addDutyAssignment': $res = action_add_duty($me, $data); break;
+            case 'updateDutyAssignment': $res = action_update_duty($me, $data); break;
             case 'deleteDutyAssignment': $res = action_delete_duty($data); break;
+            case 'resolveMapsLink': $res = ['success' => true] + maps_resolve_link((string)($data['url'] ?? '')); break;
             case 'submitRequest': $res = action_submit_request($me, $data); break;
             case 'updateRequestStatus': $res = action_update_request_status($me, $data); break;
             case 'saveEmployee': $res = action_save_employee($data); break;
@@ -459,6 +462,27 @@ function action_add_duty(array $me, array $d): array
     return ['success' => true, 'message' => 'Tugas dinas luar kota berhasil diberikan kepada ' . $u['full_name'] . '!'];
 }
 
+function action_update_duty(array $me, array $d): array
+{
+    $duty = q_one('SELECT * FROM duties WHERE duty_id = ?', [(string)($d['dutyId'] ?? '')]);
+    if (!$duty) return ['success' => false, 'message' => 'Data tugas dinas tidak ditemukan.'];
+    $u = q_one('SELECT * FROM users WHERE emp_id = ?', [(string)($d['empId'] ?? '')]);
+    if (!$u) return ['success' => false, 'message' => 'Karyawan tidak ditemukan.'];
+    [$lat, $lng] = parse_latlng($d['lat'] ?? null, $d['lng'] ?? null);
+    $start = parse_date_any($d['startDate'] ?? null);
+    $end = parse_date_any($d['endDate'] ?? null);
+    if ($lat === null || $lng === null || abs($lat) > 90 || abs($lng) > 180) return ['success' => false, 'message' => 'Koordinat lokasi dinas tidak valid.'];
+    if (!$start || !$end) return ['success' => false, 'message' => 'Tanggal mulai / selesai dinas wajib diisi.'];
+    if ($end < $start) [$start, $end] = [$end, $start];
+    $radius = max(10, (int)($d['radius'] ?? 50));
+    q('UPDATE duties SET emp_id = ?, full_name = ?, location_name = ?, latitude = ?, longitude = ?, radius_meters = ?,
+         start_date = ?, end_date = ?, reason = ? WHERE duty_id = ?', [
+        $u['emp_id'], $u['full_name'], (string)($d['locationName'] ?? ''), $lat, $lng, $radius, $start, $end,
+        (string)($d['reason'] ?? ''), $duty['duty_id'],
+    ]);
+    return ['success' => true, 'message' => 'Tugas dinas ' . $duty['duty_id'] . ' (' . $u['full_name'] . ') berhasil diperbarui!'];
+}
+
 function action_delete_duty(array $d): array
 {
     $n = q('DELETE FROM duties WHERE duty_id = ?', [(string)($d['dutyId'] ?? '')])->rowCount();
@@ -507,7 +531,7 @@ function action_update_request_status(array $me, array $d): array
             return ['success' => false, 'message' => 'Pengajuan ' . $r['req_id'] . ' sudah diproses sebelumnya (' . $r['status'] . ').'];
         }
         $note = trim((string)($d['adminNote'] ?? ''));
-        q('UPDATE requests SET status = ?, approved_by = ?, admin_note = ? WHERE req_id = ?',
+        q('UPDATE requests SET status = ?, approved_by = ?, approved_at = NOW(), admin_note = ? WHERE req_id = ?',
             [$status, $me['full_name'], $note === '' ? '-' : $note, $r['req_id']]);
 
         if (is_approved($status)) {
