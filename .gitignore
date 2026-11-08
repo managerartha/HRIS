@@ -1,0 +1,4 @@
+api/config.php
+uploads/*
+!uploads/.htaccess
+hris_backups/
