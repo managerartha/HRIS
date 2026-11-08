@@ -1,6 +1,6 @@
 # Root website HRIS
 Options -Indexes
-DirectoryIndex index.html
+DirectoryIndex index.html index.php
 # Paksa HTTPS (wajib untuk GPS & kamera di HP)
 <IfModule mod_rewrite.c>
   RewriteEngine On
