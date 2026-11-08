@@ -41,8 +41,9 @@ function authorizeApp() {
  *   HRIS-export-...-part2.json  (absensi bagian 2, dst. — hanya jika foto absensi banyak)
  * Download SEMUA file di folder itu, lalu upload sekaligus di https://domainanda.com/setup/ (langkah 2).
  *
- * - Tanggal, jam & angka diambil dari NILAI ASLI sel (bukan teks tampilan), jadi tidak salah baca
- *   karena format/locale spreadsheet (mis. tanggal 08/11 vs 11/08, "Rp 5.000.000", "-6,17").
+ * - Tanggal absensi/pengajuan/slip dibaca sebagai tanggal/bulan/tahun (format yang ditulis sistem lama),
+ *   tanggal dari kalender (mulai/selesai cuti, dinas, agenda) memakai nilai asli sel, dan angka memakai
+ *   nilai asli sel ("Rp 5.000.000" / "-6,17" tidak salah baca).
  * - Setiap file mencatat jumlah baris asli per sheet, sehingga halaman import bisa memastikan
  *   semua baris masuk (dan menampilkan baris mana saja yang tidak bisa diimport beserta alasannya).
  * - Spreadsheet TIDAK diubah sama sekali.
@@ -115,6 +116,14 @@ function exportSheetRows(sheetName, tz) {
     'BASIC_SALARY', 'ALLOWANCE', 'BPJS_TK_AMOUNT', 'BPJS_KES_AMOUNT', 'KASBON_AMOUNT', 'ENCASHED_HOLIDAYS',
     'ON_TIME_BONUS', 'ENCASHED_HOLIDAY_PAY', 'LATE_COUNT', 'EXCUSED_LATE_COUNT', 'LATE_DEDUCTION', 'DEDUCTIONS', 'NET_SALARY'];
 
+  // Kolom tanggal yang diisi dari input kalender (yyyy-mm-dd) -> aman memakai nilai asli sel.
+  const isoColsBySheet = {
+    REQUESTS: ['START_DATE', 'END_DATE'],
+    AGENDAS: ['DATE'],
+    DUTIES: ['START_DATE', 'END_DATE']
+  };
+  const isoCols = isoColsBySheet[sheetName] || [];
+
   const rows = [];
   for (let i = 1; i < values.length; i++) {
     // Lewati baris yang benar-benar kosong
@@ -126,11 +135,18 @@ function exportSheetRows(sheetName, tz) {
       const raw = values[i][j];
       let v;
       if (raw instanceof Date) {
-        if (sheetName === 'SETTINGS' && h === 'VALUE') v = Utilities.formatDate(raw, tz, 'HH:mm');
-        else if (h === 'PERIOD') v = monthNames[Number(Utilities.formatDate(raw, tz, 'M')) - 1] + ' ' + Utilities.formatDate(raw, tz, 'yyyy');
-        else if (h.indexOf('TIME') !== -1) v = Utilities.formatDate(raw, tz, 'HH:mm:ss');
-        else if (h === 'CREATED_AT') v = Utilities.formatDate(raw, tz, 'yyyy-MM-dd HH:mm:ss');
-        else v = Utilities.formatDate(raw, tz, 'yyyy-MM-dd');
+        if (h === 'PERIOD') {
+          v = monthNames[Number(Utilities.formatDate(raw, tz, 'M')) - 1] + ' ' + Utilities.formatDate(raw, tz, 'yyyy');
+        } else if (isoCols.indexOf(h) !== -1) {
+          // Kolom ini diisi dari kalender (format yyyy-mm-dd, tidak ambigu) -> nilai asli sel sudah benar.
+          v = Utilities.formatDate(raw, tz, 'yyyy-MM-dd');
+        } else {
+          // Kolom lain (DATE absensi, SUBMIT_DATE, JOIN_DATE, CREATED_AT, jam, dll.) ditulis sistem lama
+          // sebagai teks "dd/MM/yyyy". Jika locale spreadsheet bulan/tanggal (Amerika), Sheets salah
+          // mengubahnya menjadi tanggal terbalik (12/10 -> 10 Desember). Teks tampilan tetap sama dengan
+          // yang ditulis sistem lama, jadi yang dipakai adalah teks tampilan (dibaca tanggal/bulan/tahun).
+          v = display[i][j];
+        }
       } else if (typeof raw === 'number' && numericCols.indexOf(h) !== -1) {
         v = raw;
       } else if (sheetName === 'SETTINGS' && h === 'VALUE' && typeof raw === 'number') {
