@@ -1,0 +1,17 @@
+{
+  "name": "HRIS PT Artha Safety Indonesia",
+  "short_name": "HRIS Artha",
+  "description": "Absensi GPS, pengajuan cuti/izin/lembur, dan slip gaji karyawan PT Artha Safety Indonesia.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "id",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

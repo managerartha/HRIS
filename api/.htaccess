@@ -1,0 +1,8 @@
+# Hanya index.php dan backup.php yang boleh diakses dari browser.
+<FilesMatch "\.(php|sql|json|log|ini)$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^(index|backup)\.php$">
+  Require all granted
+</FilesMatch>
+Options -Indexes

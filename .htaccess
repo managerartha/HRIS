@@ -1,0 +1,24 @@
+# Root website HRIS
+Options -Indexes
+DirectoryIndex index.html index.php
+# Paksa HTTPS (wajib untuk GPS & kamera di HP)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+<FilesMatch "^(\.gitignore|README\.md|DEPLOY-HOSTINGER\.md)$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "same-origin"
+  Header always set Permissions-Policy "geolocation=(self), camera=(self), microphone=()"
+</IfModule>
+# Service worker & manifest selalu versi terbaru
+<FilesMatch "^(sw\.js|manifest\.json|index\.html)$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-cache"
+  </IfModule>
+</FilesMatch>

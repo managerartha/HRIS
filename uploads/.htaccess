@@ -1,0 +1,8 @@
+# Folder foto & lampiran: hanya file gambar / dokumen, tidak boleh menjalankan script.
+Options -Indexes
+<FilesMatch "\.(php|phtml|php\d|phar|pl|py|cgi|sh|html?|js|svg)$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>

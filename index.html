@@ -2,13 +2,22 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>HRIS PT Artha Safety Indonesia</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="HRIS Artha">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <link rel="icon" type="image/png" href="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     tailwind.config = {
@@ -34,6 +43,41 @@
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
     .active-nav { background: rgba(255, 255, 255, 0.18); border-left: 4px solid #00d68f; font-weight: 700; }
     .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+
+    /* ===== TAMPILAN HP: menu laci (hamburger) + bar navigasi bawah ===== */
+    #drawerOverlay, #bottomNav, #btnHamburger, #btnCloseDrawer { display: none; }
+    @media (max-width: 767px) {
+      #appSidebar {
+        position: fixed; top: 0; left: 0; bottom: 0; width: 82%; max-width: 300px;
+        transform: translateX(-105%); transition: transform .25s ease; z-index: 46; overflow-y: auto;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+      }
+      body.drawer-open #appSidebar { transform: translateX(0); }
+      body.drawer-open { overflow: hidden; }
+      #drawerOverlay { display: block; position: fixed; inset: 0; background: rgba(15, 23, 42, .55); z-index: 45; opacity: 0; pointer-events: none; transition: opacity .25s; }
+      body.drawer-open #drawerOverlay { opacity: 1; pointer-events: auto; }
+      #btnHamburger, #btnCloseDrawer { display: flex; }
+      #appMain { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)) !important; }
+      #bottomNav {
+        display: grid; grid-template-columns: repeat(5, 1fr); align-items: end;
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+        background: rgba(255, 255, 255, .97); backdrop-filter: blur(8px);
+        border-top: 1px solid #e2e8f0; box-shadow: 0 -6px 20px rgba(15, 23, 42, .08);
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+      }
+      #toast { bottom: calc(6.5rem + env(safe-area-inset-bottom)) !important; right: 12px !important; left: 12px !important; }
+    }
+    .bnav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0 2px; font-size: 10px; font-weight: 700; color: #64748b; position: relative; }
+    .bnav-btn i { font-size: 18px; }
+    .bnav-btn.active { color: #059669; }
+    .bnav-btn.active::after { content: ''; position: absolute; top: -6px; left: 30%; right: 30%; height: 3px; border-radius: 3px; background: #059669; }
+    .bnav-absen { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 800; color: #047857; }
+    .bnav-absen .bnav-circle {
+      width: 58px; height: 58px; margin-top: -26px; border-radius: 9999px; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #10b981, #047857); color: #fff; font-size: 22px;
+      box-shadow: 0 8px 18px rgba(5, 150, 105, .45); border: 4px solid #fff;
+    }
+    .bnav-absen.active .bnav-circle { background: linear-gradient(135deg, #0f172a, #047857); }
     .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
     /* STYLE KHUSUS CETAK SLIP GAJI & LAPORAN PRESENSI PDF (TERISOLASI & BERSIH) */
@@ -55,6 +99,8 @@
 
       #loginScreen,
       #appContainer,
+      #bottomNav,
+      #drawerOverlay,
       #modalManualPayslip,
       #modalPhotoViewer,
       #modalProfilePhoto,
@@ -136,6 +182,41 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col justify-between">
 
+  <!-- PEMBERITAHUAN PINDAH ALAMAT: hanya tampil jika HRIS dibuka dari link lama (github.io) -->
+  <script>
+    (function () {
+      var NEW_HRIS_URL = 'https://hris.arthasafetyindonesia.com/';
+      if (!/github\.io$/i.test(location.hostname)) return;
+      var seconds = 10;
+      var st = document.createElement('style');
+      st.textContent = 'html,body{overflow:hidden!important;width:100%!important}body>*:not(#movedNotice){display:none!important}';
+      document.head.appendChild(st);
+      var box = document.createElement('div');
+      box.id = 'movedNotice';
+      box.setAttribute('style', 'position:fixed;inset:0;z-index:99999;background:#0f172a;color:#fff;display:flex;align-items:center;' +
+        'justify-content:center;padding:24px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;text-align:center');
+      box.innerHTML =
+        '<div style="width:100%;max-width:440px;box-sizing:border-box">' +
+          '<div style="font-size:52px;line-height:1">📢</div>' +
+          '<h1 style="font-size:22px;margin:14px 0 8px;font-weight:800">HRIS SUDAH PINDAH ALAMAT</h1>' +
+          '<p style="font-size:14px;color:#cbd5e1;margin:0 0 6px">Absensi & pengajuan sekarang menggunakan alamat baru:</p>' +
+          '<p style="font-size:17px;font-weight:800;color:#34d399;margin:0 0 18px;word-break:break-all">hris.arthasafetyindonesia.com</p>' +
+          '<a href="' + NEW_HRIS_URL + '" style="display:block;background:#059669;color:#fff;text-decoration:none;padding:14px 18px;' +
+            'border-radius:14px;font-weight:800;font-size:15px">Buka HRIS Baru Sekarang →</a>' +
+          '<p style="font-size:12px;color:#94a3b8;margin:14px 0 0">Otomatis dialihkan dalam <b id="movedCountdown">' + seconds + '</b> detik…</p>' +
+          '<p style="font-size:12px;color:#94a3b8;margin:18px 0 0;line-height:1.6">Login memakai email / ID karyawan & password yang sama.<br>' +
+            'Simpan / pasang alamat baru di HP Anda. Link lama ini <b>tidak bisa dipakai absen lagi</b>.</p>' +
+        '</div>';
+      document.body.appendChild(box);
+      var t = setInterval(function () {
+        seconds--;
+        var el = document.getElementById('movedCountdown');
+        if (el) el.textContent = seconds;
+        if (seconds <= 0) { clearInterval(t); location.replace(NEW_HRIS_URL); }
+      }, 1000);
+    })();
+  </script>
+
   <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
     <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6 border border-slate-100">
       
@@ -169,14 +250,19 @@
           <i class="fa-solid fa-arrow-right text-xs"></i>
         </button>
       </form>
+      <button type="button" onclick="openInstallGuide()" class="install-app-btn hidden w-full text-center text-[11px] font-bold text-emerald-700 hover:underline">
+        <i class="fa-solid fa-mobile-screen-button mr-1"></i> Pasang HRIS sebagai aplikasi di HP
+      </button>
 
     </div>
   </div>
 
   <div id="appContainer" class="hidden min-h-screen flex flex-col md:flex-row">
     
-    <aside class="w-full md:w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col justify-between p-4 shadow-xl z-20">
+    <div id="drawerOverlay" onclick="closeDrawer()"></div>
+    <aside id="appSidebar" class="w-full md:w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col justify-between p-4 shadow-xl z-20">
       <div>
+        <button id="btnCloseDrawer" onclick="closeDrawer()" class="ml-auto mb-2 w-9 h-9 items-center justify-center rounded-xl text-slate-300 hover:bg-white/10" aria-label="Tutup menu"><i class="fa-solid fa-xmark text-lg"></i></button>
         <div class="flex items-center gap-2 px-3 py-2.5 mb-6 bg-white/95 rounded-2xl shadow-sm border border-white/20">
           <img src="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png" alt="PT Artha Safety Indonesia" class="h-9 w-auto object-contain mx-auto" onerror="this.onerror=null; this.src='https://placehold.co/200x50/101935/ffffff?text=ARTHA+SAFETY';">
         </div>
@@ -222,7 +308,10 @@
         </nav>
       </div>
 
-      <div class="border-t border-white/10 pt-4 mt-auto">
+      <div class="border-t border-white/10 pt-4 mt-auto space-y-1">
+        <button onclick="openInstallGuide()" class="install-app-btn hidden w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-300 hover:bg-emerald-500/20 transition text-left">
+          <i class="fa-solid fa-mobile-screen-button w-5"></i> Pasang Aplikasi di HP
+        </button>
         <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-300 hover:bg-red-500/20 transition text-left">
           <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar (Logout)
         </button>
@@ -231,7 +320,11 @@
 
     <div class="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scroll">
       
-      <header class="bg-white border-b border-slate-200 py-3.5 px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+      <header class="bg-white border-b border-slate-200 py-3.5 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <button id="btnHamburger" onclick="openDrawer()" class="w-10 h-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700 mr-2 relative" aria-label="Buka menu">
+          <i class="fa-solid fa-bars text-lg"></i>
+          <span id="hamburgerBadge" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-amber-400 border-2 border-white rounded-full"></span>
+        </button>
         <div class="relative w-72 hidden sm:block">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
           <input type="text" placeholder="Cari fitur, karyawan..." class="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
@@ -263,7 +356,7 @@
         </div>
       </header>
 
-      <main class="p-4 sm:p-6 space-y-6">
+      <main id="appMain" class="p-4 sm:p-6 space-y-6">
 
         <!-- VIEW 1: DASHBOARD -->
         <div id="view-dashboard" class="tab-content space-y-6">
@@ -616,9 +709,12 @@
                   </select>
                 </div>
 
-                <div id="btnAdminManualPayslipGroup" class="hidden">
+                <div id="btnAdminManualPayslipGroup" class="hidden flex flex-wrap gap-2">
                   <button onclick="openManualPayslipModal()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-file-invoice-dollar"></i> + Terbitkan Slip Manual
+                  </button>
+                  <button onclick="sendPayslipEmails()" id="btnSendPayslipEmails" class="php-only px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-envelope"></i> Kirim Slip ke Email
                   </button>
                 </div>
               </div>
@@ -749,6 +845,14 @@
             </div>
 
             <form id="formOfficeSettings" onsubmit="event.preventDefault(); saveOfficeSettings();" class="space-y-4">
+              <div class="p-3 bg-emerald-50/60 border border-emerald-100 rounded-2xl space-y-2">
+          <label class="block text-xs font-bold text-slate-700"><i class="fa-solid fa-map-location-dot text-emerald-600 mr-1"></i> Ambil Lokasi dari Link Google Maps</label>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="officeMapsLink" placeholder="Tempel link Google Maps, contoh: https://maps.app.goo.gl/xxxx" class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+            <button type="button" onclick="applyMapsLink('office')" id="officeMapsBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-location-crosshairs mr-1"></i> Ambil Lokasi</button>
+          </div>
+          <p class="text-[10px] text-slate-500">Di Google Maps: tekan lama (HP) / klik kanan (laptop) tepat di gedung → <b>Bagikan / Share</b> → <b>Salin link</b>, lalu tempel di sini. Latitude, longitude & area absen terisi otomatis.</p>
+        </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">Latitude Kantor HQ</label>
@@ -763,7 +867,13 @@
               <div>
                 <label class="block text-xs font-bold text-slate-600 mb-1">Maksimal Radius Akses Absensi (Meter)</label>
                 <input type="number" id="settingMaxRadius" required value="10" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-600">
+                <p class="text-[10px] text-slate-400 mt-1">Saran: minimal 30–50 meter. GPS HP di dalam gedung biasanya meleset 10–30 meter, radius 10 meter membuat karyawan yang sudah di kantor sering gagal absen.</p>
               </div>
+
+        <div id="officeMapWrap" class="hidden space-y-1">
+          <div id="officeMap" class="w-full h-56 rounded-2xl border border-slate-200 overflow-hidden z-0"></div>
+          <p class="text-[10px] text-slate-500"><i class="fa-solid fa-circle-info mr-1"></i>Lingkaran hijau = area yang diizinkan untuk absen. Titik merah bisa digeser untuk menyesuaikan posisi.</p>
+        </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                 <div>
@@ -771,9 +881,14 @@
                   <input type="time" id="settingWorkStart" required value="08:00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-600">
                 </div>
                 <div>
-                  <label class="block text-xs font-bold text-slate-600 mb-1">Jam Pulang Kerja (WIB)</label>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Jam Pulang Senin–Jumat (WIB)</label>
                   <input type="time" id="settingWorkEnd" required value="17:00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
                 </div>
+                <div class="php-only">
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Jam Pulang Sabtu (WIB)</label>
+                  <input type="time" id="settingWorkEndSaturday" value="12:00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+                </div>
+                <p class="text-[10px] text-slate-400 sm:col-span-2 php-only">Hari kerja Senin–Sabtu. Hari Minggu & tanggal merah tidak dihitung Alpha; kerja di hari tersebut dihitung lembur hari libur.</p>
               </div>
 
               <div class="pt-4 border-t border-slate-100 flex justify-end">
@@ -783,10 +898,98 @@
               </div>
             </form>
           </div>
+
+          <div id="backupCard" class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 max-w-2xl mx-auto hidden">
+            <div class="border-b border-slate-100 pb-4 mb-4">
+              <h2 class="text-xl font-extrabold text-slate-900"><i class="fa-solid fa-database text-emerald-600 mr-1"></i> Backup Data HRIS</h2>
+              <p class="text-xs text-slate-500">Download seluruh data (akun karyawan, absensi, pengajuan, slip gaji, agenda, dinas) dalam satu file ZIP.
+                Isi: file CSV per tabel (bisa dibuka di Excel) + file <b>hris.sql</b> untuk mengembalikan data lewat phpMyAdmin.</p>
+            </div>
+            <label class="flex items-center gap-2 text-xs font-semibold text-slate-600 mb-3">
+              <input type="checkbox" id="backupIncludeFiles" class="w-4 h-4 accent-emerald-600">
+              Sertakan foto absensi, foto profil & lampiran (file lebih besar)
+            </label>
+            <button onclick="downloadBackup()" id="btnDownloadBackup" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md">
+              <i class="fa-solid fa-download mr-1"></i> Download Backup Sekarang
+            </button>
+            <p class="text-[11px] text-slate-400 mt-3">Data juga bisa dilihat langsung di hPanel Hostinger → Databases → phpMyAdmin (tabel <b>users</b> berisi akun karyawan).</p>
+          </div>
+
+          <div id="holidayCard" class="php-only bg-white rounded-3xl p-6 shadow-sm border border-slate-100 max-w-2xl mx-auto">
+            <div class="border-b border-slate-100 pb-4 mb-4">
+              <h2 class="text-xl font-extrabold text-slate-900"><i class="fa-solid fa-calendar-xmark text-red-500 mr-1"></i> Kalender Hari Libur & Cuti Bersama</h2>
+              <p class="text-xs text-slate-500">Tanggal di sini (dan setiap hari Minggu) tidak dihitung Alpha. Karyawan yang bekerja di tanggal ini dihitung lembur hari libur.</p>
+            </div>
+            <form onsubmit="event.preventDefault(); addHoliday();" class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
+              <input type="date" id="holidayDate" required class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <input type="text" id="holidayName" required placeholder="Nama, mis. Hari Raya Idul Fitri" class="sm:col-span-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <select id="holidayType" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                <option value="LIBUR NASIONAL">Libur Nasional</option>
+                <option value="CUTI BERSAMA">Cuti Bersama</option>
+              </select>
+              <button type="submit" class="sm:col-span-4 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-plus mr-1"></i> Tambah Hari Libur</button>
+            </form>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs font-bold text-slate-600">Tahun:</span>
+              <select id="holidayYearFilter" onchange="renderHolidayList()" class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold"></select>
+            </div>
+            <div id="holidayList" class="divide-y divide-slate-100 text-xs max-h-72 overflow-y-auto custom-scroll"></div>
+          </div>
+
+          <div id="emailCard" class="php-only bg-white rounded-3xl p-6 shadow-sm border border-slate-100 max-w-2xl mx-auto">
+            <div class="border-b border-slate-100 pb-4 mb-4">
+              <h2 class="text-xl font-extrabold text-slate-900"><i class="fa-solid fa-envelope-open-text text-sky-600 mr-1"></i> Notifikasi Email</h2>
+              <p class="text-xs text-slate-500">HR menerima email saat ada pengajuan baru, karyawan menerima email saat pengajuannya disetujui/ditolak, dan slip gaji bisa dikirim ke email karyawan.
+                Gunakan akun email Hostinger (hPanel → Emails), misalnya <b>hris@arthasafetyindonesia.com</b>.</p>
+            </div>
+            <form onsubmit="event.preventDefault(); saveEmailSettings();" class="space-y-3">
+              <label class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                <input type="checkbox" id="mailEnabled" class="w-4 h-4 accent-emerald-600"> Aktifkan notifikasi email otomatis
+              </label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Email Pengirim</label>
+                  <input type="email" id="mailUser" placeholder="hris@arthasafetyindonesia.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Password Email Pengirim</label>
+                  <input type="password" id="mailPass" autocomplete="new-password" placeholder="Isi untuk mengganti" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Server SMTP</label>
+                  <input type="text" id="mailHost" value="smtp.hostinger.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Port</label>
+                  <input type="number" id="mailPort" value="465" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Nama Pengirim</label>
+                  <input type="text" id="mailFromName" placeholder="HRIS PT Artha Safety Indonesia" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Email HR Penerima Notifikasi</label>
+                  <input type="text" id="mailHrEmails" placeholder="Kosongkan = semua akun Admin" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                </div>
+              </div>
+              <p id="mailLastError" class="hidden text-[11px] text-red-600 bg-red-50 border border-red-100 rounded-xl p-2"></p>
+              <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                <button type="submit" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold">Simpan Pengaturan Email</button>
+                <button type="button" onclick="testEmail()" id="btnTestEmail" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-paper-plane mr-1"></i> Kirim Email Tes</button>
+              </div>
+            </form>
+          </div>
         </div>
 
       </main>
-    </div>
+      <nav id="bottomNav" aria-label="Navigasi bawah">
+      <button onclick="switchTab('dashboard')" data-tab="dashboard" class="bnav-btn active"><i class="fa-solid fa-house"></i>Beranda</button>
+      <button onclick="switchTab('requests')" data-tab="requests" class="bnav-btn"><i class="fa-solid fa-file-signature"></i>Pengajuan</button>
+      <button onclick="switchTab('attendance')" data-tab="attendance" class="bnav-absen"><span class="bnav-circle"><i class="fa-solid fa-fingerprint"></i></span>Absen</button>
+      <button onclick="switchTab('payslip')" data-tab="payslip" class="bnav-btn"><i class="fa-solid fa-wallet"></i>Slip Gaji</button>
+      <button onclick="openDrawer()" class="bnav-btn"><i class="fa-solid fa-bars"></i>Menu<span id="bottomMenuBadge" class="hidden absolute top-1 right-[28%] w-2.5 h-2.5 bg-amber-400 rounded-full"></span></button>
+    </nav>
+  </div>
   </div>
 
   <div id="modalManualPayslip" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
@@ -945,6 +1148,11 @@
             <tr id="printOnTimeBonusRow">
               <td class="py-2 text-emerald-600 font-semibold" id="printOnTimeBonusLabel">Bonus Ketepatan Waktu / Disiplin Penuh (0x Telat)</td>
               <td class="py-2 text-right font-mono text-emerald-600" id="printOnTimeBonus">Rp 50.000</td>
+              <td class="py-2 text-right font-mono text-slate-400">-</td>
+            </tr>
+            <tr id="printOvertimeRow" class="hidden">
+              <td class="py-2 text-emerald-600 font-semibold" id="printOvertimeLabel">Upah Lembur</td>
+              <td class="py-2 text-right font-mono text-emerald-600" id="printOvertimePay">Rp 0</td>
               <td class="py-2 text-right font-mono text-slate-400">-</td>
             </tr>
             <tr id="printEncashedHolidayRow" class="hidden">
@@ -1233,16 +1441,54 @@
       <form id="formRequest" onsubmit="event.preventDefault(); submitRequestForm();" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Pengajuan</label>
-          <select id="reqType" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none">
+          <select id="reqType" required onchange="onReqTypeChange()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none">
             <option value="Pengajuan Cuti">Pengajuan Cuti Tahunan</option>
             <option value="Pengganti Hari Libur">Pengganti Hari Libur (Gunakan Tabungan Libur)</option>
             <option value="Izin Terlambat">Izin Terlambat Hadir (Bebas Potongan Denda jika Disetujui)</option>
             <option value="Izin Sakit">Izin Sakit (Surat Dokter)</option>
             <option value="Tabung Hari Libur">Tabung Hari Libur (Kerja Minggu/Tgl Merah)</option>
+            <option value="Koreksi Absen" class="php-only">Koreksi Absen (Lupa Absen Masuk / Keluar — hanya hari ini)</option>
+            <option value="Lembur" class="php-only">Lembur (Upah sesuai aturan Depnaker)</option>
           </select>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div id="reqCorrectionBlock" class="hidden p-3 bg-sky-50 border border-sky-100 rounded-2xl space-y-3">
+          <p class="text-[11px] text-sky-800"><i class="fa-solid fa-circle-info mr-1"></i>Koreksi absen <b>hanya bisa diajukan untuk hari ini</b> (<span id="reqCorrectionToday"></span>). Data absen otomatis diperbaiki setelah disetujui HR.</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Koreksi</label>
+              <select id="reqCorrectionKind" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold">
+                <option value="IN">Lupa Absen Masuk</option>
+                <option value="OUT">Lupa Absen Keluar</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jam Sebenarnya</label>
+              <input type="time" id="reqCorrectionTime" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold">
+            </div>
+          </div>
+        </div>
+
+        <div id="reqOvertimeBlock" class="hidden p-3 bg-violet-50 border border-violet-100 rounded-2xl space-y-3">
+          <p class="text-[11px] text-violet-800"><i class="fa-solid fa-circle-info mr-1"></i>Ajukan setelah lembur selesai (paling lambat 7 hari). Hari kerja maks. 4 jam di luar jam kerja; hari Minggu / tanggal merah maks. 11 jam.</p>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Lembur</label>
+              <input type="date" id="reqOtDate" onchange="previewOvertimePay()" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jam Mulai</label>
+              <input type="time" id="reqOtStart" onchange="previewOvertimePay()" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jam Selesai</label>
+              <input type="time" id="reqOtEnd" onchange="previewOvertimePay()" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold">
+            </div>
+          </div>
+          <p id="reqOtPreview" class="text-[11px] font-bold text-violet-900"></p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3" id="reqDateGrid">
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Mulai</label>
             <input type="date" id="reqStartDate" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
@@ -1287,14 +1533,15 @@
     </div>
   </div>
 
-  <div id="modalDuty" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+  <div id="modalDuty" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center hidden p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100 my-8">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 class="font-extrabold text-base text-slate-800">Penugasan Dinas Luar Kota Karyawan</h3>
+        <h3 class="font-extrabold text-base text-slate-800" id="dutyModalTitle">Penugasan Dinas Luar Kota Karyawan</h3>
         <button onclick="closeDutyModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="formDuty" onsubmit="event.preventDefault(); submitDutyForm();" class="space-y-4">
+        <input type="hidden" id="dutyEditId" value="">
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Pilih Karyawan yang Ditugaskan</label>
           <select id="dutyEmpId" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none">
@@ -1304,6 +1551,15 @@
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lokasi Proyek / Dinas</label>
           <input type="text" id="dutyLocationName" required placeholder="Contoh: Proyek Safety Factory Cilegon" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+        </div>
+
+        <div class="p-3 bg-emerald-50/60 border border-emerald-100 rounded-2xl space-y-2">
+          <label class="block text-xs font-bold text-slate-700"><i class="fa-solid fa-map-location-dot text-emerald-600 mr-1"></i> Ambil Lokasi dari Link Google Maps</label>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="dutyMapsLink" placeholder="Tempel link Google Maps, contoh: https://maps.app.goo.gl/xxxx" class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+            <button type="button" onclick="applyMapsLink('duty')" id="dutyMapsBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-location-crosshairs mr-1"></i> Ambil Lokasi</button>
+          </div>
+          <p class="text-[10px] text-slate-500">Di Google Maps: tekan lama (HP) / klik kanan (laptop) tepat di gedung → <b>Bagikan / Share</b> → <b>Salin link</b>, lalu tempel di sini. Latitude, longitude & area absen terisi otomatis.</p>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -1332,6 +1588,11 @@
           </div>
         </div>
 
+        <div id="dutyMapWrap" class="hidden space-y-1">
+          <div id="dutyMap" class="w-full h-56 rounded-2xl border border-slate-200 overflow-hidden z-0"></div>
+          <p class="text-[10px] text-slate-500"><i class="fa-solid fa-circle-info mr-1"></i>Lingkaran hijau = area yang diizinkan untuk absen. Titik merah bisa digeser untuk menyesuaikan posisi.</p>
+        </div>
+
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Alasan / Tugas Pekerjaan</label>
           <textarea id="dutyReason" required rows="2" placeholder="Detail tugas dinas..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"></textarea>
@@ -1339,7 +1600,7 @@
 
         <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
           <button type="button" onclick="closeDutyModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Batal</button>
-          <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md">Simpan Tugas Dinas</button>
+          <button type="submit" id="btnSubmitDuty" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md">Simpan Tugas Dinas</button>
         </div>
       </form>
     </div>
@@ -1390,6 +1651,33 @@
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Departemen</label>
             <input type="text" id="empDepartment" required placeholder="Contoh: HSE Department" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+          </div>
+        </div>
+
+        <div id="empWorkModeGroup" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-amber-50/50 border border-amber-100 rounded-2xl">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Mode Kerja</label>
+            <select id="empWorkMode" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold">
+              <option value="OFFICE">Kantor (wajib absen GPS)</option>
+              <option value="REMOTE">Remote / WFH (bebas Alpha, tanpa bonus)</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <label class="flex items-center gap-2 text-xs font-bold text-slate-600 pb-2">
+              <input type="checkbox" id="empBonusExempt" class="w-4 h-4 accent-emerald-600">
+              Tidak dapat bonus tepat waktu (Direksi / khusus)
+            </label>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Status Karyawan</label>
+            <select id="empIsActive" onchange="onEmpActiveChange()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold">
+              <option value="1">Aktif</option>
+              <option value="0">Nonaktif / Resign (tidak bisa login)</option>
+            </select>
+          </div>
+          <div id="empResignDateGroup" class="hidden">
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Terakhir Bekerja</label>
+            <input type="date" id="empResignDate" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
           </div>
         </div>
 
@@ -1461,6 +1749,24 @@
     </div>
   </div>
 
+  <div id="modalInstallApp" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-base text-slate-800"><i class="fa-solid fa-mobile-screen-button text-emerald-600 mr-1"></i> Pasang HRIS di HP</h3>
+        <button onclick="document.getElementById('modalInstallApp').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-600">Setelah dipasang, HRIS muncul sebagai ikon aplikasi di layar HP dan bisa dibuka tanpa mengetik alamat web. Login tetap tersimpan sampai Anda menekan Logout.</p>
+      <div class="p-3 bg-slate-50 rounded-2xl text-xs space-y-1">
+        <p class="font-extrabold text-slate-800"><i class="fa-brands fa-android text-emerald-600 mr-1"></i> Android (Chrome)</p>
+        <p class="text-slate-600">Ketuk menu <b>⋮</b> di kanan atas → <b>Instal aplikasi</b> / <b>Tambahkan ke layar utama</b>.</p>
+      </div>
+      <div class="p-3 bg-slate-50 rounded-2xl text-xs space-y-1">
+        <p class="font-extrabold text-slate-800"><i class="fa-brands fa-apple mr-1"></i> iPhone (Safari)</p>
+        <p class="text-slate-600">Ketuk tombol <b>Bagikan</b> <i class="fa-solid fa-arrow-up-from-bracket"></i> di bawah → <b>Tambah ke Layar Utama</b> → <b>Tambah</b>.</p>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
       <i id="toastIcon" class="fa-solid fa-circle-info text-emerald-400"></i>
@@ -1469,13 +1775,20 @@
   </div>
 
   <script>
+    // ================= KONFIGURASI BACKEND =================
+    // - Di GitHub Pages (managerartha.github.io) -> memakai Google Apps Script lama.
+    // - Di Hostinger (domain sendiri)            -> memakai backend PHP + MySQL di folder api/.
+    // Untuk memaksa alamat API tertentu, isi window.HRIS_API_URL sebelum script ini.
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwikmWKn55J0V64tj351DS2fyHOn42336FN_tNF53PsXYUp_5c0CzjgRUN2LRV1iWrM2A/exec";
+    const API_URL = window.HRIS_API_URL || (location.hostname.endsWith('github.io') ? APPS_SCRIPT_URL : 'api/index.php');
+    const USE_PHP_BACKEND = API_URL !== APPS_SCRIPT_URL;
+    let authToken = '';
 
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10', WORK_START_TIME: '08:00', WORK_END_TIME: '17:00' };
     let activeDutyAssignment = null;
     let capturedPhotoBase64 = '';
-    let currentGeoLocation = { lat: 0, lng: 0 };
+    let currentGeoLocation = { lat: 0, lng: 0, accuracy: null, timestamp: 0 };
     let isFetchingGps = false;
     let mediaStream = null;
     let profileMediaStream = null;
@@ -1494,19 +1807,21 @@
       requests: [],
       payslips: [],
       duties: [],
-      attendance: []
+      attendance: [],
+      holidays: []
     };
 
     async function apiCall(action, payload = {}, retryCount = 0) {
-      if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("PASTE_YOUR")) {
-        showToast("Buka index.html di GitHub & pasang URL APPS_SCRIPT_URL Anda!", true);
-        throw new Error("URL Apps Script belum dikonfigurasi.");
+      if (!API_URL || API_URL.includes("PASTE_YOUR")) {
+        showToast("Alamat API backend belum dikonfigurasi!", true);
+        throw new Error("URL API belum dikonfigurasi.");
       }
 
       payload.action = action;
+      if (authToken) payload.token = authToken;
 
       try {
-        const response = await fetch(APPS_SCRIPT_URL, {
+        const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
@@ -1519,11 +1834,21 @@
             await new Promise(r => setTimeout(r, 1000));
             return await apiCall(action, payload, retryCount + 1);
           }
-          showToast("Akses Ditolak: Berikan izin Google Drive & set Web App ke 'Anyone'!", true);
-          return { success: false, message: "Akses Apps Script membutuhkan otorisasi izin Drive atau hak akses 'Anyone'." };
+          const msg = USE_PHP_BACKEND
+            ? "Server API tidak merespons dengan benar. Periksa folder api/ & config.php di hosting."
+            : "Akses Ditolak: Berikan izin Google Drive & set Web App ke 'Anyone'!";
+          showToast(msg, true);
+          return { success: false, message: msg };
         }
 
         const data = JSON.parse(rawText);
+        if (response.status === 401 || data.code === 401) {
+          if (currentUser) {
+            showToast(data.message || "Sesi login berakhir. Silakan login ulang.", true);
+            logout(true);
+          }
+          return { success: false, message: data.message || "Sesi login berakhir." };
+        }
         return data;
       } catch (err) {
         console.error("API Call Error:", err);
@@ -1531,14 +1856,75 @@
           await new Promise(r => setTimeout(r, 1000));
           return await apiCall(action, payload, retryCount + 1);
         }
-        showToast("Error API: " + err.message, true);
+        showToast("Koneksi gagal: " + err.message, true);
         return { success: false, message: err.message };
       }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      if (!USE_PHP_BACKEND) document.querySelectorAll('.php-only').forEach(el => el.remove());
       initMiniCalendar();
+      restoreSession();
+      initInstallApp();
+      // Di HP: menu laci tertutup otomatis setelah salah satu menu dipilih
+      const sideNav = document.querySelector('#appSidebar nav');
+      if (sideNav) sideNav.addEventListener('click', e => { if (e.target.closest('button')) closeDrawer(); });
     });
+
+    // ===== Login tersimpan di perangkat (sampai Logout / sesi 30 hari habis) =====
+    const SESSION_KEY = 'hris_session_v1';
+    function saveSession() {
+      if (!USE_PHP_BACKEND || !authToken || !currentUser) return;
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify({ token: authToken, user: currentUser })); } catch (e) {}
+    }
+    function clearSession() {
+      try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    }
+    function restoreSession() {
+      if (!USE_PHP_BACKEND) return;
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { saved = null; }
+      if (!saved || !saved.token || !saved.user || !saved.user.EMP_ID) return;
+      authToken = saved.token;
+      currentUser = saved.user;
+      onLoginSuccess(); // jika sesi sudah tidak berlaku, server membalas 401 dan layar login muncul lagi
+    }
+
+    // ===== Pasang sebagai aplikasi (PWA) =====
+    let deferredInstallPrompt = null;
+    function isStandaloneApp() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+    function initInstallApp() {
+      if (!USE_PHP_BACKEND) return;
+      if ('serviceWorker' in navigator && window.isSecureContext) {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker gagal:', err));
+      }
+      const show = !isStandaloneApp();
+      document.querySelectorAll('.install-app-btn').forEach(b => b.classList.toggle('hidden', !show));
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt = e; });
+      window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        document.querySelectorAll('.install-app-btn').forEach(b => b.classList.add('hidden'));
+        showToast('HRIS berhasil dipasang di HP Anda!');
+      });
+    }
+    async function openInstallGuide() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        try { await deferredInstallPrompt.userChoice; } catch (e) {}
+        deferredInstallPrompt = null;
+        return;
+      }
+      document.getElementById('modalInstallApp').classList.remove('hidden');
+    }
+
+    // Cegah teks berisi kode HTML/JS (misal di agenda / alasan pengajuan) dijalankan di browser orang lain.
+    function esc(v) {
+      return String(v === null || v === undefined ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
 
     function showToast(message, isError = false) {
       const toast = document.getElementById('toast');
@@ -1575,6 +1961,8 @@
 
       if (res.success) {
         currentUser = res.user;
+        authToken = res.token || '';
+        saveSession();
         onLoginSuccess();
       } else {
         showToast(res.message || "Gagal masuk. Periksa kembali ID/Email & kata sandi.", true);
@@ -1610,19 +1998,33 @@
       if (contractBtn) contractBtn.href = currentUser.CONTRACT_DOC_URL || '#';
       if (bpjsBtn) bpjsBtn.href = currentUser.BPJS_DOC_URL || '#';
 
+      const backupCard = document.getElementById('backupCard');
+      if (backupCard) backupCard.classList.toggle('hidden', !(USE_PHP_BACKEND && currentUser.ROLE === 'ADMIN'));
+
       switchTab('dashboard');
       loadDashboardData();
     }
 
-    function logout() {
+    function logout(silent = false) {
+      if (authToken && !silent) apiCall('logout', {});
+      clearSession();
+      authToken = '';
       currentUser = null;
+      stopGpsWatch();
       document.getElementById('appContainer').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       document.getElementById('formLogin').reset();
-      showToast("Berhasil keluar.");
+      if (!silent) showToast("Berhasil keluar.");
     }
 
+    function openDrawer() { document.body.classList.add('drawer-open'); }
+    function closeDrawer() { document.body.classList.remove('drawer-open'); }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
     function switchTab(tabId) {
+      closeDrawer();
+      document.querySelectorAll('#bottomNav [data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+      window.scrollTo({ top: 0 });
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active-nav'));
 
@@ -1646,6 +2048,10 @@
       } else if (tabId === 'payslip') {
         updateSavedHolidaysDisplay();
         renderUserPayslipsTable();
+      } else if (tabId === 'adminSettings') {
+        setTimeout(() => renderLocationMap('office'), 50);
+        renderHolidayList();
+        loadEmailSettings();
       }
     }
 
@@ -1715,6 +2121,10 @@
     async function loadDashboardData() {
       const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
       if (res && res.success) {
+        if (res.currentUser && currentUser && USE_PHP_BACKEND) {
+          Object.assign(currentUser, res.currentUser);
+          saveSession();
+        }
         officeSettings = res.settings;
         activeDutyAssignment = res.activeDuty || null;
         
@@ -1724,6 +2134,7 @@
         cachedData.payslips = res.payslips || [];
         cachedData.duties = res.duties || [];
         cachedData.attendance = res.recentAttendance || [];
+        cachedData.holidays = res.holidays || [];
 
         if (cachedData.payslips && cachedData.payslips.length > 0) {
           cachedData.payslips.forEach(p => {
@@ -1765,8 +2176,9 @@
             const bpjsKes = hasKes ? parseInt(p.BPJS_KES_AMOUNT || 0, 10) : 0;
             const kasbon = parseInt(p.KASBON_AMOUNT || 0, 10);
 
+            const overtimePay = parseInt(p.OVERTIME_PAY || 0, 10);
             p.DEDUCTIONS = lateDed + bpjsTk + bpjsKes + kasbon;
-            p.NET_SALARY = (basic + allow + bonus + encashedPay) - p.DEDUCTIONS;
+            p.NET_SALARY = (basic + allow + bonus + encashedPay + overtimePay) - p.DEDUCTIONS;
           });
         }
 
@@ -1789,6 +2201,10 @@
           }
         }
 
+        ['hamburgerBadge', 'bottomMenuBadge'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.toggle('hidden', !(res.stats.pendingRequestsCount > 0));
+        });
         if (res.stats.pendingRequestsCount > 0) {
           const badge = document.getElementById('badgePendingCount');
           badge.innerText = res.stats.pendingRequestsCount;
@@ -1809,6 +2225,9 @@
         document.getElementById('settingMaxRadius').value = res.settings.MAX_RADIUS_METERS || '10';
         document.getElementById('settingWorkStart').value = res.settings.WORK_START_TIME || '08:00';
         document.getElementById('settingWorkEnd').value = res.settings.WORK_END_TIME || '17:00';
+        const satEl = document.getElementById('settingWorkEndSaturday');
+        if (satEl) satEl.value = res.settings.WORK_END_SATURDAY || '12:00';
+        renderHolidayList();
 
         currentAttPage = 1;
         renderRecentAttendanceTable(cachedData.attendance);
@@ -1821,6 +2240,8 @@
         renderAdminEmployeesTable();
         renderAdminApprovalsTable();
 
+        updateAttendanceTargetUI();
+        if (currentGeoLocation.timestamp) applyGpsCoordinates(currentGeoLocation.lat, currentGeoLocation.lng, currentGeoLocation.accuracy);
         getLocationGPS(false);
       } else {
         console.error("Gagal loadDashboardData:", res);
@@ -1868,7 +2289,7 @@
         let safeDate = (item.DATE || '').replace(/'/g, "\\'");
 
         tbody.innerHTML += "<tr>" +
-          "<td class='py-3 px-3 font-bold text-slate-800'>" + item.FULL_NAME + "</td>" +
+          "<td class='py-3 px-3 font-bold text-slate-800'>" + esc(item.FULL_NAME) + "</td>" +
           "<td class='py-3 px-3 font-mono text-emerald-600 font-semibold'>" + (item.CHECKIN_TIME || '-') + "</td>" +
           "<td class='py-3 px-3 font-mono text-slate-500'>" + (item.CHECKOUT_TIME || '-') + "</td>" +
           "<td class='py-3 px-3 font-semibold text-slate-600'>" + (item.DISTANCE_METERS || '0') + "m</td>" +
@@ -2003,20 +2424,39 @@
       }
     }
 
+    // Aturan karyawan khusus.
+    // Backend Hostinger mengirim WORK_MODE (OFFICE/REMOTE) & BONUS_EXEMPT dari database -> diatur Admin lewat menu Edit Karyawan.
+    // Daftar nama di bawah hanya cadangan untuk backend Google Apps Script lama.
+    // Riana (EMP-0003) SUDAH DIHAPUS dari daftar: sekarang kembali kerja di kantor (wajib absen GPS & dapat bonus tepat waktu).
+    function findUserFlags(u) {
+      if (!u) return null;
+      if (u.WORK_MODE !== undefined || u.BONUS_EXEMPT !== undefined) return u;
+      const id = String(u.EMP_ID || '').trim().toUpperCase();
+      const match = (cachedData.users || []).find(x => String(x.EMP_ID || '').trim().toUpperCase() === id);
+      if (match && (match.WORK_MODE !== undefined || match.BONUS_EXEMPT !== undefined)) return match;
+      return null;
+    }
+
+    function flagTrue(v) {
+      return v === true || String(v).toUpperCase() === 'TRUE' || String(v) === '1';
+    }
+
     function isBonusExempt(u) {
       if (!u) return false;
+      const flags = findUserFlags(u);
+      if (flags) return flagTrue(flags.BONUS_EXEMPT) || String(flags.WORK_MODE || '').toUpperCase() === 'REMOTE';
+
       const empId = String(u.EMP_ID || '').trim().toUpperCase();
       const name = String(u.FULL_NAME || '').toLowerCase();
       const pos = String(u.POSITION || '').toLowerCase();
       const role = String(u.ROLE || '').toLowerCase();
       const dept = String(u.DEPARTMENT || '').toLowerCase();
 
-      // Permanen bebas bonus: Erna (EMP-0013), Ricardo (EMP-0012), Irfan (EMP-0008), Riana (EMP-0003)
-      if (empId === 'EMP-0012' || empId === 'EMP-0013' || empId === 'EMP-0008' || empId === 'EMP-0003') return true;
+      // Bebas bonus: Erna (EMP-0013), Ricardo (EMP-0012), Irfan (EMP-0008)
+      if (empId === 'EMP-0012' || empId === 'EMP-0013' || empId === 'EMP-0008') return true;
       if (name.includes('ricardo') || name.includes('simbolon')) return true;
       if ((/\berna\b/i).test(name)) return true;
       if ((/\birfan\b/i).test(name)) return true;
-      if ((/\briana\b/i).test(name) && !name.includes('fitriana')) return true;
       if (pos.includes('direktur') || pos.includes('director') || pos.includes('komisaris') || pos.includes('direksi') || pos.includes('pimpinan')) return true;
       if (role.includes('director') || role.includes('direktur')) return true;
       if (pos.includes('remote') || pos.includes('wfh') || dept.includes('remote') || dept.includes('wfh')) return true;
@@ -2029,14 +2469,16 @@
 
     function isUserRemote(u) {
       if (!u) return false;
+      const flags = findUserFlags(u);
+      if (flags) return String(flags.WORK_MODE || '').toUpperCase() === 'REMOTE';
+
       const name = (u.FULL_NAME || '').toLowerCase();
       const pos = (u.POSITION || '').toLowerCase();
       const dept = (u.DEPARTMENT || '').toLowerCase();
       const empId = String(u.EMP_ID || '').toUpperCase();
       const isIrfan = (/\birfan\b/i).test(name) || empId === 'EMP-0008';
-      const isRiana = ((/\briana\b/i).test(name) && !name.includes('fitriana')) || empId === 'EMP-0003';
       const isRemoteJob = pos.includes('remote') || pos.includes('wfh') || dept.includes('remote') || dept.includes('wfh');
-      return isIrfan || isRiana || isRemoteJob;
+      return isIrfan || isRemoteJob;
     }
 
     async function openAttendanceReportModal() {
@@ -2071,217 +2513,17 @@
       }
     }
 
-    function filterAttendanceReport() {
-      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-      const mSelect = document.getElementById('reportMonthSelect');
-      const ySelect = document.getElementById('reportYearSelect');
-      
-      const selMonth = mSelect ? parseInt(mSelect.value, 10) : new Date().getMonth();
-      const selYear = ySelect ? parseInt(ySelect.value, 10) : new Date().getFullYear();
+    // Hari libur: Minggu atau tanggal yang ada di kalender libur (libur nasional / cuti bersama)
+    function findHoliday(dateStr) {
+      const n = normalizeDateStandard(dateStr);
+      return (cachedData.holidays || []).find(h => normalizeDateStandard(h.DATE) === n) || null;
+    }
 
-      const periodStr = monthNames[selMonth] + " " + selYear;
-      const reportPeriodEl = document.getElementById('printReportPeriod');
-      if (reportPeriodEl) reportPeriodEl.innerText = "Periode: " + periodStr;
-
-      const tbody = document.getElementById('tblReportAttendance');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-
-      // Kumpulkan seluruh tanggal kerja aktif yang memiliki catatan presensi atau pengajuan
-      const dateMap = new Map();
-      (cachedData.attendance || []).forEach(a => {
-        if (!a.DATE) return;
-        const p = parseDateParts(a.DATE);
-        if (p && p.month === selMonth && p.year === selYear) {
-          if (!dateMap.has(a.DATE)) dateMap.set(a.DATE, p.timestamp);
-        }
-      });
-
-      (cachedData.requests || []).forEach(r => {
-        if (r.START_DATE) {
-          const p = parseDateParts(r.START_DATE);
-          if (p && p.month === selMonth && p.year === selYear) {
-            if (!dateMap.has(r.START_DATE)) dateMap.set(r.START_DATE, p.timestamp);
-          }
-        }
-      });
-
-      if (dateMap.size === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Tidak ada data presensi pada periode ' + periodStr + '.</td></tr>';
-        return;
-      }
-
-      // Urutkan tanggal dari yang terbaru ke terlama (descending)
-      const sortedDates = Array.from(dateMap.entries()).sort((a, b) => b[1] - a[1]).map(e => e[0]);
-
-      // Kumpulkan daftar karyawan terdaftar
-      const empMap = new Map();
-      (cachedData.users || []).forEach(u => {
-        if (u && u.EMP_ID) empMap.set(String(u.EMP_ID).trim().toUpperCase(), u);
-      });
-      (cachedData.attendance || []).forEach(a => {
-        if (a && a.EMP_ID) {
-          const id = String(a.EMP_ID).trim().toUpperCase();
-          if (!empMap.has(id)) {
-            empMap.set(id, { EMP_ID: a.EMP_ID, FULL_NAME: a.FULL_NAME, POSITION: 'Karyawan', DEPARTMENT: '-' });
-          }
-        }
-      });
-      const allEmployees = Array.from(empMap.values());
-
-      sortedDates.forEach(dateStr => {
-        const dayRows = [];
-
-        allEmployees.forEach(u => {
-          const uId = String(u.EMP_ID || '').trim().toUpperCase();
-          const att = (cachedData.attendance || []).find(a => 
-            String(a.EMP_ID || '').trim().toUpperCase() === uId && 
-            String(a.DATE || '').trim() === dateStr
-          );
-
-          if (att && att.CHECKIN_TIME && att.CHECKIN_TIME !== '-') {
-            // Kasus 1: Karyawan Hadir & Absen
-            let badge = '<span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-check mr-1"></i>TEPAT WAKTU</span>';
-            
-            if (att.STATUS === 'TERLAMBAT') {
-              const hasApprovedLate = (cachedData.requests || []).some(req => 
-                String(req.EMP_ID || '').trim().toUpperCase() === uId && 
-                String(req.TYPE || '').trim().toLowerCase().includes('terlambat') && 
-                (String(req.STATUS || '').toUpperCase() === 'APPROVED' || String(req.STATUS || '').toUpperCase() === 'DISETUJUI') && 
-                isDateBetweenStr(dateStr, req.START_DATE, req.END_DATE)
-              );
-
-              if (hasApprovedLate) {
-                badge = '<span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-circle-check mr-1"></i>TERLAMBAT (IZIN DISETUJUI)</span>';
-              } else {
-                badge = '<span class="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-clock mr-1"></i>TERLAMBAT</span>';
-              }
-            }
-
-            dayRows.push({
-              rank: 1,
-              dateStr: dateStr,
-              empName: (att.FULL_NAME || u.FULL_NAME) + ' (' + u.EMP_ID + ')',
-              checkin: att.CHECKIN_TIME,
-              checkout: att.CHECKOUT_TIME || '-',
-              location: att.LOCATION_NAME || 'PT Artha Safety Indonesia - Kantor Pusat HQ',
-              badge: badge,
-              checkinTimeRaw: att.CHECKIN_TIME
-            });
-          } else {
-            // Kasus 2: Karyawan Tidak Ada Absensi Jam Masuk
-            if (isUserDireksi(u)) {
-              // Status Direksi (Bebas Absensi GPS)
-              dayRows.push({
-                rank: 3,
-                dateStr: dateStr,
-                empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
-                checkin: '-',
-                checkout: '-',
-                location: 'Mobilitas Direksi',
-                badge: '<span class="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-user-tie mr-1 text-slate-500"></i>DIREKSI (EXEMPT)</span>',
-                checkinTimeRaw: '00:00'
-              });
-            } else if (isUserRemote(u)) {
-              // Status Karyawan Remote (WFH)
-              dayRows.push({
-                rank: 2,
-                dateStr: dateStr,
-                empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
-                checkin: '-',
-                checkout: '-',
-                location: 'Kerja Remote / WFH',
-                badge: '<span class="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-house-laptop mr-1 text-blue-500"></i>REMOTE (WFH)</span>',
-                checkinTimeRaw: '00:00'
-              });
-            } else {
-              // Periksa apakah sedang bertugas dinas luar kota
-              const duty = (cachedData.duties || []).find(d => 
-                String(d.EMP_ID || '').trim().toUpperCase() === uId && 
-                isDateBetweenStr(dateStr, d.START_DATE, d.END_DATE)
-              );
-
-              if (duty) {
-                dayRows.push({
-                  rank: 2,
-                  dateStr: dateStr,
-                  empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
-                  checkin: '-',
-                  checkout: '-',
-                  location: '📍 Dinas: ' + duty.LOCATION_NAME,
-                  badge: '<span class="text-orange-700 font-bold bg-orange-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-briefcase mr-1 text-orange-500"></i>DINAS LUAR KOTA</span>',
-                  checkinTimeRaw: '00:00'
-                });
-              } else {
-                // Periksa apakah memiliki pengajuan izin / cuti yang disetujui
-                const req = (cachedData.requests || []).find(r => 
-                  String(r.EMP_ID || '').trim().toUpperCase() === uId &&
-                  (String(r.STATUS || '').toUpperCase() === 'APPROVED' || String(r.STATUS || '').toUpperCase() === 'DISETUJUI') &&
-                  isDateBetweenStr(dateStr, r.START_DATE, r.END_DATE)
-                );
-
-                if (req) {
-                  const typeClean = (req.TYPE || '').toLowerCase();
-                  let reqBadge = '<span class="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-file-signature mr-1 text-amber-500"></i>IZIN RESMI</span>';
-                  let reqLoc = 'Izin Disetujui HR';
-
-                  if (typeClean.includes('cuti')) {
-                    reqBadge = '<span class="text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-umbrella-beach mr-1 text-purple-500"></i>CUTI TAHUNAN</span>';
-                    reqLoc = 'Izin Cuti Resmi';
-                  } else if (typeClean.includes('sakit')) {
-                    reqBadge = '<span class="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-notes-medical mr-1 text-amber-500"></i>IZIN SAKIT</span>';
-                    reqLoc = 'Surat Dokter / Sakit';
-                  } else if (typeClean.includes('pengganti') || typeClean.includes('tabung')) {
-                    reqBadge = '<span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-calendar-check mr-1 text-emerald-500"></i>LIBUR PENGGANTI</span>';
-                    reqLoc = 'Tabungan Libur';
-                  }
-
-                  dayRows.push({
-                    rank: 4,
-                    dateStr: dateStr,
-                    empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
-                    checkin: '-',
-                    checkout: '-',
-                    location: reqLoc,
-                    badge: reqBadge,
-                    checkinTimeRaw: '00:00'
-                  });
-                } else {
-                  // Tidak ada presensi & tidak ada izin apapun -> ALPHA (TIDAK HADIR)
-                  dayRows.push({
-                    rank: 5,
-                    dateStr: dateStr,
-                    empName: u.FULL_NAME + ' (' + u.EMP_ID + ')',
-                    checkin: '-',
-                    checkout: '-',
-                    location: '<span class="text-slate-400 italic">Tanpa Keterangan</span>',
-                    badge: '<span class="text-red-700 font-extrabold bg-red-100 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-circle-xmark mr-1 text-red-600"></i>ALPHA (TIDAK HADIR)</span>',
-                    checkinTimeRaw: '00:00'
-                  });
-                }
-              }
-            }
-          }
-        });
-
-        // Urutkan: Hadir di atas (berdasarkan jam masuk), disusul Remote/Dinas, Direksi, Cuti/Sakit, dan Alpha di bawah
-        dayRows.sort((a, b) => {
-          if (a.rank !== b.rank) return a.rank - b.rank;
-          if (a.rank === 1) return String(b.checkinTimeRaw || '').localeCompare(String(a.checkinTimeRaw || ''));
-          return a.empName.localeCompare(b.empName);
-        });
-
-        dayRows.forEach(item => {
-          tbody.innerHTML += "<tr>" +
-            "<td class='py-2 px-3 font-mono text-slate-600'>" + item.dateStr + "</td>" +
-            "<td class='py-2 px-3 font-bold text-slate-900'>" + item.empName + "</td>" +
-            "<td class='py-2 px-3 font-mono " + (item.checkin !== '-' ? "text-emerald-700 font-semibold" : "text-slate-400") + "'>" + item.checkin + "</td>" +
-            "<td class='py-2 px-3 font-mono text-slate-500'>" + item.checkout + "</td>" +
-            "<td class='py-2 px-3 text-slate-600'>" + item.location + "</td>" +
-            "<td class='py-2 px-3'>" + item.badge + "</td>" +
-          "</tr>";
-        });
-      });
+    function isNonWorkingDay(dateStr) {
+      const p = parseDateParts(dateStr);
+      if (!p) return false;
+      if (new Date(p.year, p.month, p.day).getDay() === 0) return true;
+      return !!findHoliday(dateStr);
     }
 
     function closeAttendanceReportModal() {
@@ -2410,7 +2652,7 @@
       (cachedData.attendance || []).forEach(a => {
         if (!a.DATE) return;
         const p = parseDateParts(a.DATE);
-        if (p && p.month === selMonth && p.year === selYear && p.day <= maxDayToCheck) {
+        if (p && p.month === selMonth && p.year === selYear && p.day <= maxDayToCheck && !isNonWorkingDay(a.DATE)) {
           const norm = normalizeDateStandard(a.DATE);
           if (norm && !workDatesMap.has(norm)) {
             workDatesMap.set(norm, p.timestamp);
@@ -2432,8 +2674,13 @@
         const uId = String(u.EMP_ID).trim().toUpperCase();
         let userAlphaDays = 0;
         const alphaDates = [];
+        const resignP = u.RESIGN_DATE ? parseDateParts(u.RESIGN_DATE) : null;
+        const joinP = u.JOIN_DATE ? parseDateParts(u.JOIN_DATE) : null;
 
         sortedWorkDates.forEach(normDate => {
+          const dP = parseDateParts(normDate);
+          if (dP && resignP && dP.timestamp > resignP.timestamp) return; // sudah tidak bekerja
+          if (dP && joinP && dP.timestamp < joinP.timestamp) return;     // belum bergabung
           // 1. Cek apakah karyawan hadir presensi (menggunakan normalisasi tanggal)
           const hasAtt = (cachedData.attendance || []).some(a => {
             if (String(a.EMP_ID || '').trim().toUpperCase() !== uId) return false;
@@ -2627,97 +2874,188 @@
         "</div>";
     }
 
-    function applyGpsCoordinates(lat, lng) {
+    // Koordinat bisa tersimpan dengan koma (format Indonesia "-6,175392") -> ubah ke titik.
+    function parseCoord(v, fallback) {
+      if (v === null || v === undefined || v === '') return fallback;
+      let s = String(v).trim();
+      if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+      const n = parseFloat(s);
+      return isNaN(n) ? fallback : n;
+    }
+
+    function getAttendanceTarget() {
+      if (activeDutyAssignment) {
+        return {
+          lat: parseCoord(activeDutyAssignment.LATITUDE, 0),
+          lng: parseCoord(activeDutyAssignment.LONGITUDE, 0),
+          radius: parseCoord(activeDutyAssignment.RADIUS_METERS, 50),
+          name: "📍 Dinas: " + activeDutyAssignment.LOCATION_NAME,
+          isDuty: true
+        };
+      }
+      return {
+        lat: parseCoord(officeSettings.OFFICE_LAT, -6.175392),
+        lng: parseCoord(officeSettings.OFFICE_LNG, 106.827153),
+        radius: parseCoord(officeSettings.MAX_RADIUS_METERS, 10),
+        name: officeSettings.OFFICE_NAME || "PT Artha Safety Indonesia - Kantor Pusat HQ",
+        isDuty: false
+      };
+    }
+
+    function updateAttendanceTargetUI() {
+      const t = getAttendanceTarget();
+      const titleEl = document.getElementById('targetLocationTitle');
+      const noticeEl = document.getElementById('attendanceNoticeText');
+      if (titleEl) titleEl.innerText = t.name;
+      if (noticeEl) {
+        // Elemen #displayOfficeRadius selalu dibuat ulang agar tidak hilang setelah mode dinas.
+        noticeEl.innerHTML = t.isDuty
+          ? "Presensi diizinkan pada <b class='text-amber-600'></b> maksimal radius <b class='text-emerald-600' id='displayOfficeRadius'></b> (Jam Masuk: " + (officeSettings.WORK_START_TIME || '08:00') + " WIB)."
+          : "Presensi hanya diizinkan jika posisi lokasi berada maksimal <b class='text-emerald-600' id='displayOfficeRadius'></b> dari titik koordinat lokasi.";
+        if (t.isDuty) noticeEl.querySelector('b.text-amber-600').innerText = t.name;
+        document.getElementById('displayOfficeRadius').innerText = t.radius + ' Meter';
+      }
+      return t;
+    }
+
+    function applyGpsCoordinates(lat, lng, accuracy) {
       currentGeoLocation.lat = lat;
       currentGeoLocation.lng = lng;
+      currentGeoLocation.accuracy = (typeof accuracy === 'number') ? accuracy : null;
+      currentGeoLocation.timestamp = Date.now();
 
       const coordsEl = document.getElementById('currentGpsCoords');
       if (coordsEl) {
-        coordsEl.innerText = lat.toFixed(6) + ', ' + lng.toFixed(6);
+        const acc = currentGeoLocation.accuracy !== null ? ' (akurasi ±' + Math.round(currentGeoLocation.accuracy) + 'm)' : '';
+        coordsEl.innerText = lat.toFixed(6) + ', ' + lng.toFixed(6) + acc;
       }
 
-      let officeLat, officeLng, maxRad, targetName;
-
-      if (activeDutyAssignment) {
-        officeLat = parseFloat(activeDutyAssignment.LATITUDE);
-        officeLng = parseFloat(activeDutyAssignment.LONGITUDE);
-        maxRad = parseFloat(activeDutyAssignment.RADIUS_METERS || '50');
-        targetName = "📍 Dinas: " + activeDutyAssignment.LOCATION_NAME;
-
-        document.getElementById('targetLocationTitle').innerText = targetName;
-        document.getElementById('attendanceNoticeText').innerHTML = 
-          "Presensi diizinkan pada <b class='text-amber-600'>" + targetName + "</b> maksimal radius <b class='text-emerald-600'>" + maxRad + " Meter</b> (Jam Masuk: " + (officeSettings.WORK_START_TIME || '08:00') + " WIB).";
-      } else {
-        officeLat = parseFloat(officeSettings.OFFICE_LAT || '-6.175392');
-        officeLng = parseFloat(officeSettings.OFFICE_LNG || '106.827153');
-        maxRad = parseFloat(officeSettings.MAX_RADIUS_METERS || '10');
-        targetName = officeSettings.OFFICE_NAME || "PT Artha Safety Indonesia - Kantor Pusat HQ";
-
-        document.getElementById('targetLocationTitle').innerText = targetName;
-        document.getElementById('displayOfficeRadius').innerText = maxRad + ' Meter';
-      }
-
-      const distance = calculateDistanceMeters(officeLat, officeLng, currentGeoLocation.lat, currentGeoLocation.lng);
+      const t = updateAttendanceTargetUI();
+      const distance = calculateDistanceMeters(t.lat, t.lng, lat, lng);
       const badge = document.getElementById('distanceMeterBadge');
 
       if (badge) {
-        if (distance <= maxRad) {
+        if (distance <= t.radius) {
           badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700";
           badge.innerText = distance + " Meter (Di dalam Radius)";
         } else {
           badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700";
-          badge.innerText = distance + " Meter (Di Luar Radius " + maxRad + "m)";
+          badge.innerText = distance + " Meter (Di Luar Radius " + t.radius + "m)";
         }
       }
     }
 
+    // ===== GPS =====
+    // Versi lama hanya menunggu 3,5 dtk (akurasi rendah) + 6,5 dtk (akurasi tinggi). Di HP yang GPS-nya
+    // butuh waktu lebih lama (terutama iPhone / di dalam gedung) hasilnya selalu "gagal get location".
+    // Sekarang: pantau posisi (watchPosition) hingga 30 dtk, ambil titik paling akurat, dan tampilkan
+    // penyebab gagal yang jelas (izin ditolak / GPS mati / timeout).
+    let gpsWatchId = null;
+    let gpsWatchTimer = null;
+    let gpsWaiters = [];
+    let gpsLastError = '';
+    const GPS_GOOD_ACCURACY = 25;   // meter: berhenti mencari jika sudah seakurat ini
+    const GPS_MAX_WAIT_MS = 30000;  // batas waktu pencarian
+    const GPS_FRESH_MS = 120000;    // posisi dianggap masih baru selama 2 menit
+
+    function gpsErrorMessage(err) {
+      if (!window.isSecureContext) return "Lokasi hanya bisa dibaca lewat HTTPS. Buka website dengan alamat https://";
+      if (!err) return "Sinyal GPS lemah. Coba di dekat jendela / area terbuka lalu tekan Refresh GPS.";
+      if (err.code === 1) return "Izin lokasi DITOLAK. Buka pengaturan browser (ikon gembok di samping alamat web) → Lokasi → Izinkan, lalu muat ulang halaman. Di iPhone: Pengaturan → Privasi → Layanan Lokasi → Safari → 'Saat Digunakan'.";
+      if (err.code === 2) return "Lokasi tidak tersedia. Pastikan GPS / Lokasi HP sudah AKTIF lalu tekan Refresh GPS.";
+      if (err.code === 3) return "Waktu mencari GPS habis. Pastikan GPS aktif, coba di dekat jendela / area terbuka, lalu tekan Refresh GPS.";
+      return "Gagal membaca lokasi: " + (err.message || 'tidak diketahui');
+    }
+
+    function stopGpsWatch() {
+      if (gpsWatchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(gpsWatchId);
+      gpsWatchId = null;
+      if (gpsWatchTimer) clearTimeout(gpsWatchTimer);
+      gpsWatchTimer = null;
+      isFetchingGps = false;
+    }
+
+    function finishGps(ok) {
+      stopGpsWatch();
+      const waiters = gpsWaiters;
+      gpsWaiters = [];
+      waiters.forEach(w => w(ok));
+      if (!ok) {
+        const coordsEl = document.getElementById('currentGpsCoords');
+        const badge = document.getElementById('distanceMeterBadge');
+        if (coordsEl && !currentGeoLocation.timestamp) coordsEl.innerText = "GPS belum terkunci";
+        if (badge && !currentGeoLocation.timestamp) {
+          badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700";
+          badge.innerText = "GPS Belum Terkunci";
+        }
+      }
+    }
+
+    // Mulai mencari lokasi. Mengembalikan Promise<boolean> (true jika dapat koordinat).
     function getLocationGPS(isManual = false) {
-      if (!navigator.geolocation) {
-        document.getElementById('currentGpsCoords').innerText = "Browser tidak mendukung GPS";
-        showToast("Browser tidak mendukung GPS", true);
-        return;
-      }
+      return new Promise(resolve => {
+        const coordsEl = document.getElementById('currentGpsCoords');
+        const badge = document.getElementById('distanceMeterBadge');
 
-      if (isFetchingGps && !isManual) return;
-      isFetchingGps = true;
+        if (!navigator.geolocation || !window.isSecureContext) {
+          gpsLastError = navigator.geolocation ? gpsErrorMessage(null) : "Browser tidak mendukung GPS. Gunakan Chrome / Safari terbaru.";
+          if (coordsEl) coordsEl.innerText = gpsLastError;
+          if (isManual) showToast(gpsLastError, true);
+          resolve(false);
+          return;
+        }
 
-      const coordsEl = document.getElementById('currentGpsCoords');
-      const badge = document.getElementById('distanceMeterBadge');
+        gpsWaiters.push(resolve);
+        if (isFetchingGps) return; // pencarian sedang berjalan, cukup tunggu hasilnya
+        isFetchingGps = true;
+        gpsLastError = '';
 
-      if (isManual) {
-        if (coordsEl) coordsEl.innerText = "Memperbarui titik koordinat...";
-        if (badge) badge.innerText = "Menghitung...";
-      }
+        if (isManual || !currentGeoLocation.timestamp) {
+          if (coordsEl) coordsEl.innerText = "Mencari titik GPS... (izinkan akses lokasi jika diminta)";
+          if (badge) { badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-slate-200 text-slate-700"; badge.innerText = "Menghitung..."; }
+        }
 
-      // 1. Upaya Cepat (Cache/Jaringan Cepat - timeout 3.5 detik)
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          applyGpsCoordinates(pos.coords.latitude, pos.coords.longitude);
-          isFetchingGps = false;
-        },
-        err => {
-          // 2. Fallback: Presisi Tinggi dengan batas waktu 6.5 detik
-          navigator.geolocation.getCurrentPosition(
-            pos2 => {
-              applyGpsCoordinates(pos2.coords.latitude, pos2.coords.longitude);
-              isFetchingGps = false;
-            },
-            err2 => {
-              isFetchingGps = false;
-              if (coordsEl) coordsEl.innerText = "Sinyal GPS lemah / Belum diizinkan";
-              if (badge) {
-                badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700";
-                badge.innerText = "GPS Belum Terkunci";
-              }
-              if (isManual) {
-                showToast("Pastikan izin lokasi HP aktif & berada di area terbuka.", true);
-              }
-            },
-            { enableHighAccuracy: true, timeout: 6500, maximumAge: 30000 }
-          );
-        },
-        { enableHighAccuracy: false, timeout: 3500, maximumAge: 60000 }
-      );
+        let gotAny = false;
+        let bestAccuracy = Infinity;
+
+        gpsWatchId = navigator.geolocation.watchPosition(
+          pos => {
+            const acc = pos.coords.accuracy || 9999;
+            if (acc <= bestAccuracy || !gotAny) {
+              bestAccuracy = acc;
+              applyGpsCoordinates(pos.coords.latitude, pos.coords.longitude, acc);
+            }
+            if (!gotAny) {
+              gotAny = true;
+              // Sudah dapat koordinat: siapa pun yang menunggu (misal tombol Absen) boleh lanjut,
+              // pencarian tetap jalan sebentar untuk memperbaiki akurasi.
+              const waiters = gpsWaiters; gpsWaiters = []; waiters.forEach(w => w(true));
+            }
+            if (acc <= GPS_GOOD_ACCURACY) finishGps(true);
+          },
+          err => {
+            gpsLastError = gpsErrorMessage(err);
+            if (err.code === 1) {
+              const coordsEl2 = document.getElementById('currentGpsCoords');
+              if (coordsEl2) coordsEl2.innerText = "Izin lokasi ditolak";
+              const onAttendanceTab = !document.getElementById('view-attendance').classList.contains('hidden');
+              if (isManual || onAttendanceTab) showToast(gpsLastError, true);
+              finishGps(gotAny);
+            }
+            // Error lain (GPS belum siap / timeout sesaat) sering hanya sementara di HP:
+            // watchPosition tetap mencoba sampai batas waktu GPS_MAX_WAIT_MS.
+          },
+          { enableHighAccuracy: true, timeout: GPS_MAX_WAIT_MS, maximumAge: 0 }
+        );
+
+        gpsWatchTimer = setTimeout(() => {
+          if (!gotAny) {
+            if (!gpsLastError) gpsLastError = gpsErrorMessage({ code: 3 });
+            if (isManual) showToast(gpsLastError, true);
+          }
+          finishGps(gotAny);
+        }, GPS_MAX_WAIT_MS);
+      });
     }
 
     function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -2831,36 +3169,58 @@
       document.getElementById('btnTakeSnap').classList.remove('hidden');
     }
 
+    let isSubmittingAttendance = false;
+
     async function processSubmitAttendance(type) {
+      if (isSubmittingAttendance) return;
       if (!capturedPhotoBase64) {
         showToast("Harap ambil foto selfie terlebih dahulu!", true);
         return;
       }
 
-      if (currentGeoLocation.lat === 0) {
-        showToast("Lokasi GPS belum terdeteksi. Mencari lokasi...", true);
-        getLocationGPS(true);
-        return;
-      }
-
-      const payload = {
-        empId: currentUser.EMP_ID,
-        fullName: currentUser.FULL_NAME,
-        lat: currentGeoLocation.lat,
-        lng: currentGeoLocation.lng,
-        photoBase64: capturedPhotoBase64,
-        type: type
+      const btnIn = document.getElementById('btnSubmitCheckin');
+      const btnOut = document.getElementById('btnSubmitCheckout');
+      const setBusy = (busy) => {
+        isSubmittingAttendance = busy;
+        [btnIn, btnOut].forEach(b => { if (b) { b.disabled = busy; b.classList.toggle('opacity-60', busy); } });
       };
+      setBusy(true);
 
-      showToast("Memproses Presensi GPS...");
+      try {
+        // Pastikan koordinat ada & masih baru (maks 2 menit). Jika belum, tunggu GPS (bukan langsung gagal).
+        const isFresh = currentGeoLocation.timestamp && (Date.now() - currentGeoLocation.timestamp) < GPS_FRESH_MS;
+        if (!isFresh) {
+          showToast("Mengunci lokasi GPS, mohon tunggu...");
+          const ok = await getLocationGPS(true);
+          if (!ok || !currentGeoLocation.timestamp) {
+            showToast(gpsLastError || gpsErrorMessage(null), true);
+            return;
+          }
+        }
 
-      const res = await apiCall('submitAttendance', payload);
-      if (res.success) {
-        showToast(res.message);
-        loadDashboardData();
-        switchTab('dashboard');
-      } else {
-        showToast(res.message, true);
+        const payload = {
+          empId: currentUser.EMP_ID,
+          fullName: currentUser.FULL_NAME,
+          lat: currentGeoLocation.lat,
+          lng: currentGeoLocation.lng,
+          accuracy: currentGeoLocation.accuracy,
+          photoBase64: capturedPhotoBase64,
+          type: type
+        };
+
+        showToast("Memproses Presensi GPS...");
+
+        const res = await apiCall('submitAttendance', payload);
+        if (res.success) {
+          showToast(res.message);
+          retakePhoto();
+          loadDashboardData();
+          switchTab('dashboard');
+        } else {
+          showToast(res.message, true);
+        }
+      } finally {
+        setBusy(false);
       }
     }
 
@@ -2931,8 +3291,8 @@
       const res = await apiCall('updateProfilePhoto', { empId: currentUser.EMP_ID, photoBase64: targetPhoto });
       if (res.success) {
         showToast(res.message);
-        currentUser.PROFILE_PIC = targetPhoto;
-        updateUserProfilePicUI(targetPhoto);
+        currentUser.PROFILE_PIC = res.photoUrl || targetPhoto;
+        updateUserProfilePicUI(currentUser.PROFILE_PIC);
         closeProfileModal();
       } else {
         showToast(res.message, true);
@@ -2992,15 +3352,15 @@
 
         container.innerHTML += "<div class='p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1'>" +
           "<div class='flex items-center justify-between'>" +
-            "<span class='px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase " + badgeColor + "'><i class='fa-solid " + icon + " mr-1'></i>" + a.CATEGORY + "</span>" +
+            "<span class='px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase " + badgeColor + "'><i class='fa-solid " + icon + " mr-1'></i>" + esc(a.CATEGORY) + "</span>" +
             "<div class='flex items-center gap-2'>" +
-              "<span class='text-[10px] font-mono text-slate-400'>" + a.DATE + "</span>" +
+              "<span class='text-[10px] font-mono text-slate-400'>" + esc(a.DATE) + "</span>" +
               deleteBtn +
             "</div>" +
           "</div>" +
-          "<p class='font-bold text-xs text-slate-800 leading-tight'>" + a.TITLE + "</p>" +
-          "<p class='text-[11px] text-slate-500 leading-snug'>" + a.DESCRIPTION + "</p>" +
-          "<p class='text-[9px] text-slate-400 font-medium pt-1'>Oleh: " + a.CREATED_BY + "</p>" +
+          "<p class='font-bold text-xs text-slate-800 leading-tight'>" + esc(a.TITLE) + "</p>" +
+          "<p class='text-[11px] text-slate-500 leading-snug'>" + esc(a.DESCRIPTION) + "</p>" +
+          "<p class='text-[9px] text-slate-400 font-medium pt-1'>Oleh: " + esc(a.CREATED_BY) + "</p>" +
         "</div>";
       });
     }
@@ -3015,13 +3375,44 @@
       }
     }
 
-    function openDutyModal() {
+    // dutyId kosong = tambah baru; diisi = edit penugasan yang sudah ada
+    function openDutyModal(dutyId) {
       const select = document.getElementById('dutyEmpId');
       select.innerHTML = '';
-      cachedData.users.forEach(u => {
-        select.innerHTML += "<option value='" + u.EMP_ID + "'>" + u.FULL_NAME + " (" + u.EMP_ID + " - " + u.POSITION + ")</option>";
+      cachedData.users.filter(isActiveUser).forEach(u => {
+        select.innerHTML += "<option value='" + esc(u.EMP_ID) + "'>" + esc(u.FULL_NAME) + " (" + esc(u.EMP_ID) + " - " + esc(u.POSITION) + ")</option>";
       });
+
+      const duty = dutyId ? (cachedData.duties || []).find(d => d.DUTY_ID === dutyId) : null;
+      document.getElementById('formDuty').reset();
+      document.getElementById('dutyMapsLink').value = '';
+      document.getElementById('dutyEditId').value = duty ? duty.DUTY_ID : '';
+      document.getElementById('dutyModalTitle').innerText = duty ? ('Edit Tugas Dinas (' + duty.DUTY_ID + ')') : 'Penugasan Dinas Luar Kota Karyawan';
+      document.getElementById('btnSubmitDuty').innerText = duty ? 'Simpan Perubahan' : 'Simpan Tugas Dinas';
+
+      if (duty) {
+        if (!Array.from(select.options).some(o => o.value === duty.EMP_ID)) {
+          select.innerHTML += "<option value='" + esc(duty.EMP_ID) + "'>" + esc(duty.FULL_NAME) + " (" + esc(duty.EMP_ID) + ")</option>";
+        }
+        select.value = duty.EMP_ID;
+        document.getElementById('dutyLocationName').value = duty.LOCATION_NAME || '';
+        document.getElementById('dutyLat').value = duty.LATITUDE || '';
+        document.getElementById('dutyLng').value = duty.LONGITUDE || '';
+        document.getElementById('dutyRadius').value = duty.RADIUS_METERS || 50;
+        document.getElementById('dutyStartDate').value = toIsoDateInput(duty.START_DATE);
+        document.getElementById('dutyEndDate').value = toIsoDateInput(duty.END_DATE);
+        document.getElementById('dutyReason').value = duty.REASON || '';
+      }
+
       document.getElementById('modalDuty').classList.remove('hidden');
+      if (duty) renderLocationMap('duty'); else document.getElementById('dutyMapWrap').classList.add('hidden');
+    }
+
+    // 'dd/mm/yyyy' -> 'yyyy-mm-dd' untuk input kalender
+    function toIsoDateInput(dateStr) {
+      const p = parseDateParts(dateStr);
+      if (!p) return '';
+      return p.year + '-' + String(p.month + 1).padStart(2, '0') + '-' + String(p.day).padStart(2, '0');
     }
 
     function closeDutyModal() {
@@ -3029,7 +3420,9 @@
     }
 
     async function submitDutyForm() {
+      const editId = document.getElementById('dutyEditId').value;
       const payload = {
+        dutyId: editId,
         empId: document.getElementById('dutyEmpId').value,
         locationName: document.getElementById('dutyLocationName').value,
         lat: document.getElementById('dutyLat').value,
@@ -3041,7 +3434,7 @@
         createdBy: currentUser.FULL_NAME
       };
 
-      const res = await apiCall('addDutyAssignment', payload);
+      const res = await apiCall(editId ? 'updateDutyAssignment' : 'addDutyAssignment', payload);
       if (res.success) {
         showToast(res.message);
         closeDutyModal();
@@ -3066,8 +3459,11 @@
           "<td class='py-3 px-3 font-mono text-slate-500 text-[11px]'>" + d.LATITUDE + ", " + d.LONGITUDE + "</td>" +
           "<td class='py-3 px-3 font-bold text-emerald-600'>" + d.RADIUS_METERS + " m</td>" +
           "<td class='py-3 px-3 text-slate-600 font-medium'>" + d.START_DATE + " s/d " + d.END_DATE + "</td>" +
-          "<td class='py-3 px-3 text-slate-500'>" + d.REASON + "</td>" +
-          "<td class='py-3 px-3 text-center'><button onclick='deleteDuty(\"" + d.DUTY_ID + "\")' class='text-red-500 hover:underline font-bold text-[11px]'><i class='fa-solid fa-trash'></i> Hapus</button></td>" +
+          "<td class='py-3 px-3 text-slate-500'>" + esc(d.REASON) + "</td>" +
+          "<td class='py-3 px-3 text-center whitespace-nowrap'>" +
+            "<button onclick='openDutyModal(\"" + d.DUTY_ID + "\")' class='text-emerald-600 hover:underline font-bold text-[11px] mr-3'><i class='fa-solid fa-pen-to-square'></i> Edit</button>" +
+            "<button onclick='deleteDuty(\"" + d.DUTY_ID + "\")' class='text-red-500 hover:underline font-bold text-[11px]'><i class='fa-solid fa-trash'></i> Hapus</button>" +
+          "</td>" +
         "</tr>";
       });
     }
@@ -3084,7 +3480,80 @@
 
     function openRequestModal() {
       clearReqFile();
+      onReqTypeChange();
       document.getElementById('modalRequest').classList.remove('hidden');
+    }
+
+    function todayIso() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // Tampilkan kolom khusus untuk Koreksi Absen & Lembur
+    function onReqTypeChange() {
+      const t = document.getElementById('reqType').value;
+      const isCorr = t === 'Koreksi Absen';
+      const isOt = t === 'Lembur';
+      document.getElementById('reqCorrectionBlock').classList.toggle('hidden', !isCorr);
+      document.getElementById('reqOvertimeBlock').classList.toggle('hidden', !isOt);
+      document.getElementById('reqDateGrid').classList.toggle('hidden', isCorr || isOt);
+      document.getElementById('reqStartDate').required = !(isCorr || isOt);
+      document.getElementById('reqEndDate').required = !(isCorr || isOt);
+      document.getElementById('reqCorrectionTime').required = isCorr;
+      ['reqOtDate', 'reqOtStart', 'reqOtEnd'].forEach(id => { document.getElementById(id).required = isOt; });
+      if (isCorr) {
+        const now = new Date();
+        document.getElementById('reqCorrectionToday').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        if (!document.getElementById('reqCorrectionTime').value) {
+          document.getElementById('reqCorrectionTime').value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        }
+      }
+      if (isOt) {
+        const dateEl = document.getElementById('reqOtDate');
+        dateEl.max = todayIso();
+        if (!dateEl.value) dateEl.value = todayIso();
+        previewOvertimePay();
+      }
+    }
+
+    let otPreviewTimer = null;
+    function previewOvertimePay() {
+      const out = document.getElementById('reqOtPreview');
+      const date = document.getElementById('reqOtDate').value;
+      const st = document.getElementById('reqOtStart').value;
+      const en = document.getElementById('reqOtEnd').value;
+      if (!date || !st || !en) { out.innerText = ''; return; }
+      clearTimeout(otPreviewTimer);
+      otPreviewTimer = setTimeout(async () => {
+        out.className = 'text-[11px] font-bold text-violet-900';
+        out.innerText = 'Menghitung...';
+        const res = await apiCall('previewOvertime', { date: date, otStart: st, otEnd: en });
+        if (res && res.success) {
+          out.innerText = res.dayLabel + ': ' + res.hours + ' jam → perkiraan upah lembur Rp ' + Number(res.pay).toLocaleString('id-ID') +
+            ' (upah/jam Rp ' + Number(res.hourly).toLocaleString('id-ID') + ' × ' + res.factor + ')';
+        } else {
+          out.className = 'text-[11px] font-bold text-red-600';
+          out.innerText = (res && res.message) || 'Tidak bisa menghitung lembur.';
+        }
+      }, 300);
+    }
+
+    function requestPeriodHtml(r) {
+      if (r.OT_START) {
+        return esc(r.START_DATE) + "<p class='text-[10px] text-violet-700 font-semibold'>" + esc(r.OT_START) + "–" + esc(r.OT_END) + "</p>";
+      }
+      if (r.CORRECTION_KIND) return esc(r.START_DATE);
+      return esc(r.START_DATE) + " s/d " + esc(r.END_DATE);
+    }
+
+    function requestTypeDetailHtml(r) {
+      if (r.OT_HOURS !== null && r.OT_HOURS !== undefined) {
+        return "<p class='text-[10px] text-violet-700 font-semibold'>" + r.OT_HOURS + " jam • Rp " + Number(r.OT_PAY || 0).toLocaleString('id-ID') + "</p>";
+      }
+      if (r.CORRECTION_KIND) {
+        return "<p class='text-[10px] text-sky-700 font-semibold'>" + (r.CORRECTION_KIND === 'IN' ? 'Lupa absen masuk' : 'Lupa absen keluar') + " • jam " + esc(r.CORRECTION_TIME) + "</p>";
+      }
+      return '';
     }
 
     function closeRequestModal() {
@@ -3131,7 +3600,43 @@
     }
 
     async function submitRequestForm() {
+      const type = document.getElementById('reqType').value;
+      const isCorr = type === 'Koreksi Absen';
+      const isOt = type === 'Lembur';
       const btn = document.getElementById('btnSubmitRequest');
+
+      // Koreksi absen & lembur: diperiksa server dulu, form tetap terbuka jika ada yang salah
+      if (isCorr || isOt) {
+        const day = isOt ? document.getElementById('reqOtDate').value : todayIso();
+        const payload = {
+          empId: currentUser.EMP_ID,
+          fullName: currentUser.FULL_NAME,
+          type: type,
+          startDate: day,
+          endDate: day,
+          reason: document.getElementById('reqReason').value,
+          fileBase64: reqAttachedFileBase64,
+          fileName: reqAttachedFileName,
+          docUrl: '-',
+          correctionKind: document.getElementById('reqCorrectionKind').value,
+          correctionTime: document.getElementById('reqCorrectionTime').value,
+          otStart: document.getElementById('reqOtStart').value,
+          otEnd: document.getElementById('reqOtEnd').value
+        };
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengirim...'; }
+        const res = await apiCall('submitRequest', payload);
+        if (btn) { btn.disabled = false; btn.innerHTML = 'Kirim Pengajuan'; }
+        if (res.success) {
+          showToast(res.message);
+          document.getElementById('formRequest').reset();
+          closeRequestModal();
+          loadDashboardData();
+        } else {
+          showToast(res.message, true);
+        }
+        return;
+      }
+
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengunggah...';
@@ -3180,6 +3685,16 @@
       }
     }
 
+    // Keterangan kapan & oleh siapa HR memproses pengajuan
+    function approvalInfoHtml(r) {
+      if (!r || !r.APPROVED_AT) return '';
+      const st = String(r.STATUS || '').toUpperCase();
+      const label = (st === 'REJECTED' || st === 'DITOLAK') ? 'Ditolak' : 'ACC HR';
+      const by = (r.APPROVED_BY && r.APPROVED_BY !== '-') ? ' oleh ' + esc(r.APPROVED_BY) : '';
+      return "<p class='text-[9px] text-slate-500 mt-1 leading-tight whitespace-nowrap'><i class='fa-regular fa-calendar-check mr-0.5'></i>" + label + ": " + esc(r.APPROVED_AT) + "</p>" +
+        (by ? "<p class='text-[9px] text-slate-400 leading-tight'>" + by.trim() + "</p>" : '');
+    }
+
     function renderUserRequestsTable() {
       const tbody = document.getElementById('tblUserRequests');
       tbody.innerHTML = '';
@@ -3203,12 +3718,12 @@
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "</td>" +
           "<td class='py-3 px-3 text-slate-500'>" + r.SUBMIT_DATE + "</td>" +
-          "<td class='py-3 px-3 font-semibold text-emerald-600'>" + r.TYPE + "</td>" +
-          "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
-          "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
+          "<td class='py-3 px-3 font-semibold text-emerald-600'>" + esc(r.TYPE) + requestTypeDetailHtml(r) + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + requestPeriodHtml(r) + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + esc(r.REASON) + "</td>" +
           "<td class='py-3 px-3'>" + docBtn + "</td>" +
-          "<td class='py-3 px-3'>" + badge + "</td>" +
-          "<td class='py-3 px-3 text-slate-400'>" + (r.ADMIN_NOTE || '-') + "</td>" +
+          "<td class='py-3 px-3'>" + badge + approvalInfoHtml(r) + "</td>" +
+          "<td class='py-3 px-3 text-slate-400'>" + esc(r.ADMIN_NOTE || '-') + "</td>" +
         "</tr>";
       });
     }
@@ -3264,9 +3779,9 @@
       filteredPayslips.forEach((p) => {
         if (isBonusExempt(p)) {
           p.ON_TIME_BONUS = 0;
-          p.NET_SALARY = (parseInt(p.BASIC_SALARY||0, 10) + parseInt(p.ALLOWANCE||0, 10) + parseInt(p.ENCASHED_HOLIDAY_PAY||0, 10)) - parseInt(p.DEDUCTIONS||0, 10);
+          p.NET_SALARY = (parseInt(p.BASIC_SALARY||0, 10) + parseInt(p.ALLOWANCE||0, 10) + parseInt(p.ENCASHED_HOLIDAY_PAY||0, 10) + parseInt(p.OVERTIME_PAY||0, 10)) - parseInt(p.DEDUCTIONS||0, 10);
         }
-        const totalAllowanceAndBonus = (parseInt(p.ALLOWANCE||0) + parseInt(p.ON_TIME_BONUS||0) + parseInt(p.ENCASHED_HOLIDAY_PAY||0));
+        const totalAllowanceAndBonus = (parseInt(p.ALLOWANCE||0) + parseInt(p.ON_TIME_BONUS||0) + parseInt(p.ENCASHED_HOLIDAY_PAY||0) + parseInt(p.OVERTIME_PAY||0));
         const safePayId = (p.PAY_ID || '').replace(/'/g, "\\'");
 
         tbody.innerHTML += "<tr>" +
@@ -3288,7 +3803,7 @@
     function openManualPayslipModal() {
       const select = document.getElementById('manPayEmpId');
       select.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
-      cachedData.users.forEach(u => {
+      cachedData.users.filter(isActiveUser).forEach(u => {
         select.innerHTML += "<option value='" + u.EMP_ID + "'>" + u.FULL_NAME + " (" + u.EMP_ID + " - " + u.POSITION + ")</option>";
       });
       document.getElementById('modalManualPayslip').classList.remove('hidden');
@@ -3417,6 +3932,14 @@
         onTimeBonusRow.classList.add('hidden');
       }
 
+      const overtimeRow = document.getElementById('printOvertimeRow');
+      const overtimePayVal = parseInt(p.OVERTIME_PAY || 0, 10);
+      if (overtimeRow) {
+        overtimeRow.classList.toggle('hidden', overtimePayVal <= 0);
+        document.getElementById('printOvertimeLabel').innerText = "Upah Lembur (" + (p.OVERTIME_HOURS || 0) + " Jam, sesuai PP 35/2021)";
+        document.getElementById('printOvertimePay').innerText = "Rp " + overtimePayVal.toLocaleString('id-ID');
+      }
+
       const encashedRow = document.getElementById('printEncashedHolidayRow');
       if (p.ENCASHED_HOLIDAYS > 0) {
         encashedRow.classList.remove('hidden');
@@ -3454,7 +3977,7 @@
       const allowVal = parseInt(p.ALLOWANCE||0, 10);
       const encashedPayVal = parseInt(p.ENCASHED_HOLIDAY_PAY||0, 10);
       const totDedVal = parseInt(p.DEDUCTIONS||0, 10);
-      const finalNet = (basicVal + allowVal + bonusVal + encashedPayVal) - totDedVal;
+      const finalNet = (basicVal + allowVal + bonusVal + encashedPayVal + overtimePayVal) - totDedVal;
 
       document.getElementById('printNetSalary').innerText = "Rp " + finalNet.toLocaleString('id-ID');
 
@@ -3500,15 +4023,17 @@
       tbody.innerHTML = '';
       if (!cachedData.users) return;
 
-      cachedData.users.forEach(u => {
+      const sortedUsers = cachedData.users.slice().sort((a, b) => (isActiveUser(a) === isActiveUser(b)) ? 0 : (isActiveUser(a) ? -1 : 1));
+      sortedUsers.forEach(u => {
+        const inactiveBadge = isActiveUser(u) ? '' : "<span class='ml-1 px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[9px] font-extrabold'>NONAKTIF" + (u.RESIGN_DATE ? " sejak " + esc(u.RESIGN_DATE) : "") + "</span>";
         const kasbonText = parseInt(u.KASBON_AMOUNT||0) > 0 ? 
           "Rp " + parseInt(u.KASBON_AMOUNT||0).toLocaleString('id-ID') : "Rp 0";
 
-        tbody.innerHTML += "<tr>" +
+        tbody.innerHTML += "<tr class='" + (isActiveUser(u) ? "" : "opacity-60") + "'>" +
           "<td class='py-3 px-3 flex items-center gap-2'>" +
             "<img src='" + (u.PROFILE_PIC || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80") + "' class='w-7 h-7 rounded-full object-cover'>" +
             "<div>" +
-              "<p class='font-bold text-slate-800'>" + u.FULL_NAME + "</p>" +
+              "<p class='font-bold text-slate-800'>" + esc(u.FULL_NAME) + inactiveBadge + "</p>" +
               "<p class='text-[10px] font-mono text-slate-400'>" + u.EMP_ID + "</p>" +
             "</div>" +
           "</td>" +
@@ -3554,6 +4079,15 @@
         document.getElementById('empBpjsKesAmount').value = emp.BPJS_KES_AMOUNT || "0";
         document.getElementById('empBpjsKesAmount').disabled = !hasKes;
 
+        document.getElementById('empWorkMode').value = String(emp.WORK_MODE || 'OFFICE').toUpperCase() === 'REMOTE' ? 'REMOTE' : 'OFFICE';
+        document.getElementById('empBonusExempt').checked = flagTrue(emp.BONUS_EXEMPT) && String(emp.WORK_MODE || '').toUpperCase() !== 'REMOTE';
+        document.getElementById('empPassword').value = '';
+        document.getElementById('empPassword').placeholder = 'Abaikan jika tidak diubah';
+        document.getElementById('empWorkModeGroup').classList.toggle('hidden', !USE_PHP_BACKEND);
+        document.getElementById('empIsActive').value = (emp.IS_ACTIVE === false) ? '0' : '1';
+        document.getElementById('empResignDate').value = emp.RESIGN_DATE ? toIsoDateInput(emp.RESIGN_DATE) : todayIso();
+        onEmpActiveChange();
+
         document.getElementById('modalEmployee').classList.remove('hidden');
       }
     }
@@ -3567,7 +4101,23 @@
       document.getElementById('empBpjsKesAmount').disabled = true;
       document.getElementById('empKasbonAmount').value = 0;
       document.getElementById('empEncashedHolidays').value = 0;
+      document.getElementById('empWorkMode').value = 'OFFICE';
+      document.getElementById('empBonusExempt').checked = false;
+      document.getElementById('empPassword').placeholder = 'Wajib diisi (min. 6 karakter)';
+      document.getElementById('empWorkModeGroup').classList.toggle('hidden', !USE_PHP_BACKEND);
+      document.getElementById('empIsActive').value = '1';
+      onEmpActiveChange();
       document.getElementById('modalEmployee').classList.remove('hidden');
+    }
+
+    function onEmpActiveChange() {
+      const inactive = document.getElementById('empIsActive').value === '0';
+      document.getElementById('empResignDateGroup').classList.toggle('hidden', !inactive);
+      if (inactive && !document.getElementById('empResignDate').value) document.getElementById('empResignDate').value = todayIso();
+    }
+
+    function isActiveUser(u) {
+      return !u || u.IS_ACTIVE !== false;
     }
 
     function closeEmployeeModal() {
@@ -3597,6 +4147,13 @@
         encashedHolidays: document.getElementById('empEncashedHolidays').value,
         joinDate: new Date().toLocaleDateString('id-ID')
       };
+      if (USE_PHP_BACKEND) {
+        payload.workMode = document.getElementById('empWorkMode').value;
+        payload.bonusExempt = document.getElementById('empBonusExempt').checked;
+        payload.isActive = document.getElementById('empIsActive').value === '1';
+        payload.resignDate = document.getElementById('empResignDate').value;
+        if (!payload.isActive && payload.isEdit && !confirm('Nonaktifkan ' + payload.fullName + '? Karyawan ini tidak bisa login lagi, tetapi seluruh riwayatnya tetap tersimpan.')) return;
+      }
 
       showToast("Menyimpan data karyawan...");
       closeEmployeeModal();
@@ -3638,12 +4195,12 @@
 
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "<p class='text-[10px] text-slate-400 font-normal'>" + r.SUBMIT_DATE + "</p></td>" +
-          "<td class='py-3 px-3 font-semibold text-slate-800'>" + r.FULL_NAME + "</td>" +
-          "<td class='py-3 px-3 font-bold text-emerald-600'>" + r.TYPE + "</td>" +
-          "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
-          "<td class='py-3 px-3 text-slate-600'>" + r.REASON + "</td>" +
+          "<td class='py-3 px-3 font-semibold text-slate-800'>" + esc(r.FULL_NAME) + "</td>" +
+          "<td class='py-3 px-3 font-bold text-emerald-600'>" + esc(r.TYPE) + requestTypeDetailHtml(r) + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + requestPeriodHtml(r) + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + esc(r.REASON) + "</td>" +
           "<td class='py-3 px-3'>" + docBtn + "</td>" +
-          "<td class='py-3 px-3'>" + badge + "</td>" +
+          "<td class='py-3 px-3'>" + badge + approvalInfoHtml(r) + "</td>" +
           "<td class='py-3 px-3 text-center'>" + actions + "</td>" +
         "</tr>";
       });
@@ -3670,7 +4227,8 @@
       const workEnd = document.getElementById('settingWorkEnd').value;
 
       showToast("Menyimpan pengaturan GPS & Jam Kerja...");
-      const res = await apiCall('updateOfficeSettings', { lat: lat, lng: lng, radius: radius, workStart: workStart, workEnd: workEnd });
+      const satEl = document.getElementById('settingWorkEndSaturday');
+      const res = await apiCall('updateOfficeSettings', { lat: lat, lng: lng, radius: radius, workStart: workStart, workEnd: workEnd, workEndSaturday: satEl ? satEl.value : '' });
       if (res.success) {
         showToast(res.message);
         officeSettings.OFFICE_LAT = lat;
@@ -3678,11 +4236,277 @@
         officeSettings.MAX_RADIUS_METERS = radius;
         officeSettings.WORK_START_TIME = workStart;
         officeSettings.WORK_END_TIME = workEnd;
-        document.getElementById('displayOfficeRadius').innerText = radius + ' Meter';
+        updateAttendanceTargetUI();
+        if (currentGeoLocation.timestamp) applyGpsCoordinates(currentGeoLocation.lat, currentGeoLocation.lng, currentGeoLocation.accuracy);
       } else {
         showToast(res.message, true);
       }
     }
+
+    // ================= KALENDER LIBUR =================
+    function renderHolidayList() {
+      const list = document.getElementById('holidayList');
+      const yearSel = document.getElementById('holidayYearFilter');
+      if (!list || !yearSel) return;
+      const years = new Set([new Date().getFullYear(), new Date().getFullYear() + 1]);
+      (cachedData.holidays || []).forEach(h => { const p = parseDateParts(h.DATE); if (p) years.add(p.year); });
+      const cur = yearSel.value || String(new Date().getFullYear());
+      yearSel.innerHTML = Array.from(years).sort().map(y => "<option value='" + y + "'>" + y + "</option>").join('');
+      yearSel.value = cur;
+      const items = (cachedData.holidays || []).filter(h => { const p = parseDateParts(h.DATE); return p && String(p.year) === yearSel.value; });
+      if (!items.length) {
+        list.innerHTML = "<p class='py-3 text-center text-slate-400'>Belum ada hari libur untuk tahun " + esc(yearSel.value) + ".</p>";
+        return;
+      }
+      list.innerHTML = items.map(h => {
+        const p = parseDateParts(h.DATE);
+        const dayName = p ? new Date(p.year, p.month, p.day).toLocaleDateString('id-ID', { weekday: 'long' }) : '';
+        const badge = h.TYPE === 'CUTI BERSAMA' ? "<span class='px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-extrabold'>CUTI BERSAMA</span>" :
+          "<span class='px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-extrabold'>LIBUR NASIONAL</span>";
+        return "<div class='py-2 flex items-center justify-between gap-2'>" +
+          "<div><p class='font-bold text-slate-800'>" + esc(h.NAME) + " " + badge + "</p><p class='text-[10px] text-slate-400 font-mono'>" + esc(dayName) + ", " + esc(h.DATE) + "</p></div>" +
+          "<button onclick=\"deleteHoliday('" + esc(h.DATE) + "')\" class='text-red-500 hover:underline text-[11px] font-bold shrink-0'><i class='fa-solid fa-trash'></i> Hapus</button>" +
+        "</div>";
+      }).join('');
+    }
+
+    async function addHoliday() {
+      const payload = {
+        date: document.getElementById('holidayDate').value,
+        name: document.getElementById('holidayName').value,
+        type: document.getElementById('holidayType').value
+      };
+      const res = await apiCall('addHoliday', payload);
+      if (res.success) {
+        showToast(res.message);
+        document.getElementById('holidayName').value = '';
+        const y = (payload.date || '').substring(0, 4);
+        await loadDashboardData();
+        if (y) { document.getElementById('holidayYearFilter').value = y; renderHolidayList(); }
+      } else {
+        showToast(res.message, true);
+      }
+    }
+
+    async function deleteHoliday(dateStr) {
+      if (!confirm('Hapus hari libur ' + dateStr + '?')) return;
+      const res = await apiCall('deleteHoliday', { date: dateStr });
+      showToast(res.message, !res.success);
+      if (res.success) loadDashboardData();
+    }
+
+    // ================= NOTIFIKASI EMAIL =================
+    async function loadEmailSettings() {
+      if (!USE_PHP_BACKEND || !currentUser || currentUser.ROLE !== 'ADMIN') return;
+      const res = await apiCall('getEmailSettings', {});
+      if (!res || !res.success) return;
+      const e = res.email;
+      document.getElementById('mailEnabled').checked = !!e.enabled;
+      document.getElementById('mailUser').value = e.user || '';
+      document.getElementById('mailHost').value = e.host || 'smtp.hostinger.com';
+      document.getElementById('mailPort').value = e.port || 465;
+      document.getElementById('mailFromName').value = e.fromName || '';
+      document.getElementById('mailHrEmails').value = e.hrEmails || '';
+      document.getElementById('mailPass').value = '';
+      document.getElementById('mailPass').placeholder = e.hasPassword ? '•••••• (tersimpan, isi untuk mengganti)' : 'Password akun email';
+      const errEl = document.getElementById('mailLastError');
+      errEl.classList.toggle('hidden', !e.lastError);
+      errEl.innerText = e.lastError ? 'Pengiriman terakhir gagal: ' + e.lastError : '';
+    }
+
+    async function saveEmailSettings() {
+      const res = await apiCall('saveEmailSettings', {
+        enabled: document.getElementById('mailEnabled').checked,
+        user: document.getElementById('mailUser').value,
+        password: document.getElementById('mailPass').value,
+        host: document.getElementById('mailHost').value,
+        port: document.getElementById('mailPort').value,
+        fromName: document.getElementById('mailFromName').value,
+        hrEmails: document.getElementById('mailHrEmails').value
+      });
+      showToast(res.message, !res.success);
+      if (res.success) loadEmailSettings();
+    }
+
+    async function testEmail() {
+      const to = prompt('Kirim email tes ke alamat:', currentUser.EMAIL || '');
+      if (!to) return;
+      const btn = document.getElementById('btnTestEmail');
+      btn.disabled = true;
+      const res = await apiCall('testEmail', { to: to });
+      btn.disabled = false;
+      showToast(res.message, !res.success);
+    }
+
+    async function sendPayslipEmails() {
+      const period = document.getElementById('filterPayslipPeriod').value;
+      if (!period || period === 'ALL') { showToast('Pilih dulu satu periode di filter "Periode" sebelum mengirim slip.', true); return; }
+      if (!confirm('Kirim slip gaji periode ' + period + ' ke email semua karyawan aktif?')) return;
+      const btn = document.getElementById('btnSendPayslipEmails');
+      const old = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+      const res = await apiCall('sendPayslipEmails', { period: period });
+      btn.disabled = false;
+      btn.innerHTML = old;
+      showToast(res.message, !res.success);
+    }
+
+    async function downloadBackup() {
+      if (!USE_PHP_BACKEND) { showToast("Backup hanya tersedia di versi Hostinger.", true); return; }
+      const btn = document.getElementById('btnDownloadBackup');
+      btn.disabled = true;
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyiapkan backup...';
+      try {
+        const res = await fetch(API_URL.replace(/index\.php$/, '') + 'backup.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ token: authToken, includeFiles: document.getElementById('backupIncludeFiles').checked })
+        });
+        if (!res.ok || !(res.headers.get('Content-Type') || '').includes('zip')) {
+          let msg = 'Gagal membuat backup.';
+          try { msg = (await res.json()).message || msg; } catch (e) {}
+          showToast(msg, true);
+          return;
+        }
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const d = new Date();
+        a.download = 'backup-hris-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        showToast("Backup berhasil di-download!");
+      } catch (err) {
+        showToast("Gagal download backup: " + err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+      }
+    }
+
+    // ================= LINK GOOGLE MAPS & PETA AREA ABSEN =================
+    const LOC_FIELDS = {
+      office: { lat: 'settingOfficeLat', lng: 'settingOfficeLng', radius: 'settingMaxRadius', name: null },
+      duty: { lat: 'dutyLat', lng: 'dutyLng', radius: 'dutyRadius', name: 'dutyLocationName' }
+    };
+    const locMaps = {};
+
+    // Cari koordinat di link Google Maps panjang / teks "lat, lng"
+    function extractCoordsFromText(text) {
+      let t = String(text || '');
+      try { t = decodeURIComponent(t); } catch (e) {}
+      const patterns = [
+        /!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/,
+        /[?&](?:q|query|ll|sll|destination|daddr|center)=(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/,
+        /\/search\/(-?\d{1,2}\.\d+),\s*\+?(-?\d{1,3}\.\d+)/,
+        /@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/,
+        /^\s*(-?\d{1,2}\.\d+)\s*[,; ]\s*(-?\d{1,3}\.\d+)\s*$/
+      ];
+      for (const re of patterns) {
+        const m = t.match(re);
+        if (m) {
+          const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+          if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0)) return { lat, lng };
+        }
+      }
+      return null;
+    }
+
+    function extractPlaceName(url) {
+      const m = String(url || '').match(/\/maps\/place\/([^/@?]+)/);
+      if (!m) return '';
+      try { return decodeURIComponent(m[1].replace(/\+/g, ' ')).trim(); } catch (e) { return m[1].replace(/\+/g, ' '); }
+    }
+
+    async function applyMapsLink(prefix) {
+      const f = LOC_FIELDS[prefix];
+      const input = document.getElementById(prefix + 'MapsLink');
+      const btn = document.getElementById(prefix + 'MapsBtn');
+      const raw = (input.value || '').trim();
+      if (!raw) { showToast("Tempel dulu link Google Maps-nya.", true); return; }
+
+      let coords = extractCoordsFromText(raw);
+      let name = extractPlaceName(raw);
+
+      if (!coords) {
+        if (!/^https?:\/\//i.test(raw) && !/goo\.gl|google\./i.test(raw)) {
+          showToast("Format tidak dikenali. Tempel link Google Maps atau koordinat seperti -6.175392, 106.827153", true);
+          return;
+        }
+        // Link pendek (maps.app.goo.gl) dibuka oleh server
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Membaca link...';
+        const res = await apiCall('resolveMapsLink', { url: raw });
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+        if (!res || !res.success) { showToast((res && res.message) || "Gagal membaca link Google Maps.", true); return; }
+        coords = { lat: parseFloat(res.lat), lng: parseFloat(res.lng) };
+        name = name || res.name || '';
+      }
+
+      document.getElementById(f.lat).value = coords.lat.toFixed(7);
+      document.getElementById(f.lng).value = coords.lng.toFixed(7);
+      if (f.name && name) {
+        const nameEl = document.getElementById(f.name);
+        if (nameEl && !nameEl.value.trim()) nameEl.value = name;
+      }
+      const radEl = document.getElementById(f.radius);
+      if (radEl && (!radEl.value || parseFloat(radEl.value) < 30)) radEl.value = 50;
+      renderLocationMap(prefix);
+      showToast("Lokasi berhasil diambil: " + coords.lat.toFixed(6) + ", " + coords.lng.toFixed(6) + (name ? " (" + name + ")" : "") + ". Jangan lupa klik Simpan.");
+    }
+
+    function renderLocationMap(prefix) {
+      const f = LOC_FIELDS[prefix];
+      const wrap = document.getElementById(prefix + 'MapWrap');
+      const el = document.getElementById(prefix + 'Map');
+      if (!wrap || !el) return;
+      const lat = parseCoord(document.getElementById(f.lat).value, NaN);
+      const lng = parseCoord(document.getElementById(f.lng).value, NaN);
+      const radius = parseCoord(document.getElementById(f.radius).value, 50) || 50;
+      if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) { wrap.classList.add('hidden'); return; }
+      if (typeof L === 'undefined') { wrap.classList.add('hidden'); return; } // peta gagal dimuat, input tetap bisa dipakai
+      wrap.classList.remove('hidden');
+
+      let m = locMaps[prefix];
+      if (!m) {
+        const map = L.map(el, { scrollWheelZoom: false }).setView([lat, lng], 17);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+        const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        const circle = L.circle([lat, lng], { radius: radius, color: '#059669', fillColor: '#10b981', fillOpacity: 0.2, weight: 2 }).addTo(map);
+        marker.on('drag', e => circle.setLatLng(e.target.getLatLng()));
+        marker.on('dragend', e => {
+          const p = e.target.getLatLng();
+          document.getElementById(f.lat).value = p.lat.toFixed(7);
+          document.getElementById(f.lng).value = p.lng.toFixed(7);
+        });
+        m = locMaps[prefix] = { map, marker, circle };
+      }
+      m.marker.setLatLng([lat, lng]);
+      m.circle.setLatLng([lat, lng]);
+      m.circle.setRadius(radius);
+      setTimeout(() => {
+        m.map.invalidateSize();
+        m.map.fitBounds(m.circle.getBounds(), { padding: [20, 20], maxZoom: 18 });
+      }, 60);
+    }
+
+    // Peta ikut berubah saat latitude / longitude / radius diketik manual
+    window.addEventListener('DOMContentLoaded', () => {
+      Object.keys(LOC_FIELDS).forEach(prefix => {
+        const f = LOC_FIELDS[prefix];
+        [f.lat, f.lng, f.radius].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('change', () => renderLocationMap(prefix));
+        });
+        const link = document.getElementById(prefix + 'MapsLink');
+        if (link) link.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyMapsLink(prefix); } });
+      });
+    });
 
     function changeCalendarMonth(delta) {
       currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
@@ -3717,10 +4541,15 @@
         const fullDateCheck = dayStr + '/' + monthStr + '/' + year;
 
         let hasEvent = cachedData.agendas.some(a => a.DATE === fullDateCheck);
-        let isToday = (isCurrentMonthAndYear && day === realToday.getDate()) ? 'bg-emerald-600 text-white font-extrabold shadow-md' : 'hover:bg-slate-100 text-slate-700';
-        let eventDot = hasEvent ? '<span class="w-1.5 h-1.5 bg-amber-400 rounded-full mx-auto mt-0.5 block"></span>' : '';
+        const holiday = findHoliday(fullDateCheck);
+        const isSunday = new Date(year, month, day).getDay() === 0;
+        let isToday = (isCurrentMonthAndYear && day === realToday.getDate()) ? 'bg-emerald-600 text-white font-extrabold shadow-md' :
+          ((holiday || isSunday) ? 'hover:bg-red-50 text-red-500 font-bold' : 'hover:bg-slate-100 text-slate-700');
+        let eventDot = holiday ? '<span class="w-1.5 h-1.5 bg-red-500 rounded-full mx-auto mt-0.5 block"></span>' :
+          (hasEvent ? '<span class="w-1.5 h-1.5 bg-amber-400 rounded-full mx-auto mt-0.5 block"></span>' : '');
+        const titleAttr = holiday ? ' title="' + esc(holiday.NAME) + ' (' + esc(holiday.TYPE) + ')"' : '';
 
-        grid.innerHTML += '<div class="py-1.5 rounded-full flex flex-col items-center justify-center ' + isToday + '">' +
+        grid.innerHTML += '<div' + titleAttr + ' class="py-1.5 rounded-full flex flex-col items-center justify-center ' + isToday + '">' +
           '<span>' + day + '</span>' +
           eventDot +
         '</div>';
