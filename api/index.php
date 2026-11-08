@@ -16,6 +16,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
+require __DIR__ . '/features.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -46,7 +47,8 @@ try {
     } else {
         $me = require_session($data);
         $adminOnly = ['addDutyAssignment', 'updateDutyAssignment', 'deleteDutyAssignment', 'updateRequestStatus', 'saveEmployee',
-            'saveManualPayslip', 'updateOfficeSettings', 'resolveMapsLink'];
+            'saveManualPayslip', 'updateOfficeSettings', 'resolveMapsLink', 'addHoliday', 'deleteHoliday',
+            'getEmailSettings', 'saveEmailSettings', 'testEmail', 'sendPayslipEmails'];
         if (in_array($action, $adminOnly, true) && $me['role'] !== 'ADMIN') {
             throw new ApiError('Akses ditolak: fitur ini khusus Admin.', 403);
         }
@@ -62,13 +64,21 @@ try {
             case 'resolveMapsLink': $res = ['success' => true] + maps_resolve_link((string)($data['url'] ?? '')); break;
             case 'submitRequest': $res = action_submit_request($me, $data); break;
             case 'updateRequestStatus': $res = action_update_request_status($me, $data); break;
-            case 'saveEmployee': $res = action_save_employee($data); break;
+            case 'saveEmployee': $res = action_save_employee($data, $me); break;
             case 'saveManualPayslip': $res = action_save_manual_payslip($data); break;
             case 'updateOfficeSettings': $res = action_update_settings($data); break;
+            case 'addHoliday': $res = action_add_holiday($data); break;
+            case 'deleteHoliday': $res = action_delete_holiday($data); break;
+            case 'getEmailSettings': $res = action_get_email_settings(); break;
+            case 'saveEmailSettings': $res = action_save_email_settings($data); break;
+            case 'testEmail': $res = action_test_email($me, $data); break;
+            case 'sendPayslipEmails': $res = action_send_payslip_emails($data); break;
+            case 'previewOvertime': $res = action_preview_overtime($me, $data); break;
             default: $res = ['success' => false, 'message' => 'Action not found.'];
         }
     }
     echo json_encode($res, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    flush_mail_queue();
 } catch (ApiError $e) {
     if ($e->httpCode >= 400) http_response_code($e->httpCode);
     $out = ['success' => false, 'message' => $e->getMessage()];
@@ -118,7 +128,8 @@ function action_login(array $d): array
     q('DELETE FROM login_attempts WHERE identifier = ?', [$ident]);
 
     $token = bin2hex(random_bytes(32));
-    $hours = (int)(config()['session_hours'] ?? 12);
+    // Login tersimpan di perangkat: sesi minimal 30 hari (keluar lewat tombol Logout)
+    $hours = max((int)(config()['session_hours'] ?? 0), 24 * 30);
     q('DELETE FROM sessions WHERE expires_at < NOW()');
     q('INSERT INTO sessions (token_hash, emp_id, expires_at) VALUES (?, ?, NOW() + INTERVAL ' . max(1, $hours) . ' HOUR)',
         [hash('sha256', $token), $user['emp_id']]);
@@ -210,7 +221,8 @@ function action_dashboard(array $me): array
     return [
         'success' => true,
         'currentUser' => out_user($me),
-        'settings' => $settings,
+        'settings' => public_settings(),
+        'holidays' => list_holidays(),
         'activeDuty' => $activeDuty ? out_duty($activeDuty) : null,
         'stats' => [
             'totalEmployees' => count($activeUsers),
@@ -225,7 +237,7 @@ function action_dashboard(array $me): array
         'recentAttendance' => array_map('out_attendance', $attRows),
         'requests' => array_map('out_request', $isAdmin ? $allRequests : $myRequests),
         'payslips' => array_map(fn($p) => out_payslip($p, $usersById[$p['emp_id']] ?? null), $payRows),
-        'allUsers' => $isAdmin ? array_map('out_user', array_values($activeUsers)) : [],
+        'allUsers' => $isAdmin ? array_map('out_user', array_values($usersById)) : [],
         'agendas' => array_map('out_agenda', q_all('SELECT * FROM agendas ORDER BY created_at DESC, agenda_id DESC')),
         'duties' => array_map('out_duty', $duties),
     ];
@@ -308,7 +320,8 @@ function ensure_payslips(?string $onlyEmpId): void
         $bpjsKes = $hasKes ? (int)$u['bpjs_kes_amount'] : 0;
         $kasbon = (int)$u['kasbon_amount'];
         $ded = $lateDed + $bpjsTk + $bpjsKes + $kasbon;
-        $net = ($basic + $allow + $bonus + $encPay) - $ded;
+        [$otHours, $otPay] = overtime_for_month($id, $monthStart, $monthEnd); // lembur yang disetujui bulan ini
+        $net = ($basic + $allow + $bonus + $encPay + $otPay) - $ded;
 
         $vals = [$u['full_name'], $u['position'], $u['department'], $basic, $allow, $bonus, $encDays, $encPay,
             $late, $excused, $lateDed, $bpjsTk, $hasKes, $bpjsKes, $kasbon, $ded, $net];
@@ -327,6 +340,8 @@ function ensure_payslips(?string $onlyEmpId): void
                  bpjs_tk_amount=?, has_bpjs_kes=?, bpjs_kes_amount=?, kasbon_amount=?, deductions=?, net_salary=?
                WHERE pay_id = ?', array_merge($vals, [$existing[0]['pay_id']]));
         }
+        q("UPDATE payslips SET overtime_hours = ?, overtime_pay = ? WHERE emp_id = ? AND period = ? AND status <> 'TERBIT MANUAL'",
+            [$otHours, $otPay, $id, $period]);
     }
 }
 
@@ -499,6 +514,20 @@ function action_submit_request(array $me, array $d): array
     $type = trim((string)($d['type'] ?? ''));
     $start = parse_date_any($d['startDate'] ?? null);
     $end = parse_date_any($d['endDate'] ?? null) ?? $start;
+    $extra = [];
+    if (is_correction_type($type)) {
+        // Koreksi absen hanya untuk HARI INI (tanggal dari server, tidak bisa diubah dari browser)
+        [$kind, $time] = validate_correction($me, $d);
+        $type = CORRECTION_TYPE;
+        $start = $end = date('Y-m-d');
+        $extra = ['correction_kind' => $kind, 'correction_time' => $time];
+    } elseif (is_ot_type($type)) {
+        if (!$start) return ['success' => false, 'message' => 'Tanggal lembur wajib diisi.'];
+        [$otStart, $otEnd, $hours, $pay] = validate_overtime($me, $start, $d['otStart'] ?? null, $d['otEnd'] ?? null);
+        $type = OT_TYPE;
+        $end = $start;
+        $extra = ['ot_start' => $otStart, 'ot_end' => $otEnd, 'ot_hours' => $hours, 'ot_pay' => $pay];
+    }
     if ($type === '' || !$start) return ['success' => false, 'message' => 'Jenis pengajuan dan tanggal wajib diisi.'];
     if ($end < $start) [$start, $end] = [$end, $start];
 
@@ -511,7 +540,28 @@ function action_submit_request(array $me, array $d): array
     q('INSERT INTO requests (req_id, submit_date, emp_id, full_name, type, start_date, end_date, reason, doc_attachment, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [$reqId, date('Y-m-d'), $me['emp_id'], $me['full_name'], mb_substr($type, 0, 100), $start, $end, (string)($d['reason'] ?? ''), $doc, 'PENDING']);
-    return ['success' => true, 'message' => 'Pengajuan ' . $type . ' berhasil dikirim ke Admin!'];
+    if ($extra) {
+        $set = implode(', ', array_map(fn($c) => "$c = ?", array_keys($extra)));
+        q("UPDATE requests SET $set WHERE req_id = ?", array_merge(array_values($extra), [$reqId]));
+    }
+    notify_new_request($reqId);
+    $msg = 'Pengajuan ' . $type . ' berhasil dikirim ke Admin!';
+    if (is_ot_type($type)) $msg .= ' (' . $extra['ot_hours'] . ' jam, perkiraan upah lembur ' . rp((int)$extra['ot_pay']) . ')';
+    return ['success' => true, 'message' => $msg];
+}
+
+/** Hitung perkiraan upah lembur sebelum diajukan (untuk ditampilkan di form). */
+function action_preview_overtime(array $me, array $d): array
+{
+    $date = parse_date_any($d['date'] ?? null);
+    if (!$date) return ['success' => false, 'message' => 'Pilih tanggal lembur.'];
+    try {
+        [, , $hours, $pay, $calc] = validate_overtime($me, $date, $d['otStart'] ?? null, $d['otEnd'] ?? null);
+    } catch (ApiError $e) {
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+    return ['success' => true, 'hours' => $hours, 'pay' => $pay, 'dayLabel' => $calc['label'],
+        'hourly' => (int)round($calc['hourly']), 'factor' => round($calc['factor'], 2)];
 }
 
 function action_update_request_status(array $me, array $d): array
@@ -534,7 +584,13 @@ function action_update_request_status(array $me, array $d): array
         q('UPDATE requests SET status = ?, approved_by = ?, approved_at = NOW(), admin_note = ? WHERE req_id = ?',
             [$status, $me['full_name'], $note === '' ? '-' : $note, $r['req_id']]);
 
-        if (is_approved($status)) {
+        if (is_approved($status) && is_ot_type($r['type'])) {
+            $u = q_one('SELECT * FROM users WHERE emp_id = ?', [$r['emp_id']]);
+            $calc = overtime_calc($u ?: [], $r['start_date'], (float)$r['ot_hours']);
+            q('UPDATE requests SET ot_pay = ? WHERE req_id = ?', [$calc['pay'], $r['req_id']]);
+        } elseif (is_approved($status) && is_correction_type($r['type'])) {
+            apply_correction($r);
+        } elseif (is_approved($status)) {
             $days = days_between($r['start_date'], $r['end_date']);
             $t = strtolower($r['type']);
             if (str_contains($t, 'cuti')) {
@@ -554,6 +610,8 @@ function action_update_request_status(array $me, array $d): array
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
+    notify_request_decision($r['req_id']);
+    if (is_ot_type($r['type']) && is_approved($status)) ensure_payslips($r['emp_id']);
     return ['success' => true, 'message' => 'Status pengajuan ' . $r['req_id'] . ' berhasil diperbarui ke ' . $status];
 }
 
@@ -561,7 +619,7 @@ function action_update_request_status(array $me, array $d): array
 /* KARYAWAN, SLIP GAJI, PENGATURAN (ADMIN)                              */
 /* ================================================================== */
 
-function action_save_employee(array $d): array
+function action_save_employee(array $d, ?array $me = null): array
 {
     $isEdit = to_bool($d['isEdit'] ?? false);
     $fullName = trim((string)($d['fullName'] ?? ''));
@@ -593,7 +651,12 @@ function action_save_employee(array $d): array
     ];
     if (array_key_exists('workMode', $d)) $fields['work_mode'] = $workMode;
     if (array_key_exists('bonusExempt', $d)) $fields['bonus_exempt'] = to_bool($d['bonusExempt']) ? 1 : 0;
-    if (array_key_exists('isActive', $d)) $fields['is_active'] = to_bool($d['isActive']) ? 1 : 0;
+    if (array_key_exists('isActive', $d)) {
+        $active = to_bool($d['isActive']);
+        $fields['is_active'] = $active ? 1 : 0;
+        // Tanggal nonaktif (resign): absensi setelah tanggal ini tidak dihitung Alpha
+        $fields['resign_date'] = $active ? null : (parse_date_any($d['resignDate'] ?? null) ?? date('Y-m-d'));
+    }
 
     if (!$isEdit) {
         if (q_val('SELECT 1 FROM users WHERE LOWER(email) = ?', [$email])) {
@@ -612,15 +675,22 @@ function action_save_employee(array $d): array
 
     $empId = (string)($d['empId'] ?? '');
     if (!q_val('SELECT 1 FROM users WHERE emp_id = ?', [$empId])) return ['success' => false, 'message' => 'Data karyawan tidak ditemukan.'];
+    if ($me && $empId === $me['emp_id'] && isset($fields['is_active']) && !$fields['is_active']) {
+        return ['success' => false, 'message' => 'Anda tidak bisa menonaktifkan akun Anda sendiri.'];
+    }
     if (q_val('SELECT 1 FROM users WHERE LOWER(email) = ? AND emp_id <> ?', [$email, $empId])) {
         return ['success' => false, 'message' => 'Email sudah dipakai karyawan lain!'];
     }
     if ($password !== '') $fields['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
     $set = implode(', ', array_map(fn($c) => "$c = ?", array_keys($fields)));
     q("UPDATE users SET $set WHERE emp_id = ?", array_merge(array_values($fields), [$empId]));
-    if ($password !== '') q('DELETE FROM sessions WHERE emp_id = ?', [$empId]); // paksa login ulang dengan sandi baru
+    if ($password !== '' || (isset($fields['is_active']) && !$fields['is_active'])) {
+        q('DELETE FROM sessions WHERE emp_id = ?', [$empId]); // paksa login ulang (sandi baru) / keluarkan karyawan nonaktif
+    }
     ensure_payslips($empId);
-    return ['success' => true, 'message' => 'Data Karyawan ' . $empId . ' berhasil diperbarui.'];
+    $msg = 'Data Karyawan ' . $empId . ' berhasil diperbarui.';
+    if (isset($fields['is_active']) && !$fields['is_active']) $msg .= ' Status: NONAKTIF sejak ' . fmt_date($fields['resign_date']) . '.';
+    return ['success' => true, 'message' => $msg];
 }
 
 function action_save_manual_payslip(array $d): array
@@ -642,7 +712,9 @@ function action_save_manual_payslip(array $d): array
     $bpjsKes = $hasKes ? parse_money($d['bpjsKesAmount'] ?? 0) : 0;
     $kasbon = parse_money($d['kasbonAmount'] ?? 0);
     $ded = $lateDed + $bpjsTk + $bpjsKes + $kasbon;
-    $net = ($basic + $allow + $onTime + $encPay) - $ded;
+    $range = period_range($period);
+    [$otHours, $otPay] = $range ? overtime_for_month($u['emp_id'], $range[0], $range[1]) : [0, 0];
+    $net = ($basic + $allow + $onTime + $encPay + $otPay) - $ded;
 
     // Slip otomatis pada periode yang sama diganti oleh slip manual (agar tidak dobel)
     q("DELETE FROM payslips WHERE emp_id = ? AND period = ? AND status <> 'TERBIT MANUAL'", [$u['emp_id'], $period]);
@@ -655,7 +727,12 @@ function action_save_manual_payslip(array $d): array
         $bpjsTk, $hasKes, $bpjsKes, $kasbon, $ded, $net, (string)($d['paymentDate'] ?? date('d/m/Y')), 'TERBIT MANUAL',
         $settings['FINANCE_NAME'], $settings['LEADER_NAME'],
     ]);
-    return ['success' => true, 'message' => 'Slip gaji periode ' . $period . ' berhasil diterbitkan!'];
+    if ($otPay > 0) {
+        q("UPDATE payslips SET overtime_hours = ?, overtime_pay = ? WHERE emp_id = ? AND period = ? AND status = 'TERBIT MANUAL'
+           ORDER BY created_at DESC LIMIT 1", [$otHours, $otPay, $u['emp_id'], $period]);
+    }
+    return ['success' => true, 'message' => 'Slip gaji periode ' . $period . ' berhasil diterbitkan!'
+        . ($otPay > 0 ? ' Termasuk upah lembur yang sudah disetujui: ' . rp($otPay) . ' (' . $otHours . ' jam).' : '')];
 }
 
 function action_update_settings(array $d): array
@@ -672,6 +749,8 @@ function action_update_settings(array $d): array
         'OFFICE_LAT' => (string)$lat, 'OFFICE_LNG' => (string)$lng, 'MAX_RADIUS_METERS' => (string)(int)$radius,
         'WORK_START_TIME' => substr($start, 0, 5), 'WORK_END_TIME' => substr($end, 0, 5),
     ];
+    $satEnd = parse_time_any($d['workEndSaturday'] ?? null);
+    if ($satEnd) $vals['WORK_END_SATURDAY'] = substr($satEnd, 0, 5);
     foreach ($vals as $k => $v) {
         q('INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)', [$k, $v]);
     }

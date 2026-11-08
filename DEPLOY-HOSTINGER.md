@@ -146,3 +146,19 @@ Sesekali download ZIP backup ke Google Drive atau laptop supaya ada salinan di l
 | GPS lama terkunci | Pastikan GPS/Lokasi HP aktif dan mode hemat baterai mati. Coba di dekat jendela, lalu tekan **Refresh GPS**. |
 | "Di luar radius" padahal sudah di kantor | Cek koordinat kantor di menu Pengaturan GPS dan perbesar radius (30–50 m). |
 | Upload lampiran gagal (file besar) | hPanel → Advanced → PHP Configuration → naikkan `post_max_size` & `upload_max_filesize` ke 40M. |
+
+---
+
+## Fitur tambahan (update November 2026)
+
+| Fitur | Cara pakai |
+|---|---|
+| **Koreksi Absen** | Karyawan: menu Pengajuan → jenis **Koreksi Absen** → pilih Lupa Absen Masuk / Keluar + jam sebenarnya. **Hanya bisa untuk hari ini** (tanggal ditentukan server). Setelah HR menyetujui, data absen otomatis diperbaiki (lokasi tercatat "Koreksi Absen (disetujui HR)"). |
+| **Lembur** | Karyawan: jenis **Lembur** → tanggal, jam mulai & selesai. Upah dihitung otomatis sesuai **PP 35/2021**: upah sejam = (gaji pokok + tunjangan) ÷ 173. Hari kerja: jam ke-1 ×1,5, berikutnya ×2 (maks. 4 jam/hari, 18 jam/minggu, di luar jam kerja). Minggu/tanggal merah: jam 1–7 ×2, jam ke-8 ×3, jam 9–11 ×4. Tanggal merah di hari Sabtu: jam 1–5 ×2, jam ke-6 ×3, jam 7–9 ×4. Diajukan setelah lembur selesai, paling lambat 7 hari. Setelah disetujui, otomatis masuk slip gaji bulan tersebut. |
+| **Hari kerja** | Senin–Sabtu. Jam pulang Sabtu diatur di Pengaturan Kantor (default 12:00). Hari Minggu tidak dihitung Alpha. |
+| **Kalender Libur** | Admin: Pengaturan Kantor → **Kalender Hari Libur & Cuti Bersama**. Tanggal ini tidak dihitung Alpha & tampil merah di kalender dashboard. Isi setiap awal tahun sesuai SKB 3 Menteri. |
+| **Karyawan Nonaktif** | Admin: Kelola Karyawan → Edit → **Status Karyawan: Nonaktif / Resign** + tanggal terakhir bekerja. Karyawan tidak bisa login, tidak dibuatkan slip baru, tidak dihitung Alpha setelah tanggal tersebut; riwayatnya tetap tersimpan. Bisa diaktifkan lagi kapan saja. |
+| **Login tersimpan & Aplikasi HP** | Karyawan cukup login sekali (berlaku 30 hari / sampai Logout). Tombol **Pasang Aplikasi di HP** ada di menu samping & layar login. |
+| **Notifikasi Email** | 1) hPanel → **Emails** → buat akun email, mis. `hris@arthasafetyindonesia.com`. 2) HRIS → Pengaturan Kantor → **Notifikasi Email**: isi email & password akun tsb, server `smtp.hostinger.com`, port `465`, centang **Aktifkan** → Simpan → **Kirim Email Tes**. Slip gaji: menu Slip Gaji → pilih periode → **Kirim Slip ke Email**. |
+
+Struktur database diperbarui **otomatis** saat HRIS pertama kali dibuka setelah update (tidak perlu phpMyAdmin).

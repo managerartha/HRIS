@@ -349,6 +349,7 @@ function out_user(array $u): array
         'WORK_MODE' => is_remote_user($u) ? 'REMOTE' : 'OFFICE',
         'BONUS_EXEMPT' => is_bonus_exempt($u),
         'IS_ACTIVE' => (bool)$u['is_active'],
+        'RESIGN_DATE' => fmt_date($u['resign_date'] ?? null),
     ];
 }
 
@@ -387,6 +388,12 @@ function out_request(array $r): array
         'STATUS' => $r['status'],
         'APPROVED_BY' => $r['approved_by'],
         'APPROVED_AT' => !empty($r['approved_at']) ? date('d/m/Y H:i', strtotime($r['approved_at'])) : '',
+        'CORRECTION_KIND' => $r['correction_kind'] ?? null,
+        'CORRECTION_TIME' => !empty($r['correction_time']) ? substr($r['correction_time'], 0, 5) : null,
+        'OT_START' => !empty($r['ot_start']) ? substr($r['ot_start'], 0, 5) : null,
+        'OT_END' => !empty($r['ot_end']) ? substr($r['ot_end'], 0, 5) : null,
+        'OT_HOURS' => isset($r['ot_hours']) ? (float)$r['ot_hours'] : null,
+        'OT_PAY' => isset($r['ot_pay']) ? (int)$r['ot_pay'] : null,
         'ADMIN_NOTE' => (string)($r['admin_note'] ?? '-'),
     ];
 }
@@ -396,6 +403,7 @@ function out_payslip(array $p, ?array $user = null): array
     $o = [];
     foreach ($p as $k => $v) {
         if ($k === 'created_at') continue;
+        if ($k === 'overtime_hours') { $o['OVERTIME_HOURS'] = (float)$v; continue; }
         $o[strtoupper($k)] = is_numeric($v) && !in_array($k, ['pay_id', 'period', 'emp_id', 'payment_date'], true) ? (int)$v : $v;
     }
     $o['HAS_BPJS_KES'] = (bool)$p['has_bpjs_kes'];
@@ -449,16 +457,27 @@ function get_settings(): array
         'MAX_RADIUS_METERS' => '50',
         'WORK_START_TIME' => '08:00',
         'WORK_END_TIME' => '17:00',
+        'WORK_END_SATURDAY' => '12:00',
         'FINANCE_NAME' => '',
         'LEADER_NAME' => '',
     ];
+}
+
+/** Pengaturan yang boleh dilihat semua karyawan (tanpa data rahasia seperti password email). */
+function public_settings(): array
+{
+    $s = get_settings();
+    foreach (array_keys($s) as $k) {
+        if (str_starts_with($k, 'SMTP_') || str_starts_with($k, 'NOTIF_') || str_starts_with($k, 'MAIL_') || $k === 'SCHEMA_VERSION') unset($s[$k]);
+    }
+    return $s;
 }
 
 /* ------------------------------------------------------------------ */
 /* Backup (dipakai api/backup.php dan api/cron_backup.php)              */
 /* ------------------------------------------------------------------ */
 
-const BACKUP_TABLES = ['users', 'settings', 'attendance', 'requests', 'payslips', 'agendas', 'duties'];
+const BACKUP_TABLES = ['users', 'settings', 'attendance', 'requests', 'payslips', 'agendas', 'duties', 'holidays'];
 
 /** Buat file ZIP berisi: CSV per tabel (bisa dibuka Excel), hris.sql (restore via phpMyAdmin), dan opsional folder uploads. */
 function build_backup_zip(string $zipPath, bool $includeFiles): void
@@ -523,16 +542,54 @@ function build_backup_zip(string $zipPath, bool $includeFiles): void
 /* Pembaruan struktur database otomatis (tanpa perlu buka phpMyAdmin)  */
 /* ------------------------------------------------------------------ */
 
+const SCHEMA_VERSION = 3;
+
+function column_exists(string $table, string $col): bool
+{
+    return (bool)q_one("SHOW COLUMNS FROM `$table` LIKE " . db()->quote($col));
+}
+
+function add_column_if_missing(string $table, string $col, string $ddl): bool
+{
+    if (column_exists($table, $col)) return false;
+    db()->exec("ALTER TABLE `$table` ADD COLUMN $ddl");
+    return true;
+}
+
+/** Pembaruan struktur database otomatis. Aman dijalankan berulang kali. */
 function ensure_schema(): void
 {
     static $done = false;
     if ($done) return;
     $done = true;
+    $ver = (int)q_val("SELECT setting_value FROM settings WHERE setting_key = 'SCHEMA_VERSION'");
+    if ($ver >= SCHEMA_VERSION) return;
+
     // v2: tanggal HR memproses (ACC / tolak) pengajuan
-    if (!q_one("SHOW COLUMNS FROM requests LIKE 'approved_at'")) {
-        db()->exec('ALTER TABLE requests ADD COLUMN approved_at DATETIME NULL AFTER approved_by');
+    if (add_column_if_missing('requests', 'approved_at', 'approved_at DATETIME NULL AFTER approved_by')) {
         backfill_request_approved_at();
     }
+    // v3: koreksi absen, lembur, karyawan nonaktif, kalender libur
+    add_column_if_missing('requests', 'correction_kind', "correction_kind VARCHAR(10) NULL");
+    add_column_if_missing('requests', 'correction_time', "correction_time TIME NULL");
+    add_column_if_missing('requests', 'ot_start', "ot_start TIME NULL");
+    add_column_if_missing('requests', 'ot_end', "ot_end TIME NULL");
+    add_column_if_missing('requests', 'ot_hours', "ot_hours DECIMAL(5,2) NULL");
+    add_column_if_missing('requests', 'ot_pay', "ot_pay BIGINT NULL");
+    add_column_if_missing('users', 'resign_date', "resign_date DATE NULL AFTER is_active");
+    add_column_if_missing('payslips', 'overtime_hours', "overtime_hours DECIMAL(6,2) NOT NULL DEFAULT 0 AFTER encashed_holiday_pay");
+    add_column_if_missing('payslips', 'overtime_pay', "overtime_pay BIGINT NOT NULL DEFAULT 0 AFTER overtime_hours");
+    db()->exec("CREATE TABLE IF NOT EXISTS holidays (
+        holiday_date DATE NOT NULL PRIMARY KEY,
+        name VARCHAR(150) NOT NULL DEFAULT '',
+        type VARCHAR(20) NOT NULL DEFAULT 'LIBUR NASIONAL',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    q("INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES
+        ('WORK_END_SATURDAY', '12:00', 'Jam Pulang Hari Sabtu (WIB)')");
+
+    q("INSERT INTO settings (setting_key, setting_value, description) VALUES ('SCHEMA_VERSION', ?, 'Versi struktur database (otomatis)')
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)", [(string)SCHEMA_VERSION]);
 }
 
 /**

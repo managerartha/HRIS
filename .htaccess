@@ -16,3 +16,9 @@ DirectoryIndex index.html index.php
   Header always set Referrer-Policy "same-origin"
   Header always set Permissions-Policy "geolocation=(self), camera=(self), microphone=()"
 </IfModule>
+# Service worker & manifest selalu versi terbaru
+<FilesMatch "^(sw\.js|manifest\.json|index\.html)$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-cache"
+  </IfModule>
+</FilesMatch>

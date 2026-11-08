@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HRIS PT Artha Safety Indonesia</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HRIS Artha">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <link rel="icon" type="image/png" href="https://arthasafetyindonesia.co.id/landing/assets/images/home/logo_artha.png">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -171,6 +178,9 @@
           <i class="fa-solid fa-arrow-right text-xs"></i>
         </button>
       </form>
+      <button type="button" onclick="openInstallGuide()" class="install-app-btn hidden w-full text-center text-[11px] font-bold text-emerald-700 hover:underline">
+        <i class="fa-solid fa-mobile-screen-button mr-1"></i> Pasang HRIS sebagai aplikasi di HP
+      </button>
 
     </div>
   </div>
@@ -224,7 +234,10 @@
         </nav>
       </div>
 
-      <div class="border-t border-white/10 pt-4 mt-auto">
+      <div class="border-t border-white/10 pt-4 mt-auto space-y-1">
+        <button onclick="openInstallGuide()" class="install-app-btn hidden w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-300 hover:bg-emerald-500/20 transition text-left">
+          <i class="fa-solid fa-mobile-screen-button w-5"></i> Pasang Aplikasi di HP
+        </button>
         <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-300 hover:bg-red-500/20 transition text-left">
           <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar (Logout)
         </button>
@@ -618,9 +631,12 @@
                   </select>
                 </div>
 
-                <div id="btnAdminManualPayslipGroup" class="hidden">
+                <div id="btnAdminManualPayslipGroup" class="hidden flex flex-wrap gap-2">
                   <button onclick="openManualPayslipModal()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-file-invoice-dollar"></i> + Terbitkan Slip Manual
+                  </button>
+                  <button onclick="sendPayslipEmails()" id="btnSendPayslipEmails" class="php-only px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-envelope"></i> Kirim Slip ke Email
                   </button>
                 </div>
               </div>
@@ -787,9 +803,14 @@
                   <input type="time" id="settingWorkStart" required value="08:00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-600">
                 </div>
                 <div>
-                  <label class="block text-xs font-bold text-slate-600 mb-1">Jam Pulang Kerja (WIB)</label>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Jam Pulang Senin–Jumat (WIB)</label>
                   <input type="time" id="settingWorkEnd" required value="17:00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
                 </div>
+                <div class="php-only">
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Jam Pulang Sabtu (WIB)</label>
+                  <input type="time" id="settingWorkEndSaturday" value="12:00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+                </div>
+                <p class="text-[10px] text-slate-400 sm:col-span-2 php-only">Hari kerja Senin–Sabtu. Hari Minggu & tanggal merah tidak dihitung Alpha; kerja di hari tersebut dihitung lembur hari libur.</p>
               </div>
 
               <div class="pt-4 border-t border-slate-100 flex justify-end">
@@ -814,6 +835,71 @@
               <i class="fa-solid fa-download mr-1"></i> Download Backup Sekarang
             </button>
             <p class="text-[11px] text-slate-400 mt-3">Data juga bisa dilihat langsung di hPanel Hostinger → Databases → phpMyAdmin (tabel <b>users</b> berisi akun karyawan).</p>
+          </div>
+
+          <div id="holidayCard" class="php-only bg-white rounded-3xl p-6 shadow-sm border border-slate-100 max-w-2xl mx-auto">
+            <div class="border-b border-slate-100 pb-4 mb-4">
+              <h2 class="text-xl font-extrabold text-slate-900"><i class="fa-solid fa-calendar-xmark text-red-500 mr-1"></i> Kalender Hari Libur & Cuti Bersama</h2>
+              <p class="text-xs text-slate-500">Tanggal di sini (dan setiap hari Minggu) tidak dihitung Alpha. Karyawan yang bekerja di tanggal ini dihitung lembur hari libur.</p>
+            </div>
+            <form onsubmit="event.preventDefault(); addHoliday();" class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
+              <input type="date" id="holidayDate" required class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <input type="text" id="holidayName" required placeholder="Nama, mis. Hari Raya Idul Fitri" class="sm:col-span-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <select id="holidayType" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                <option value="LIBUR NASIONAL">Libur Nasional</option>
+                <option value="CUTI BERSAMA">Cuti Bersama</option>
+              </select>
+              <button type="submit" class="sm:col-span-4 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-plus mr-1"></i> Tambah Hari Libur</button>
+            </form>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs font-bold text-slate-600">Tahun:</span>
+              <select id="holidayYearFilter" onchange="renderHolidayList()" class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold"></select>
+            </div>
+            <div id="holidayList" class="divide-y divide-slate-100 text-xs max-h-72 overflow-y-auto custom-scroll"></div>
+          </div>
+
+          <div id="emailCard" class="php-only bg-white rounded-3xl p-6 shadow-sm border border-slate-100 max-w-2xl mx-auto">
+            <div class="border-b border-slate-100 pb-4 mb-4">
+              <h2 class="text-xl font-extrabold text-slate-900"><i class="fa-solid fa-envelope-open-text text-sky-600 mr-1"></i> Notifikasi Email</h2>
+              <p class="text-xs text-slate-500">HR menerima email saat ada pengajuan baru, karyawan menerima email saat pengajuannya disetujui/ditolak, dan slip gaji bisa dikirim ke email karyawan.
+                Gunakan akun email Hostinger (hPanel → Emails), misalnya <b>hris@arthasafetyindonesia.com</b>.</p>
+            </div>
+            <form onsubmit="event.preventDefault(); saveEmailSettings();" class="space-y-3">
+              <label class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                <input type="checkbox" id="mailEnabled" class="w-4 h-4 accent-emerald-600"> Aktifkan notifikasi email otomatis
+              </label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Email Pengirim</label>
+                  <input type="email" id="mailUser" placeholder="hris@arthasafetyindonesia.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Password Email Pengirim</label>
+                  <input type="password" id="mailPass" autocomplete="new-password" placeholder="Isi untuk mengganti" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Server SMTP</label>
+                  <input type="text" id="mailHost" value="smtp.hostinger.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Port</label>
+                  <input type="number" id="mailPort" value="465" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Nama Pengirim</label>
+                  <input type="text" id="mailFromName" placeholder="HRIS PT Artha Safety Indonesia" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Email HR Penerima Notifikasi</label>
+                  <input type="text" id="mailHrEmails" placeholder="Kosongkan = semua akun Admin" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                </div>
+              </div>
+              <p id="mailLastError" class="hidden text-[11px] text-red-600 bg-red-50 border border-red-100 rounded-xl p-2"></p>
+              <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                <button type="submit" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold">Simpan Pengaturan Email</button>
+                <button type="button" onclick="testEmail()" id="btnTestEmail" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-paper-plane mr-1"></i> Kirim Email Tes</button>
+              </div>
+            </form>
           </div>
         </div>
 
@@ -977,6 +1063,11 @@
             <tr id="printOnTimeBonusRow">
               <td class="py-2 text-emerald-600 font-semibold" id="printOnTimeBonusLabel">Bonus Ketepatan Waktu / Disiplin Penuh (0x Telat)</td>
               <td class="py-2 text-right font-mono text-emerald-600" id="printOnTimeBonus">Rp 50.000</td>
+              <td class="py-2 text-right font-mono text-slate-400">-</td>
+            </tr>
+            <tr id="printOvertimeRow" class="hidden">
+              <td class="py-2 text-emerald-600 font-semibold" id="printOvertimeLabel">Upah Lembur</td>
+              <td class="py-2 text-right font-mono text-emerald-600" id="printOvertimePay">Rp 0</td>
               <td class="py-2 text-right font-mono text-slate-400">-</td>
             </tr>
             <tr id="printEncashedHolidayRow" class="hidden">
@@ -1265,16 +1356,54 @@
       <form id="formRequest" onsubmit="event.preventDefault(); submitRequestForm();" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Pengajuan</label>
-          <select id="reqType" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none">
+          <select id="reqType" required onchange="onReqTypeChange()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none">
             <option value="Pengajuan Cuti">Pengajuan Cuti Tahunan</option>
             <option value="Pengganti Hari Libur">Pengganti Hari Libur (Gunakan Tabungan Libur)</option>
             <option value="Izin Terlambat">Izin Terlambat Hadir (Bebas Potongan Denda jika Disetujui)</option>
             <option value="Izin Sakit">Izin Sakit (Surat Dokter)</option>
             <option value="Tabung Hari Libur">Tabung Hari Libur (Kerja Minggu/Tgl Merah)</option>
+            <option value="Koreksi Absen" class="php-only">Koreksi Absen (Lupa Absen Masuk / Keluar — hanya hari ini)</option>
+            <option value="Lembur" class="php-only">Lembur (Upah sesuai aturan Depnaker)</option>
           </select>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div id="reqCorrectionBlock" class="hidden p-3 bg-sky-50 border border-sky-100 rounded-2xl space-y-3">
+          <p class="text-[11px] text-sky-800"><i class="fa-solid fa-circle-info mr-1"></i>Koreksi absen <b>hanya bisa diajukan untuk hari ini</b> (<span id="reqCorrectionToday"></span>). Data absen otomatis diperbaiki setelah disetujui HR.</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Koreksi</label>
+              <select id="reqCorrectionKind" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold">
+                <option value="IN">Lupa Absen Masuk</option>
+                <option value="OUT">Lupa Absen Keluar</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jam Sebenarnya</label>
+              <input type="time" id="reqCorrectionTime" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold">
+            </div>
+          </div>
+        </div>
+
+        <div id="reqOvertimeBlock" class="hidden p-3 bg-violet-50 border border-violet-100 rounded-2xl space-y-3">
+          <p class="text-[11px] text-violet-800"><i class="fa-solid fa-circle-info mr-1"></i>Ajukan setelah lembur selesai (paling lambat 7 hari). Hari kerja maks. 4 jam di luar jam kerja; hari Minggu / tanggal merah maks. 11 jam.</p>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Lembur</label>
+              <input type="date" id="reqOtDate" onchange="previewOvertimePay()" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jam Mulai</label>
+              <input type="time" id="reqOtStart" onchange="previewOvertimePay()" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jam Selesai</label>
+              <input type="time" id="reqOtEnd" onchange="previewOvertimePay()" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold">
+            </div>
+          </div>
+          <p id="reqOtPreview" class="text-[11px] font-bold text-violet-900"></p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3" id="reqDateGrid">
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Mulai</label>
             <input type="date" id="reqStartDate" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
@@ -1454,6 +1583,17 @@
               Tidak dapat bonus tepat waktu (Direksi / khusus)
             </label>
           </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Status Karyawan</label>
+            <select id="empIsActive" onchange="onEmpActiveChange()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold">
+              <option value="1">Aktif</option>
+              <option value="0">Nonaktif / Resign (tidak bisa login)</option>
+            </select>
+          </div>
+          <div id="empResignDateGroup" class="hidden">
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Terakhir Bekerja</label>
+            <input type="date" id="empResignDate" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1524,6 +1664,24 @@
     </div>
   </div>
 
+  <div id="modalInstallApp" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-base text-slate-800"><i class="fa-solid fa-mobile-screen-button text-emerald-600 mr-1"></i> Pasang HRIS di HP</h3>
+        <button onclick="document.getElementById('modalInstallApp').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-600">Setelah dipasang, HRIS muncul sebagai ikon aplikasi di layar HP dan bisa dibuka tanpa mengetik alamat web. Login tetap tersimpan sampai Anda menekan Logout.</p>
+      <div class="p-3 bg-slate-50 rounded-2xl text-xs space-y-1">
+        <p class="font-extrabold text-slate-800"><i class="fa-brands fa-android text-emerald-600 mr-1"></i> Android (Chrome)</p>
+        <p class="text-slate-600">Ketuk menu <b>⋮</b> di kanan atas → <b>Instal aplikasi</b> / <b>Tambahkan ke layar utama</b>.</p>
+      </div>
+      <div class="p-3 bg-slate-50 rounded-2xl text-xs space-y-1">
+        <p class="font-extrabold text-slate-800"><i class="fa-brands fa-apple mr-1"></i> iPhone (Safari)</p>
+        <p class="text-slate-600">Ketuk tombol <b>Bagikan</b> <i class="fa-solid fa-arrow-up-from-bracket"></i> di bawah → <b>Tambah ke Layar Utama</b> → <b>Tambah</b>.</p>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
       <i id="toastIcon" class="fa-solid fa-circle-info text-emerald-400"></i>
@@ -1564,7 +1722,8 @@
       requests: [],
       payslips: [],
       duties: [],
-      attendance: []
+      attendance: [],
+      holidays: []
     };
 
     async function apiCall(action, payload = {}, retryCount = 0) {
@@ -1618,8 +1777,59 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      if (!USE_PHP_BACKEND) document.querySelectorAll('.php-only').forEach(el => el.remove());
       initMiniCalendar();
+      restoreSession();
+      initInstallApp();
     });
+
+    // ===== Login tersimpan di perangkat (sampai Logout / sesi 30 hari habis) =====
+    const SESSION_KEY = 'hris_session_v1';
+    function saveSession() {
+      if (!USE_PHP_BACKEND || !authToken || !currentUser) return;
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify({ token: authToken, user: currentUser })); } catch (e) {}
+    }
+    function clearSession() {
+      try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    }
+    function restoreSession() {
+      if (!USE_PHP_BACKEND) return;
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { saved = null; }
+      if (!saved || !saved.token || !saved.user || !saved.user.EMP_ID) return;
+      authToken = saved.token;
+      currentUser = saved.user;
+      onLoginSuccess(); // jika sesi sudah tidak berlaku, server membalas 401 dan layar login muncul lagi
+    }
+
+    // ===== Pasang sebagai aplikasi (PWA) =====
+    let deferredInstallPrompt = null;
+    function isStandaloneApp() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+    function initInstallApp() {
+      if (!USE_PHP_BACKEND) return;
+      if ('serviceWorker' in navigator && window.isSecureContext) {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker gagal:', err));
+      }
+      const show = !isStandaloneApp();
+      document.querySelectorAll('.install-app-btn').forEach(b => b.classList.toggle('hidden', !show));
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt = e; });
+      window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        document.querySelectorAll('.install-app-btn').forEach(b => b.classList.add('hidden'));
+        showToast('HRIS berhasil dipasang di HP Anda!');
+      });
+    }
+    async function openInstallGuide() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        try { await deferredInstallPrompt.userChoice; } catch (e) {}
+        deferredInstallPrompt = null;
+        return;
+      }
+      document.getElementById('modalInstallApp').classList.remove('hidden');
+    }
 
     // Cegah teks berisi kode HTML/JS (misal di agenda / alasan pengajuan) dijalankan di browser orang lain.
     function esc(v) {
@@ -1664,6 +1874,7 @@
       if (res.success) {
         currentUser = res.user;
         authToken = res.token || '';
+        saveSession();
         onLoginSuccess();
       } else {
         showToast(res.message || "Gagal masuk. Periksa kembali ID/Email & kata sandi.", true);
@@ -1708,6 +1919,7 @@
 
     function logout(silent = false) {
       if (authToken && !silent) apiCall('logout', {});
+      clearSession();
       authToken = '';
       currentUser = null;
       stopGpsWatch();
@@ -1743,6 +1955,8 @@
         renderUserPayslipsTable();
       } else if (tabId === 'adminSettings') {
         setTimeout(() => renderLocationMap('office'), 50);
+        renderHolidayList();
+        loadEmailSettings();
       }
     }
 
@@ -1812,6 +2026,10 @@
     async function loadDashboardData() {
       const res = await apiCall('getDashboardData', { empId: currentUser.EMP_ID });
       if (res && res.success) {
+        if (res.currentUser && currentUser && USE_PHP_BACKEND) {
+          Object.assign(currentUser, res.currentUser);
+          saveSession();
+        }
         officeSettings = res.settings;
         activeDutyAssignment = res.activeDuty || null;
         
@@ -1821,6 +2039,7 @@
         cachedData.payslips = res.payslips || [];
         cachedData.duties = res.duties || [];
         cachedData.attendance = res.recentAttendance || [];
+        cachedData.holidays = res.holidays || [];
 
         if (cachedData.payslips && cachedData.payslips.length > 0) {
           cachedData.payslips.forEach(p => {
@@ -1862,8 +2081,9 @@
             const bpjsKes = hasKes ? parseInt(p.BPJS_KES_AMOUNT || 0, 10) : 0;
             const kasbon = parseInt(p.KASBON_AMOUNT || 0, 10);
 
+            const overtimePay = parseInt(p.OVERTIME_PAY || 0, 10);
             p.DEDUCTIONS = lateDed + bpjsTk + bpjsKes + kasbon;
-            p.NET_SALARY = (basic + allow + bonus + encashedPay) - p.DEDUCTIONS;
+            p.NET_SALARY = (basic + allow + bonus + encashedPay + overtimePay) - p.DEDUCTIONS;
           });
         }
 
@@ -1906,6 +2126,9 @@
         document.getElementById('settingMaxRadius').value = res.settings.MAX_RADIUS_METERS || '10';
         document.getElementById('settingWorkStart').value = res.settings.WORK_START_TIME || '08:00';
         document.getElementById('settingWorkEnd').value = res.settings.WORK_END_TIME || '17:00';
+        const satEl = document.getElementById('settingWorkEndSaturday');
+        if (satEl) satEl.value = res.settings.WORK_END_SATURDAY || '12:00';
+        renderHolidayList();
 
         currentAttPage = 1;
         renderRecentAttendanceTable(cachedData.attendance);
@@ -2191,6 +2414,19 @@
       }
     }
 
+    // Hari libur: Minggu atau tanggal yang ada di kalender libur (libur nasional / cuti bersama)
+    function findHoliday(dateStr) {
+      const n = normalizeDateStandard(dateStr);
+      return (cachedData.holidays || []).find(h => normalizeDateStandard(h.DATE) === n) || null;
+    }
+
+    function isNonWorkingDay(dateStr) {
+      const p = parseDateParts(dateStr);
+      if (!p) return false;
+      if (new Date(p.year, p.month, p.day).getDay() === 0) return true;
+      return !!findHoliday(dateStr);
+    }
+
     function closeAttendanceReportModal() {
       document.getElementById('modalPrintAttendanceReport').classList.add('hidden');
     }
@@ -2317,7 +2553,7 @@
       (cachedData.attendance || []).forEach(a => {
         if (!a.DATE) return;
         const p = parseDateParts(a.DATE);
-        if (p && p.month === selMonth && p.year === selYear && p.day <= maxDayToCheck) {
+        if (p && p.month === selMonth && p.year === selYear && p.day <= maxDayToCheck && !isNonWorkingDay(a.DATE)) {
           const norm = normalizeDateStandard(a.DATE);
           if (norm && !workDatesMap.has(norm)) {
             workDatesMap.set(norm, p.timestamp);
@@ -2339,8 +2575,13 @@
         const uId = String(u.EMP_ID).trim().toUpperCase();
         let userAlphaDays = 0;
         const alphaDates = [];
+        const resignP = u.RESIGN_DATE ? parseDateParts(u.RESIGN_DATE) : null;
+        const joinP = u.JOIN_DATE ? parseDateParts(u.JOIN_DATE) : null;
 
         sortedWorkDates.forEach(normDate => {
+          const dP = parseDateParts(normDate);
+          if (dP && resignP && dP.timestamp > resignP.timestamp) return; // sudah tidak bekerja
+          if (dP && joinP && dP.timestamp < joinP.timestamp) return;     // belum bergabung
           // 1. Cek apakah karyawan hadir presensi (menggunakan normalisasi tanggal)
           const hasAtt = (cachedData.attendance || []).some(a => {
             if (String(a.EMP_ID || '').trim().toUpperCase() !== uId) return false;
@@ -3039,7 +3280,7 @@
     function openDutyModal(dutyId) {
       const select = document.getElementById('dutyEmpId');
       select.innerHTML = '';
-      cachedData.users.forEach(u => {
+      cachedData.users.filter(isActiveUser).forEach(u => {
         select.innerHTML += "<option value='" + esc(u.EMP_ID) + "'>" + esc(u.FULL_NAME) + " (" + esc(u.EMP_ID) + " - " + esc(u.POSITION) + ")</option>";
       });
 
@@ -3140,7 +3381,80 @@
 
     function openRequestModal() {
       clearReqFile();
+      onReqTypeChange();
       document.getElementById('modalRequest').classList.remove('hidden');
+    }
+
+    function todayIso() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // Tampilkan kolom khusus untuk Koreksi Absen & Lembur
+    function onReqTypeChange() {
+      const t = document.getElementById('reqType').value;
+      const isCorr = t === 'Koreksi Absen';
+      const isOt = t === 'Lembur';
+      document.getElementById('reqCorrectionBlock').classList.toggle('hidden', !isCorr);
+      document.getElementById('reqOvertimeBlock').classList.toggle('hidden', !isOt);
+      document.getElementById('reqDateGrid').classList.toggle('hidden', isCorr || isOt);
+      document.getElementById('reqStartDate').required = !(isCorr || isOt);
+      document.getElementById('reqEndDate').required = !(isCorr || isOt);
+      document.getElementById('reqCorrectionTime').required = isCorr;
+      ['reqOtDate', 'reqOtStart', 'reqOtEnd'].forEach(id => { document.getElementById(id).required = isOt; });
+      if (isCorr) {
+        const now = new Date();
+        document.getElementById('reqCorrectionToday').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        if (!document.getElementById('reqCorrectionTime').value) {
+          document.getElementById('reqCorrectionTime').value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        }
+      }
+      if (isOt) {
+        const dateEl = document.getElementById('reqOtDate');
+        dateEl.max = todayIso();
+        if (!dateEl.value) dateEl.value = todayIso();
+        previewOvertimePay();
+      }
+    }
+
+    let otPreviewTimer = null;
+    function previewOvertimePay() {
+      const out = document.getElementById('reqOtPreview');
+      const date = document.getElementById('reqOtDate').value;
+      const st = document.getElementById('reqOtStart').value;
+      const en = document.getElementById('reqOtEnd').value;
+      if (!date || !st || !en) { out.innerText = ''; return; }
+      clearTimeout(otPreviewTimer);
+      otPreviewTimer = setTimeout(async () => {
+        out.className = 'text-[11px] font-bold text-violet-900';
+        out.innerText = 'Menghitung...';
+        const res = await apiCall('previewOvertime', { date: date, otStart: st, otEnd: en });
+        if (res && res.success) {
+          out.innerText = res.dayLabel + ': ' + res.hours + ' jam → perkiraan upah lembur Rp ' + Number(res.pay).toLocaleString('id-ID') +
+            ' (upah/jam Rp ' + Number(res.hourly).toLocaleString('id-ID') + ' × ' + res.factor + ')';
+        } else {
+          out.className = 'text-[11px] font-bold text-red-600';
+          out.innerText = (res && res.message) || 'Tidak bisa menghitung lembur.';
+        }
+      }, 300);
+    }
+
+    function requestPeriodHtml(r) {
+      if (r.OT_START) {
+        return esc(r.START_DATE) + "<p class='text-[10px] text-violet-700 font-semibold'>" + esc(r.OT_START) + "–" + esc(r.OT_END) + "</p>";
+      }
+      if (r.CORRECTION_KIND) return esc(r.START_DATE);
+      return esc(r.START_DATE) + " s/d " + esc(r.END_DATE);
+    }
+
+    function requestTypeDetailHtml(r) {
+      if (r.OT_HOURS !== null && r.OT_HOURS !== undefined) {
+        return "<p class='text-[10px] text-violet-700 font-semibold'>" + r.OT_HOURS + " jam • Rp " + Number(r.OT_PAY || 0).toLocaleString('id-ID') + "</p>";
+      }
+      if (r.CORRECTION_KIND) {
+        return "<p class='text-[10px] text-sky-700 font-semibold'>" + (r.CORRECTION_KIND === 'IN' ? 'Lupa absen masuk' : 'Lupa absen keluar') + " • jam " + esc(r.CORRECTION_TIME) + "</p>";
+      }
+      return '';
     }
 
     function closeRequestModal() {
@@ -3187,7 +3501,43 @@
     }
 
     async function submitRequestForm() {
+      const type = document.getElementById('reqType').value;
+      const isCorr = type === 'Koreksi Absen';
+      const isOt = type === 'Lembur';
       const btn = document.getElementById('btnSubmitRequest');
+
+      // Koreksi absen & lembur: diperiksa server dulu, form tetap terbuka jika ada yang salah
+      if (isCorr || isOt) {
+        const day = isOt ? document.getElementById('reqOtDate').value : todayIso();
+        const payload = {
+          empId: currentUser.EMP_ID,
+          fullName: currentUser.FULL_NAME,
+          type: type,
+          startDate: day,
+          endDate: day,
+          reason: document.getElementById('reqReason').value,
+          fileBase64: reqAttachedFileBase64,
+          fileName: reqAttachedFileName,
+          docUrl: '-',
+          correctionKind: document.getElementById('reqCorrectionKind').value,
+          correctionTime: document.getElementById('reqCorrectionTime').value,
+          otStart: document.getElementById('reqOtStart').value,
+          otEnd: document.getElementById('reqOtEnd').value
+        };
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengirim...'; }
+        const res = await apiCall('submitRequest', payload);
+        if (btn) { btn.disabled = false; btn.innerHTML = 'Kirim Pengajuan'; }
+        if (res.success) {
+          showToast(res.message);
+          document.getElementById('formRequest').reset();
+          closeRequestModal();
+          loadDashboardData();
+        } else {
+          showToast(res.message, true);
+        }
+        return;
+      }
+
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengunggah...';
@@ -3269,8 +3619,8 @@
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "</td>" +
           "<td class='py-3 px-3 text-slate-500'>" + r.SUBMIT_DATE + "</td>" +
-          "<td class='py-3 px-3 font-semibold text-emerald-600'>" + esc(r.TYPE) + "</td>" +
-          "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
+          "<td class='py-3 px-3 font-semibold text-emerald-600'>" + esc(r.TYPE) + requestTypeDetailHtml(r) + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + requestPeriodHtml(r) + "</td>" +
           "<td class='py-3 px-3 text-slate-600'>" + esc(r.REASON) + "</td>" +
           "<td class='py-3 px-3'>" + docBtn + "</td>" +
           "<td class='py-3 px-3'>" + badge + approvalInfoHtml(r) + "</td>" +
@@ -3330,9 +3680,9 @@
       filteredPayslips.forEach((p) => {
         if (isBonusExempt(p)) {
           p.ON_TIME_BONUS = 0;
-          p.NET_SALARY = (parseInt(p.BASIC_SALARY||0, 10) + parseInt(p.ALLOWANCE||0, 10) + parseInt(p.ENCASHED_HOLIDAY_PAY||0, 10)) - parseInt(p.DEDUCTIONS||0, 10);
+          p.NET_SALARY = (parseInt(p.BASIC_SALARY||0, 10) + parseInt(p.ALLOWANCE||0, 10) + parseInt(p.ENCASHED_HOLIDAY_PAY||0, 10) + parseInt(p.OVERTIME_PAY||0, 10)) - parseInt(p.DEDUCTIONS||0, 10);
         }
-        const totalAllowanceAndBonus = (parseInt(p.ALLOWANCE||0) + parseInt(p.ON_TIME_BONUS||0) + parseInt(p.ENCASHED_HOLIDAY_PAY||0));
+        const totalAllowanceAndBonus = (parseInt(p.ALLOWANCE||0) + parseInt(p.ON_TIME_BONUS||0) + parseInt(p.ENCASHED_HOLIDAY_PAY||0) + parseInt(p.OVERTIME_PAY||0));
         const safePayId = (p.PAY_ID || '').replace(/'/g, "\\'");
 
         tbody.innerHTML += "<tr>" +
@@ -3354,7 +3704,7 @@
     function openManualPayslipModal() {
       const select = document.getElementById('manPayEmpId');
       select.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
-      cachedData.users.forEach(u => {
+      cachedData.users.filter(isActiveUser).forEach(u => {
         select.innerHTML += "<option value='" + u.EMP_ID + "'>" + u.FULL_NAME + " (" + u.EMP_ID + " - " + u.POSITION + ")</option>";
       });
       document.getElementById('modalManualPayslip').classList.remove('hidden');
@@ -3483,6 +3833,14 @@
         onTimeBonusRow.classList.add('hidden');
       }
 
+      const overtimeRow = document.getElementById('printOvertimeRow');
+      const overtimePayVal = parseInt(p.OVERTIME_PAY || 0, 10);
+      if (overtimeRow) {
+        overtimeRow.classList.toggle('hidden', overtimePayVal <= 0);
+        document.getElementById('printOvertimeLabel').innerText = "Upah Lembur (" + (p.OVERTIME_HOURS || 0) + " Jam, sesuai PP 35/2021)";
+        document.getElementById('printOvertimePay').innerText = "Rp " + overtimePayVal.toLocaleString('id-ID');
+      }
+
       const encashedRow = document.getElementById('printEncashedHolidayRow');
       if (p.ENCASHED_HOLIDAYS > 0) {
         encashedRow.classList.remove('hidden');
@@ -3520,7 +3878,7 @@
       const allowVal = parseInt(p.ALLOWANCE||0, 10);
       const encashedPayVal = parseInt(p.ENCASHED_HOLIDAY_PAY||0, 10);
       const totDedVal = parseInt(p.DEDUCTIONS||0, 10);
-      const finalNet = (basicVal + allowVal + bonusVal + encashedPayVal) - totDedVal;
+      const finalNet = (basicVal + allowVal + bonusVal + encashedPayVal + overtimePayVal) - totDedVal;
 
       document.getElementById('printNetSalary').innerText = "Rp " + finalNet.toLocaleString('id-ID');
 
@@ -3566,15 +3924,17 @@
       tbody.innerHTML = '';
       if (!cachedData.users) return;
 
-      cachedData.users.forEach(u => {
+      const sortedUsers = cachedData.users.slice().sort((a, b) => (isActiveUser(a) === isActiveUser(b)) ? 0 : (isActiveUser(a) ? -1 : 1));
+      sortedUsers.forEach(u => {
+        const inactiveBadge = isActiveUser(u) ? '' : "<span class='ml-1 px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[9px] font-extrabold'>NONAKTIF" + (u.RESIGN_DATE ? " sejak " + esc(u.RESIGN_DATE) : "") + "</span>";
         const kasbonText = parseInt(u.KASBON_AMOUNT||0) > 0 ? 
           "Rp " + parseInt(u.KASBON_AMOUNT||0).toLocaleString('id-ID') : "Rp 0";
 
-        tbody.innerHTML += "<tr>" +
+        tbody.innerHTML += "<tr class='" + (isActiveUser(u) ? "" : "opacity-60") + "'>" +
           "<td class='py-3 px-3 flex items-center gap-2'>" +
             "<img src='" + (u.PROFILE_PIC || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80") + "' class='w-7 h-7 rounded-full object-cover'>" +
             "<div>" +
-              "<p class='font-bold text-slate-800'>" + u.FULL_NAME + "</p>" +
+              "<p class='font-bold text-slate-800'>" + esc(u.FULL_NAME) + inactiveBadge + "</p>" +
               "<p class='text-[10px] font-mono text-slate-400'>" + u.EMP_ID + "</p>" +
             "</div>" +
           "</td>" +
@@ -3625,6 +3985,9 @@
         document.getElementById('empPassword').value = '';
         document.getElementById('empPassword').placeholder = 'Abaikan jika tidak diubah';
         document.getElementById('empWorkModeGroup').classList.toggle('hidden', !USE_PHP_BACKEND);
+        document.getElementById('empIsActive').value = (emp.IS_ACTIVE === false) ? '0' : '1';
+        document.getElementById('empResignDate').value = emp.RESIGN_DATE ? toIsoDateInput(emp.RESIGN_DATE) : todayIso();
+        onEmpActiveChange();
 
         document.getElementById('modalEmployee').classList.remove('hidden');
       }
@@ -3643,7 +4006,19 @@
       document.getElementById('empBonusExempt').checked = false;
       document.getElementById('empPassword').placeholder = 'Wajib diisi (min. 6 karakter)';
       document.getElementById('empWorkModeGroup').classList.toggle('hidden', !USE_PHP_BACKEND);
+      document.getElementById('empIsActive').value = '1';
+      onEmpActiveChange();
       document.getElementById('modalEmployee').classList.remove('hidden');
+    }
+
+    function onEmpActiveChange() {
+      const inactive = document.getElementById('empIsActive').value === '0';
+      document.getElementById('empResignDateGroup').classList.toggle('hidden', !inactive);
+      if (inactive && !document.getElementById('empResignDate').value) document.getElementById('empResignDate').value = todayIso();
+    }
+
+    function isActiveUser(u) {
+      return !u || u.IS_ACTIVE !== false;
     }
 
     function closeEmployeeModal() {
@@ -3676,6 +4051,9 @@
       if (USE_PHP_BACKEND) {
         payload.workMode = document.getElementById('empWorkMode').value;
         payload.bonusExempt = document.getElementById('empBonusExempt').checked;
+        payload.isActive = document.getElementById('empIsActive').value === '1';
+        payload.resignDate = document.getElementById('empResignDate').value;
+        if (!payload.isActive && payload.isEdit && !confirm('Nonaktifkan ' + payload.fullName + '? Karyawan ini tidak bisa login lagi, tetapi seluruh riwayatnya tetap tersimpan.')) return;
       }
 
       showToast("Menyimpan data karyawan...");
@@ -3719,8 +4097,8 @@
         tbody.innerHTML += "<tr>" +
           "<td class='py-3 px-3 font-bold text-slate-800'>" + r.REQ_ID + "<p class='text-[10px] text-slate-400 font-normal'>" + r.SUBMIT_DATE + "</p></td>" +
           "<td class='py-3 px-3 font-semibold text-slate-800'>" + esc(r.FULL_NAME) + "</td>" +
-          "<td class='py-3 px-3 font-bold text-emerald-600'>" + esc(r.TYPE) + "</td>" +
-          "<td class='py-3 px-3 text-slate-600'>" + r.START_DATE + " s/d " + r.END_DATE + "</td>" +
+          "<td class='py-3 px-3 font-bold text-emerald-600'>" + esc(r.TYPE) + requestTypeDetailHtml(r) + "</td>" +
+          "<td class='py-3 px-3 text-slate-600'>" + requestPeriodHtml(r) + "</td>" +
           "<td class='py-3 px-3 text-slate-600'>" + esc(r.REASON) + "</td>" +
           "<td class='py-3 px-3'>" + docBtn + "</td>" +
           "<td class='py-3 px-3'>" + badge + approvalInfoHtml(r) + "</td>" +
@@ -3750,7 +4128,8 @@
       const workEnd = document.getElementById('settingWorkEnd').value;
 
       showToast("Menyimpan pengaturan GPS & Jam Kerja...");
-      const res = await apiCall('updateOfficeSettings', { lat: lat, lng: lng, radius: radius, workStart: workStart, workEnd: workEnd });
+      const satEl = document.getElementById('settingWorkEndSaturday');
+      const res = await apiCall('updateOfficeSettings', { lat: lat, lng: lng, radius: radius, workStart: workStart, workEnd: workEnd, workEndSaturday: satEl ? satEl.value : '' });
       if (res.success) {
         showToast(res.message);
         officeSettings.OFFICE_LAT = lat;
@@ -3763,6 +4142,115 @@
       } else {
         showToast(res.message, true);
       }
+    }
+
+    // ================= KALENDER LIBUR =================
+    function renderHolidayList() {
+      const list = document.getElementById('holidayList');
+      const yearSel = document.getElementById('holidayYearFilter');
+      if (!list || !yearSel) return;
+      const years = new Set([new Date().getFullYear(), new Date().getFullYear() + 1]);
+      (cachedData.holidays || []).forEach(h => { const p = parseDateParts(h.DATE); if (p) years.add(p.year); });
+      const cur = yearSel.value || String(new Date().getFullYear());
+      yearSel.innerHTML = Array.from(years).sort().map(y => "<option value='" + y + "'>" + y + "</option>").join('');
+      yearSel.value = cur;
+      const items = (cachedData.holidays || []).filter(h => { const p = parseDateParts(h.DATE); return p && String(p.year) === yearSel.value; });
+      if (!items.length) {
+        list.innerHTML = "<p class='py-3 text-center text-slate-400'>Belum ada hari libur untuk tahun " + esc(yearSel.value) + ".</p>";
+        return;
+      }
+      list.innerHTML = items.map(h => {
+        const p = parseDateParts(h.DATE);
+        const dayName = p ? new Date(p.year, p.month, p.day).toLocaleDateString('id-ID', { weekday: 'long' }) : '';
+        const badge = h.TYPE === 'CUTI BERSAMA' ? "<span class='px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-extrabold'>CUTI BERSAMA</span>" :
+          "<span class='px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-extrabold'>LIBUR NASIONAL</span>";
+        return "<div class='py-2 flex items-center justify-between gap-2'>" +
+          "<div><p class='font-bold text-slate-800'>" + esc(h.NAME) + " " + badge + "</p><p class='text-[10px] text-slate-400 font-mono'>" + esc(dayName) + ", " + esc(h.DATE) + "</p></div>" +
+          "<button onclick=\"deleteHoliday('" + esc(h.DATE) + "')\" class='text-red-500 hover:underline text-[11px] font-bold shrink-0'><i class='fa-solid fa-trash'></i> Hapus</button>" +
+        "</div>";
+      }).join('');
+    }
+
+    async function addHoliday() {
+      const payload = {
+        date: document.getElementById('holidayDate').value,
+        name: document.getElementById('holidayName').value,
+        type: document.getElementById('holidayType').value
+      };
+      const res = await apiCall('addHoliday', payload);
+      if (res.success) {
+        showToast(res.message);
+        document.getElementById('holidayName').value = '';
+        const y = (payload.date || '').substring(0, 4);
+        await loadDashboardData();
+        if (y) { document.getElementById('holidayYearFilter').value = y; renderHolidayList(); }
+      } else {
+        showToast(res.message, true);
+      }
+    }
+
+    async function deleteHoliday(dateStr) {
+      if (!confirm('Hapus hari libur ' + dateStr + '?')) return;
+      const res = await apiCall('deleteHoliday', { date: dateStr });
+      showToast(res.message, !res.success);
+      if (res.success) loadDashboardData();
+    }
+
+    // ================= NOTIFIKASI EMAIL =================
+    async function loadEmailSettings() {
+      if (!USE_PHP_BACKEND || !currentUser || currentUser.ROLE !== 'ADMIN') return;
+      const res = await apiCall('getEmailSettings', {});
+      if (!res || !res.success) return;
+      const e = res.email;
+      document.getElementById('mailEnabled').checked = !!e.enabled;
+      document.getElementById('mailUser').value = e.user || '';
+      document.getElementById('mailHost').value = e.host || 'smtp.hostinger.com';
+      document.getElementById('mailPort').value = e.port || 465;
+      document.getElementById('mailFromName').value = e.fromName || '';
+      document.getElementById('mailHrEmails').value = e.hrEmails || '';
+      document.getElementById('mailPass').value = '';
+      document.getElementById('mailPass').placeholder = e.hasPassword ? '•••••• (tersimpan, isi untuk mengganti)' : 'Password akun email';
+      const errEl = document.getElementById('mailLastError');
+      errEl.classList.toggle('hidden', !e.lastError);
+      errEl.innerText = e.lastError ? 'Pengiriman terakhir gagal: ' + e.lastError : '';
+    }
+
+    async function saveEmailSettings() {
+      const res = await apiCall('saveEmailSettings', {
+        enabled: document.getElementById('mailEnabled').checked,
+        user: document.getElementById('mailUser').value,
+        password: document.getElementById('mailPass').value,
+        host: document.getElementById('mailHost').value,
+        port: document.getElementById('mailPort').value,
+        fromName: document.getElementById('mailFromName').value,
+        hrEmails: document.getElementById('mailHrEmails').value
+      });
+      showToast(res.message, !res.success);
+      if (res.success) loadEmailSettings();
+    }
+
+    async function testEmail() {
+      const to = prompt('Kirim email tes ke alamat:', currentUser.EMAIL || '');
+      if (!to) return;
+      const btn = document.getElementById('btnTestEmail');
+      btn.disabled = true;
+      const res = await apiCall('testEmail', { to: to });
+      btn.disabled = false;
+      showToast(res.message, !res.success);
+    }
+
+    async function sendPayslipEmails() {
+      const period = document.getElementById('filterPayslipPeriod').value;
+      if (!period || period === 'ALL') { showToast('Pilih dulu satu periode di filter "Periode" sebelum mengirim slip.', true); return; }
+      if (!confirm('Kirim slip gaji periode ' + period + ' ke email semua karyawan aktif?')) return;
+      const btn = document.getElementById('btnSendPayslipEmails');
+      const old = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+      const res = await apiCall('sendPayslipEmails', { period: period });
+      btn.disabled = false;
+      btn.innerHTML = old;
+      showToast(res.message, !res.success);
     }
 
     async function downloadBackup() {
@@ -3954,10 +4442,15 @@
         const fullDateCheck = dayStr + '/' + monthStr + '/' + year;
 
         let hasEvent = cachedData.agendas.some(a => a.DATE === fullDateCheck);
-        let isToday = (isCurrentMonthAndYear && day === realToday.getDate()) ? 'bg-emerald-600 text-white font-extrabold shadow-md' : 'hover:bg-slate-100 text-slate-700';
-        let eventDot = hasEvent ? '<span class="w-1.5 h-1.5 bg-amber-400 rounded-full mx-auto mt-0.5 block"></span>' : '';
+        const holiday = findHoliday(fullDateCheck);
+        const isSunday = new Date(year, month, day).getDay() === 0;
+        let isToday = (isCurrentMonthAndYear && day === realToday.getDate()) ? 'bg-emerald-600 text-white font-extrabold shadow-md' :
+          ((holiday || isSunday) ? 'hover:bg-red-50 text-red-500 font-bold' : 'hover:bg-slate-100 text-slate-700');
+        let eventDot = holiday ? '<span class="w-1.5 h-1.5 bg-red-500 rounded-full mx-auto mt-0.5 block"></span>' :
+          (hasEvent ? '<span class="w-1.5 h-1.5 bg-amber-400 rounded-full mx-auto mt-0.5 block"></span>' : '');
+        const titleAttr = holiday ? ' title="' + esc(holiday.NAME) + ' (' + esc(holiday.TYPE) + ')"' : '';
 
-        grid.innerHTML += '<div class="py-1.5 rounded-full flex flex-col items-center justify-center ' + isToday + '">' +
+        grid.innerHTML += '<div' + titleAttr + ' class="py-1.5 rounded-full flex flex-col items-center justify-center ' + isToday + '">' +
           '<span>' + day + '</span>' +
           eventDot +
         '</div>';

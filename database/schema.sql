@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS users (
   -- 1 = tidak mendapat bonus ketepatan waktu (direksi / remote / pengecualian khusus).
   bonus_exempt      TINYINT(1)   NOT NULL DEFAULT 0,
   is_active         TINYINT(1)   NOT NULL DEFAULT 1,
+  resign_date       DATE         NULL,
   created_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_users_email (email)
@@ -95,6 +96,14 @@ CREATE TABLE IF NOT EXISTS requests (
   status          VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
   approved_by     VARCHAR(150) NOT NULL DEFAULT '-',
   approved_at     DATETIME     NULL,
+  -- Koreksi absen: IN = lupa absen masuk, OUT = lupa absen keluar
+  correction_kind VARCHAR(10)  NULL,
+  correction_time TIME         NULL,
+  -- Lembur (PP 35/2021)
+  ot_start        TIME         NULL,
+  ot_end          TIME         NULL,
+  ot_hours        DECIMAL(5,2) NULL,
+  ot_pay          BIGINT       NULL,
   admin_note      TEXT,
   created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_requests_emp (emp_id)
@@ -112,6 +121,8 @@ CREATE TABLE IF NOT EXISTS payslips (
   on_time_bonus        BIGINT NOT NULL DEFAULT 0,
   encashed_holidays    INT    NOT NULL DEFAULT 0,
   encashed_holiday_pay BIGINT NOT NULL DEFAULT 0,
+  overtime_hours       DECIMAL(6,2) NOT NULL DEFAULT 0,
+  overtime_pay         BIGINT NOT NULL DEFAULT 0,
   late_count           INT    NOT NULL DEFAULT 0,
   excused_late_count   INT    NOT NULL DEFAULT 0,
   late_deduction       BIGINT NOT NULL DEFAULT 0,
@@ -156,6 +167,13 @@ CREATE TABLE IF NOT EXISTS duties (
   KEY idx_duties_emp (emp_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS holidays (
+  holiday_date DATE NOT NULL PRIMARY KEY,
+  name         VARCHAR(150) NOT NULL DEFAULT '',
+  type         VARCHAR(20)  NOT NULL DEFAULT 'LIBUR NASIONAL',
+  created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES
   ('OFFICE_NAME', 'PT Artha Safety Indonesia - Kantor Pusat HQ', 'Nama Lokasi Kantor Pusat'),
   ('OFFICE_LAT', '-6.175392', 'Latitude Lokasi Kantor Pusat'),
@@ -163,6 +181,7 @@ INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES
   ('MAX_RADIUS_METERS', '50', 'Batas Maksimal Radius Absensi HQ (Meter)'),
   ('WORK_START_TIME', '08:00', 'Jam Masuk Kerja Resmi HQ (WIB)'),
   ('WORK_END_TIME', '17:00', 'Jam Pulang Kerja Resmi HQ (WIB)'),
+  ('WORK_END_SATURDAY', '12:00', 'Jam Pulang Hari Sabtu (WIB)'),
   ('COMPANY_NAME', 'PT Artha Safety Indonesia', 'Nama Perusahaan'),
   ('FINANCE_NAME', 'Avitya Fitriana', 'Nama penandatangan Finance di slip gaji'),
   ('LEADER_NAME', 'Saut Reynald Ricardo Simbolon', 'Nama penandatangan Pimpinan di slip gaji');
