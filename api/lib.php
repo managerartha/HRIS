@@ -149,6 +149,20 @@ function parse_coord($value): ?float
     return (float)$s;
 }
 
+/**
+ * Pisahkan koordinat yang di-copas dari Google Maps ke satu kolom, misal LATITUDE = "-6.3532325, 106.8593898"
+ * dan LONGITUDE kosong. Mengembalikan [lat, lng] (float|null).
+ */
+function parse_latlng($lat, $lng): array
+{
+    $la = parse_coord($lat);
+    $lo = parse_coord($lng);
+    if (($la === null || $lo === null) && preg_match('/(-?\d{1,3}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)/', trim((string)$lat) . ' ' . trim((string)$lng), $m)) {
+        return [(float)$m[1], (float)$m[2]];
+    }
+    return [$la, $lo];
+}
+
 /** Nominal uang: 'Rp 5.000.000', '5,000,000', '5000000' -> 5000000. */
 function parse_money($value): int
 {

@@ -444,8 +444,7 @@ function action_add_duty(array $me, array $d): array
 {
     $u = q_one('SELECT * FROM users WHERE emp_id = ?', [(string)($d['empId'] ?? '')]);
     if (!$u) return ['success' => false, 'message' => 'Karyawan tidak ditemukan.'];
-    $lat = parse_coord($d['lat'] ?? null);
-    $lng = parse_coord($d['lng'] ?? null);
+    [$lat, $lng] = parse_latlng($d['lat'] ?? null, $d['lng'] ?? null);
     $start = parse_date_any($d['startDate'] ?? null);
     $end = parse_date_any($d['endDate'] ?? null);
     if ($lat === null || $lng === null || abs($lat) > 90 || abs($lng) > 180) return ['success' => false, 'message' => 'Koordinat lokasi dinas tidak valid.'];
@@ -637,8 +636,7 @@ function action_save_manual_payslip(array $d): array
 
 function action_update_settings(array $d): array
 {
-    $lat = parse_coord($d['lat'] ?? null);
-    $lng = parse_coord($d['lng'] ?? null);
+    [$lat, $lng] = parse_latlng($d['lat'] ?? null, $d['lng'] ?? null);
     $radius = parse_coord($d['radius'] ?? null);
     $start = parse_time_any($d['workStart'] ?? null);
     $end = parse_time_any($d['workEnd'] ?? null);

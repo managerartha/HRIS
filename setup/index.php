@@ -476,8 +476,10 @@ function import_duties(array $rows, SheetReport $rep): void
     foreach ($rows as $r) {
         $rep->source++;
         $ref = rowref($r, 'DUTIES');
-        $lat = parse_coord(col($r, 'LATITUDE'));
-        $lng = parse_coord(col($r, 'LONGITUDE'));
+        [$lat, $lng] = parse_latlng(col($r, 'LATITUDE'), col($r, 'LONGITUDE'));
+        if ($lat !== null && $lng !== null && parse_coord(col($r, 'LONGITUDE')) === null) {
+            $rep->warnings[] = "$ref (" . str_col($r, 'FULL_NAME') . "): latitude & longitude tertulis di satu kolom → dipisahkan otomatis ($lat, $lng).";
+        }
         $start = parse_date_any(col($r, 'START_DATE'));
         $end = parse_date_any(col($r, 'END_DATE')) ?? $start;
         if ($lat === null || $lng === null) { $rep->skipped[] = "$ref (" . str_col($r, 'FULL_NAME') . '): koordinat tidak terbaca (' . str_col($r, 'LATITUDE') . ', ' . str_col($r, 'LONGITUDE') . ')'; continue; }
