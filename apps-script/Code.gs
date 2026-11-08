@@ -13,7 +13,7 @@
  *  5. Koordinat kantor dengan koma desimal ("-6,175392") sekarang terbaca benar.
  *  6. Hitungan terlambat di slip gaji hanya bulan & tahun berjalan (dulu tanggal 11 bulan lain ikut terhitung di November).
  *  7. Pengajuan yang sudah disetujui tidak bisa diproses 2x (saldo cuti tidak terpotong dobel).
- *  8. Fungsi exportForHostinger() untuk memindahkan seluruh data ke Hostinger.
+ *  8. Fungsi exportForHostinger() untuk memindahkan SELURUH data lama ke Hostinger (tanpa mengubah spreadsheet).
  *
  * CARA PASANG: salin seluruh isi file ini ke Code.gs di Apps Script Editor -> Simpan ->
  * Deploy -> Manage deployments -> Edit (ikon pensil) -> Version: New version -> Deploy.
@@ -33,24 +33,116 @@ function authorizeApp() {
 }
 
 /**
- * EXPORT DATA UNTUK PINDAH KE HOSTINGER
- * Jalankan 1x dari Apps Script Editor: pilih fungsi 'exportForHostinger' -> Jalankan.
- * Hasilnya file "HRIS-export-....json" di Google Drive (folder utama / My Drive).
- * Download file itu, lalu upload di halaman https://domainanda.com/setup/ (langkah 2: Import).
+ * EXPORT DATA UNTUK PINDAH KE HOSTINGER (SEMUA DATA, TIDAK ADA YANG DIHAPUS DARI SPREADSHEET)
+ * ------------------------------------------------------------------------------------------
+ * Jalankan dari Apps Script Editor: pilih fungsi 'exportForHostinger' -> Jalankan (Run).
+ * Hasil: folder "HRIS-export-<tanggal>" di Google Drive berisi 1 file atau lebih:
+ *   HRIS-export-...-part1.json  (semua data + absensi bagian 1)
+ *   HRIS-export-...-part2.json  (absensi bagian 2, dst. — hanya jika foto absensi banyak)
+ * Download SEMUA file di folder itu, lalu upload sekaligus di https://domainanda.com/setup/ (langkah 2).
+ *
+ * - Tanggal, jam & angka diambil dari NILAI ASLI sel (bukan teks tampilan), jadi tidak salah baca
+ *   karena format/locale spreadsheet (mis. tanggal 08/11 vs 11/08, "Rp 5.000.000", "-6,17").
+ * - Setiap file mencatat jumlah baris asli per sheet, sehingga halaman import bisa memastikan
+ *   semua baris masuk (dan menampilkan baris mana saja yang tidak bisa diimport beserta alasannya).
+ * - Spreadsheet TIDAK diubah sama sekali.
  */
 function exportForHostinger() {
-  const sheets = ['SETTINGS', 'USERS', 'ATTENDANCE', 'REQUESTS', 'PAYSLIPS', 'AGENDAS', 'DUTIES'];
-  const out = { exportedAt: Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss'), sheets: {} };
-  sheets.forEach(name => {
-    out.sheets[name] = getBatchData(name);
-    Logger.log(name + ': ' + out.sheets[name].length + ' baris');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const tz = ss.getSpreadsheetTimeZone() || 'Asia/Jakarta';
+  const stamp = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMMdd-HHmm');
+  const folder = DriveApp.getRootFolder().createFolder('HRIS-export-' + stamp);
+  const names = ['SETTINGS', 'USERS', 'REQUESTS', 'PAYSLIPS', 'AGENDAS', 'DUTIES', 'ATTENDANCE'];
+
+  const all = {};
+  const counts = {};
+  names.forEach(n => {
+    all[n] = exportSheetRows(n, tz);
+    counts[n] = all[n].length;
+    Logger.log(n + ': ' + counts[n] + ' baris');
   });
-  // Tanggal & koordinat dinas diambil dari nilai asli agar tidak salah format
-  out.sheets.DUTIES = getDutiesRaw();
-  const fileName = 'HRIS-export-' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMMdd-HHmm') + '.json';
-  const file = DriveApp.getRootFolder().createFile(fileName, JSON.stringify(out), 'application/json');
-  Logger.log('✅ Export selesai: ' + file.getName() + ' -> ' + file.getUrl());
-  return file.getUrl();
+
+  // Absensi (berisi foto) dipecah per ~15 MB agar file tidak terlalu besar untuk diupload.
+  const MAX_CHARS = 15 * 1024 * 1024;
+  const attChunks = [];
+  let cur = [], size = 0;
+  all.ATTENDANCE.forEach(r => {
+    const len = JSON.stringify(r).length;
+    if (cur.length && size + len > MAX_CHARS) { attChunks.push(cur); cur = []; size = 0; }
+    cur.push(r); size += len;
+  });
+  attChunks.push(cur);
+
+  const totalParts = attChunks.length;
+  const exportId = stamp + '-' + Math.floor(Math.random() * 1e6);
+  const urls = [];
+  attChunks.forEach((chunk, idx) => {
+    const sheets = { ATTENDANCE: chunk };
+    if (idx === 0) names.forEach(n => { if (n !== 'ATTENDANCE') sheets[n] = all[n]; });
+    const out = {
+      exportId: exportId,
+      exportedAt: Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss'),
+      spreadsheet: ss.getName(),
+      part: idx + 1,
+      totalParts: totalParts,
+      counts: counts,
+      sheets: sheets
+    };
+    const file = folder.createFile('HRIS-export-' + stamp + '-part' + (idx + 1) + '.json', JSON.stringify(out), 'application/json');
+    urls.push(file.getUrl());
+  });
+
+  Logger.log('✅ Export selesai: ' + totalParts + ' file di folder Google Drive "' + folder.getName() + '"');
+  Logger.log('   Buka folder: ' + folder.getUrl());
+  Logger.log('   Jumlah baris: ' + JSON.stringify(counts));
+  Logger.log('⚠️ File ini berisi password karyawan. Hapus folder tersebut setelah import ke Hostinger berhasil.');
+  return folder.getUrl();
+}
+
+/** Baca satu sheet sebagai array objek, memakai nilai asli sel untuk tanggal/jam/angka. */
+function exportSheetRows(sheetName, tz) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) return [];
+  const range = sheet.getDataRange();
+  const values = range.getValues();
+  const display = range.getDisplayValues();
+  if (values.length <= 1) return [];
+
+  const headers = display[0].map(h => String(h).trim());
+  const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  // Kolom yang isinya angka murni -> pakai angka asli (hindari "Rp 5.000.000" / "-6,17")
+  const numericCols = ['LATITUDE', 'LONGITUDE', 'DISTANCE_METERS', 'RADIUS_METERS', 'LEAVE_BALANCE', 'SAVED_HOLIDAYS',
+    'BASIC_SALARY', 'ALLOWANCE', 'BPJS_TK_AMOUNT', 'BPJS_KES_AMOUNT', 'KASBON_AMOUNT', 'ENCASHED_HOLIDAYS',
+    'ON_TIME_BONUS', 'ENCASHED_HOLIDAY_PAY', 'LATE_COUNT', 'EXCUSED_LATE_COUNT', 'LATE_DEDUCTION', 'DEDUCTIONS', 'NET_SALARY'];
+
+  const rows = [];
+  for (let i = 1; i < values.length; i++) {
+    // Lewati baris yang benar-benar kosong
+    if (display[i].every(c => String(c).trim() === '')) continue;
+    const obj = { _ROW: i + 1 };
+    for (let j = 0; j < headers.length; j++) {
+      const h = headers[j];
+      if (!h) continue;
+      const raw = values[i][j];
+      let v;
+      if (raw instanceof Date) {
+        if (sheetName === 'SETTINGS' && h === 'VALUE') v = Utilities.formatDate(raw, tz, 'HH:mm');
+        else if (h === 'PERIOD') v = monthNames[Number(Utilities.formatDate(raw, tz, 'M')) - 1] + ' ' + Utilities.formatDate(raw, tz, 'yyyy');
+        else if (h.indexOf('TIME') !== -1) v = Utilities.formatDate(raw, tz, 'HH:mm:ss');
+        else if (h === 'CREATED_AT') v = Utilities.formatDate(raw, tz, 'yyyy-MM-dd HH:mm:ss');
+        else v = Utilities.formatDate(raw, tz, 'yyyy-MM-dd');
+      } else if (typeof raw === 'number' && numericCols.indexOf(h) !== -1) {
+        v = raw;
+      } else if (sheetName === 'SETTINGS' && h === 'VALUE' && typeof raw === 'number') {
+        v = String(raw);
+      } else {
+        v = display[i][j];
+      }
+      obj[h] = v;
+    }
+    rows.push(obj);
+  }
+  return rows;
 }
 
 function doGet(e) {

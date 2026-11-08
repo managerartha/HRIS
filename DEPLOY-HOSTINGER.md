@@ -19,9 +19,10 @@ Kerjakan berurutan. Selama belum selesai, versi GitHub Pages yang lama tetap bis
 
 ---
 
-## Langkah 0: Perbarui Apps Script lama (sementara)
+## Langkah 0: Perbarui Apps Script lama (WAJIB)
 
-Supaya Riana dan karyawan lain bisa absen selama proses pindah:
+Langkah ini wajib, karena `Code.gs` baru berisi fungsi **`exportForHostinger`** untuk memindahkan data.
+Selain itu, Riana dan karyawan lain jadi bisa absen di versi lama selama masa persiapan:
 
 1. Buka Spreadsheet HRIS → **Extensions → Apps Script**.
 2. Ganti seluruh isi `Code.gs` dengan isi file `apps-script/Code.gs` dari repo ini → **Save**.
@@ -47,17 +48,46 @@ Supaya Riana dan karyawan lain bisa absen selama proses pindah:
    - `setup_key`: ganti dengan kata rahasia panjang (dipakai untuk membuka halaman setup).
 4. Aktifkan **SSL/HTTPS** untuk domain: hPanel → **Security → SSL**. **Wajib.** Tanpa HTTPS, GPS dan kamera di HP tidak bisa dipakai.
 
-## Langkah 3: Pindahkan data dari Spreadsheet
+## Langkah 3: Pindahkan SEMUA data lama dari Spreadsheet
 
+Yang ikut pindah: akun & password karyawan, data gaji/BPJS/kasbon, saldo cuti & tabungan libur,
+seluruh riwayat absensi beserta foto selfie, pengajuan cuti/izin, slip gaji, agenda, tugas dinas, dan pengaturan kantor.
+**Spreadsheet lama tidak diubah atau dihapus**, jadi tetap aman sebagai arsip.
+
+### Uji coba dulu (boleh kapan saja)
 1. Di Apps Script Editor pilih fungsi **`exportForHostinger`** → **Run** (Jalankan).
-2. Buka Google Drive (My Drive). Akan ada file `HRIS-export-xxxx.json`. Download file itu.
+2. Di Google Drive (My Drive) akan muncul folder **`HRIS-export-<tanggal>`** berisi `...-part1.json`
+   (dan `part2`, `part3`, dst. kalau foto absensinya banyak). Download **semua** file di folder itu.
 3. Buka `https://domainanda.com/setup/`.
 4. **Bagian 1**: masukkan setup key → **Buat Tabel**.
-5. **Bagian 2**: masukkan setup key, pilih file JSON → **Import Data**.
-6. Coba login di `https://domainanda.com` dengan akun admin lama. Password lama tetap berlaku.
-7. Kalau semua sudah benar:
-   - **Hapus folder `setup/`** di File Manager.
-   - **Hapus file `HRIS-export-xxxx.json` dari Google Drive dan dari komputer**, karena file itu berisi password karyawan.
+5. **Bagian 2**: masukkan setup key, pilih **semua file part sekaligus**, centang "Kosongkan data" → **Import Data**.
+6. Baca **Laporan Import**. Untuk tiap sheet terlihat jumlah baris di spreadsheet dan berapa yang masuk.
+   - ✅ artinya semua baris masuk.
+   - Baris yang *tidak masuk* (misalnya tanggal tidak terbaca atau EMP_ID kosong) ditampilkan dengan **nomor barisnya di spreadsheet**.
+     Perbaiki baris itu di Google Sheets, lalu ulangi export + import.
+   - Absensi dobel di hari yang sama otomatis **digabung**: jam masuk paling awal, jam keluar paling akhir.
+   - Akun dengan email kosong atau dobel **tetap diimport** dengan email sementara `emp-xxxx@ganti-email.local`.
+     Karyawan itu bisa login pakai ID-nya (misal `EMP-0005`), lalu admin memperbaiki emailnya di menu Edit Karyawan.
+7. Coba login dengan beberapa akun karyawan. **Password lama tetap berlaku.**
+
+### Hari pindah (go-live)
+Supaya absensi yang masuk di versi GitHub selama masa uji coba **tidak tertinggal**:
+1. Pilih waktu di luar jam absen, misalnya malam setelah semua karyawan absen keluar.
+2. Jalankan **`exportForHostinger`** sekali lagi, supaya data yang diambil adalah data terbaru.
+3. Import ulang di `/setup/` **dengan centang "Kosongkan data"**. Data hasil uji coba diganti dengan data terbaru.
+4. Cek Laporan Import, lalu bagikan alamat baru `https://domainanda.com` ke semua karyawan.
+5. Mulai besok semua orang absen di Hostinger. Versi GitHub jangan dipakai lagi.
+   Kalau mau, tambahkan pengumuman di halaman lama yang mengarahkan karyawan ke alamat baru.
+6. Setelah semua beres:
+   - **Hapus folder `setup/`** di File Manager Hostinger.
+   - **Hapus folder `HRIS-export-...` dari Google Drive dan file download-nya di komputer**, karena berisi password karyawan.
+
+Kalau file terlalu besar untuk diupload sekaligus: upload `part1` dulu (dengan centang), lalu part berikutnya satu per satu
+**tanpa** centang. Halaman import akan memberi tahu kalau masih ada part yang belum diupload.
+
+> **Lampiran pengajuan & dokumen kontrak/BPJS** yang dulu diupload ke Google Drive tetap disimpan sebagai **link Google Drive**
+> dan tetap bisa dibuka dari HRIS Hostinger. **Jangan hapus file-file itu dari Google Drive.**
+> Lampiran baru yang diupload setelah pindah tersimpan di Hostinger (`uploads/`).
 
 Setelah import, cek menu **Data Karyawan → Edit** untuk setiap karyawan khusus:
 
