@@ -161,6 +161,9 @@ function exportSheetRows(sheetName, tz) {
   return rows;
 }
 
+/** true = HRIS lama (Google Sheets) tidak menerima absen lagi karena sudah pindah ke Hostinger. */
+const HRIS_PINDAH = true;
+
 function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({
     success: true,
@@ -177,6 +180,15 @@ function doPost(e) {
 
     const data = JSON.parse(e.postData.contents);
     const action = data.action;
+
+    // HRIS SUDAH PINDAH: sistem lama berhenti menerima absen & pengajuan.
+    // (Ubah HRIS_PINDAH menjadi false jika suatu saat perlu dibuka lagi.)
+    if (HRIS_PINDAH && action !== 'exportForHostinger') {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'HRIS sudah pindah ke alamat baru: https://hris.arthasafetyindonesia.com — silakan absen di sana (login sama).'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
     let res = { success: false, message: 'Action not found.' };
 
     if (action === 'login') {
