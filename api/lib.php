@@ -299,6 +299,35 @@ function public_url(?string $path): string
 /* bukan nama yang ditulis langsung di kode.                            */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Hak akses tambahan (untuk karyawan non-admin, mis. supervisor)       */
+/* ------------------------------------------------------------------ */
+
+const PERM_ATT_ALL = 'ATT_ALL';   // lihat riwayat absensi seluruh karyawan
+const PERM_REPORT = 'REPORT';     // laporan presensi (PDF)
+const PERM_APPROVE = 'APPROVE';   // menyetujui cuti, izin, libur & koreksi absen (BUKAN lembur)
+const ALL_PERMS = [PERM_ATT_ALL, PERM_REPORT, PERM_APPROVE];
+
+function user_perms(array $u): array
+{
+    if (($u['role'] ?? '') === 'ADMIN') return ALL_PERMS;
+    $list = array_map('trim', explode(',', strtoupper((string)($u['permissions'] ?? ''))));
+    return array_values(array_intersect(ALL_PERMS, $list));
+}
+
+function has_perm(array $u, string $perm): bool
+{
+    return in_array($perm, user_perms($u), true);
+}
+
+/** Data karyawan tanpa gaji / BPJS / kasbon — untuk pengguna dengan akses parsial. */
+function out_user_basic(array $u): array
+{
+    $full = out_user($u);
+    $keep = ['EMP_ID', 'FULL_NAME', 'POSITION', 'DEPARTMENT', 'JOIN_DATE', 'PROFILE_PIC', 'WORK_MODE', 'BONUS_EXEMPT', 'IS_ACTIVE', 'RESIGN_DATE', 'ROLE'];
+    return array_intersect_key($full, array_flip($keep));
+}
+
 function is_remote_user(array $u): bool
 {
     // Kolom work_mode di database adalah penentu (diatur Admin di menu Edit Karyawan).
@@ -350,6 +379,7 @@ function out_user(array $u): array
         'BONUS_EXEMPT' => is_bonus_exempt($u),
         'IS_ACTIVE' => (bool)$u['is_active'],
         'RESIGN_DATE' => fmt_date($u['resign_date'] ?? null),
+        'PERMISSIONS' => user_perms($u),
     ];
 }
 
@@ -542,7 +572,7 @@ function build_backup_zip(string $zipPath, bool $includeFiles): void
 /* Pembaruan struktur database otomatis (tanpa perlu buka phpMyAdmin)  */
 /* ------------------------------------------------------------------ */
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 function column_exists(string $table, string $col): bool
 {
@@ -587,6 +617,8 @@ function ensure_schema(): void
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     q("INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES
         ('WORK_END_SATURDAY', '12:00', 'Jam Pulang Hari Sabtu (WIB)')");
+    // v4: hak akses tambahan per karyawan (mis. supervisor)
+    add_column_if_missing('users', 'permissions', "permissions VARCHAR(255) NOT NULL DEFAULT '' AFTER role");
 
     q("INSERT INTO settings (setting_key, setting_value, description) VALUES ('SCHEMA_VERSION', ?, 'Versi struktur database (otomatis)')
        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)", [(string)SCHEMA_VERSION]);

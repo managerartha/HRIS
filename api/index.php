@@ -46,7 +46,8 @@ try {
         $res = action_logout($data);
     } else {
         $me = require_session($data);
-        $adminOnly = ['addDutyAssignment', 'updateDutyAssignment', 'deleteDutyAssignment', 'updateRequestStatus', 'saveEmployee',
+        // updateRequestStatus diperiksa di dalam fungsinya (admin / karyawan dengan hak akses Persetujuan)
+        $adminOnly = ['addDutyAssignment', 'updateDutyAssignment', 'deleteDutyAssignment', 'saveEmployee',
             'saveManualPayslip', 'updateOfficeSettings', 'resolveMapsLink', 'addHoliday', 'deleteHoliday',
             'getEmailSettings', 'saveEmailSettings', 'testEmail', 'sendPayslipEmails'];
         if (in_array($action, $adminOnly, true) && $me['role'] !== 'ADMIN') {
@@ -162,6 +163,10 @@ function action_dashboard(array $me): array
 {
     $isAdmin = $me['role'] === 'ADMIN';
     $empId = $me['emp_id'];
+    // Akses parsial (mis. supervisor): lihat absensi semua / laporan / persetujuan, tanpa data gaji
+    $seeAllAtt = $isAdmin || has_perm($me, PERM_ATT_ALL) || has_perm($me, PERM_REPORT);
+    $seeAllReq = $isAdmin || has_perm($me, PERM_APPROVE) || has_perm($me, PERM_REPORT);
+    $canApprove = $isAdmin || has_perm($me, PERM_APPROVE);
     $today = date('Y-m-d');
     $settings = get_settings();
 
@@ -170,12 +175,13 @@ function action_dashboard(array $me): array
     $userTodayAtt = null;
     foreach ($todayAtt as $a) if ($a['emp_id'] === $empId) $userTodayAtt = out_attendance($a);
 
-    $attRows = $isAdmin
+    $attRows = $seeAllAtt
         ? q_all('SELECT * FROM attendance ORDER BY date DESC, checkin_time DESC')
         : q_all('SELECT * FROM attendance WHERE emp_id = ? ORDER BY date DESC, checkin_time DESC', [$empId]);
 
     $allRequests = q_all('SELECT * FROM requests ORDER BY created_at DESC, req_id DESC');
-    $pending = count(array_filter($allRequests, fn($r) => $r['status'] === 'PENDING'));
+    $pending = count(array_filter($allRequests, fn($r) => $r['status'] === 'PENDING'
+        && ($isAdmin || ($r['emp_id'] !== $empId && can_approve_type($r['type'])))));
     $myRequests = array_values(array_filter($allRequests, fn($r) => $r['emp_id'] === $empId));
 
     // Status disiplin: tidak ada keterlambatan tanpa izin
@@ -212,7 +218,7 @@ function action_dashboard(array $me): array
 
     $activeDuty = find_active_duty($empId, $today);
 
-    $duties = $isAdmin
+    $duties = ($isAdmin || has_perm($me, PERM_REPORT))
         ? q_all('SELECT * FROM duties ORDER BY created_at DESC, duty_id DESC')
         : q_all('SELECT * FROM duties WHERE emp_id = ? ORDER BY created_at DESC, duty_id DESC', [$empId]);
 
@@ -230,14 +236,19 @@ function action_dashboard(array $me): array
             'lateToday' => $lateToday,
             'leaveBalance' => (int)$me['leave_balance'],
             'savedHolidays' => $effectiveSaved,
-            'pendingRequestsCount' => $isAdmin ? $pending : 0,
+            'pendingRequestsCount' => $canApprove ? $pending : 0,
             'isDisciplined' => $unexcused === 0,
         ],
         'userTodayAtt' => $userTodayAtt,
         'recentAttendance' => array_map('out_attendance', $attRows),
-        'requests' => array_map('out_request', $isAdmin ? $allRequests : $myRequests),
+        'requests' => array_map(function ($r) use ($isAdmin, $empId) {
+            $o = out_request($r);
+            if (!$isAdmin && $r['emp_id'] !== $empId) $o['OT_PAY'] = null; // nominal upah lembur orang lain hanya untuk Admin
+            return $o;
+        }, $seeAllReq ? $allRequests : $myRequests),
         'payslips' => array_map(fn($p) => out_payslip($p, $usersById[$p['emp_id']] ?? null), $payRows),
-        'allUsers' => $isAdmin ? array_map('out_user', array_values($usersById)) : [],
+        'allUsers' => $isAdmin ? array_map('out_user', array_values($usersById))
+            : (($seeAllAtt || $seeAllReq) ? array_map('out_user_basic', array_values($usersById)) : []),
         'agendas' => array_map('out_agenda', q_all('SELECT * FROM agendas ORDER BY created_at DESC, agenda_id DESC')),
         'duties' => array_map('out_duty', $duties),
     ];
@@ -564,8 +575,24 @@ function action_preview_overtime(array $me, array $d): array
         'hourly' => (int)round($calc['hourly']), 'factor' => round($calc['factor'], 2)];
 }
 
+/** Jenis pengajuan yang boleh disetujui karyawan dengan hak akses Persetujuan (lembur hanya Admin). */
+function can_approve_type(string $type): bool
+{
+    return !is_ot_type($type);
+}
+
 function action_update_request_status(array $me, array $d): array
 {
+    if ($me['role'] !== 'ADMIN') {
+        if (!has_perm($me, PERM_APPROVE)) throw new ApiError('Akses ditolak: Anda tidak memiliki hak akses Persetujuan.', 403);
+        $target = q_one('SELECT emp_id, type FROM requests WHERE req_id = ?', [(string)($d['reqId'] ?? '')]);
+        if ($target && $target['emp_id'] === $me['emp_id']) {
+            return ['success' => false, 'message' => 'Pengajuan milik Anda sendiri harus diproses oleh Admin HR.'];
+        }
+        if ($target && !can_approve_type($target['type'])) {
+            return ['success' => false, 'message' => 'Pengajuan lembur hanya bisa diproses oleh Admin HR.'];
+        }
+    }
     $status = strtoupper(trim((string)($d['status'] ?? '')));
     if (!in_array($status, ['APPROVED', 'REJECTED', 'DISETUJUI', 'DITOLAK'], true)) {
         return ['success' => false, 'message' => 'Status tidak valid.'];
@@ -650,6 +677,10 @@ function action_save_employee(array $d, ?array $me = null): array
         'encashed_holidays' => (int)($d['encashedHolidays'] ?? 0),
     ];
     if (array_key_exists('workMode', $d)) $fields['work_mode'] = $workMode;
+    if (array_key_exists('permissions', $d) && is_array($d['permissions'])) {
+        $perms = array_values(array_intersect(ALL_PERMS, array_map(fn($p) => strtoupper(trim((string)$p)), $d['permissions'])));
+        $fields['permissions'] = implode(',', $perms);
+    }
     if (array_key_exists('bonusExempt', $d)) $fields['bonus_exempt'] = to_bool($d['bonusExempt']) ? 1 : 0;
     if (array_key_exists('isActive', $d)) {
         $active = to_bool($d['isActive']);

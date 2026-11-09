@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
   email             VARCHAR(190) NOT NULL,
   password_hash     VARCHAR(255) NOT NULL,
   role              VARCHAR(20)  NOT NULL DEFAULT 'EMPLOYEE',
+  -- Hak akses tambahan untuk non-admin, dipisah koma: ATT_ALL, REPORT, APPROVE
+  permissions       VARCHAR(255) NOT NULL DEFAULT '',
   position          VARCHAR(150) NOT NULL DEFAULT '',
   department        VARCHAR(150) NOT NULL DEFAULT '',
   join_date         DATE         NULL,

@@ -468,7 +468,14 @@ function notify_new_request(string $reqId): void
 {
     $r = q_one('SELECT * FROM requests WHERE req_id = ?', [$reqId]);
     if (!$r) return;
-    queue_mail(hr_recipients(), 'Pengajuan baru: ' . $r['type'] . ' — ' . $r['full_name'],
+    $to = hr_recipients();
+    // Karyawan dengan hak akses Persetujuan juga diberi tahu (kecuali pengajuannya sendiri & lembur)
+    if (!is_ot_type($r['type'])) {
+        foreach (q_all("SELECT emp_id, email, role, permissions FROM users WHERE is_active = 1 AND role <> 'ADMIN' AND permissions LIKE '%APPROVE%'") as $u) {
+            if ($u['emp_id'] !== $r['emp_id'] && has_perm($u, PERM_APPROVE) && valid_mail((string)$u['email'])) $to[] = $u['email'];
+        }
+    }
+    queue_mail(array_values(array_unique($to)), 'Pengajuan baru: ' . $r['type'] . ' — ' . $r['full_name'],
         mail_layout('Pengajuan baru menunggu persetujuan', '<p>Ada pengajuan baru <b>' . htmlspecialchars($r['req_id']) . '</b>:</p>'
             . request_summary_html($r) . '<p>Silakan buka menu <b>Persetujuan</b> di HRIS untuk menyetujui atau menolak.</p>'));
 }

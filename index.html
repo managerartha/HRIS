@@ -287,7 +287,7 @@
           </button>
 
           <div id="adminNavGroup" class="hidden pt-4 space-y-1 border-t border-white/10 mt-4">
-            <p class="px-3 text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2">Panel Administrator</p>
+            <p id="adminNavTitle" class="px-3 text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2">Panel Administrator</p>
             <button onclick="switchTab('adminEmployees')" id="nav-adminEmployees" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left">
               <i class="fa-solid fa-users w-5"></i> Kelola Karyawan
             </button>
@@ -298,7 +298,7 @@
               <i class="fa-solid fa-clipboard-check w-5"></i> Persetujuan
               <span id="badgePendingCount" class="ml-auto bg-amber-400 text-slate-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full hidden">0</span>
             </button>
-            <button onclick="openAttendanceReportModal()" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left text-amber-300">
+            <button onclick="openAttendanceReportModal()" id="nav-adminReport" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left text-amber-300">
               <i class="fa-solid fa-file-pdf w-5"></i> Laporan Presensi (PDF)
             </button>
             <button onclick="switchTab('adminSettings')" id="nav-adminSettings" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition text-left">
@@ -1679,6 +1679,13 @@
             <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Terakhir Bekerja</label>
             <input type="date" id="empResignDate" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
           </div>
+          <div id="empPermGroup" class="sm:col-span-2 pt-2 border-t border-amber-100">
+            <p class="text-xs font-bold text-slate-600 mb-1">Hak Akses Tambahan <span class="font-normal text-slate-400">(untuk karyawan non-admin, mis. supervisor)</span></p>
+            <label class="flex items-center gap-2 text-xs text-slate-700 py-0.5"><input type="checkbox" class="emp-perm w-4 h-4 accent-emerald-600" value="ATT_ALL"> Lihat riwayat absensi seluruh karyawan</label>
+            <label class="flex items-center gap-2 text-xs text-slate-700 py-0.5"><input type="checkbox" class="emp-perm w-4 h-4 accent-emerald-600" value="REPORT"> Laporan Presensi (PDF)</label>
+            <label class="flex items-center gap-2 text-xs text-slate-700 py-0.5"><input type="checkbox" class="emp-perm w-4 h-4 accent-emerald-600" value="APPROVE"> Persetujuan cuti, izin, libur & koreksi absen <span class="text-slate-400">(lembur tetap Admin)</span></label>
+            <p class="text-[10px] text-slate-400 mt-1">Tidak termasuk data gaji, kelola karyawan, dinas, pengaturan, dan slip gaji orang lain. Admin otomatis memiliki semua akses.</p>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1984,17 +1991,27 @@
 
       const recTitle = document.getElementById('recentAttTitle');
       const recSub = document.getElementById('recentAttSubtitle');
-      if (currentUser.ROLE === 'ADMIN') {
+      const isAdmin = currentUser.ROLE === 'ADMIN';
+      const canSeeAllAtt = isAdmin || hasPerm('ATT_ALL') || hasPerm('REPORT');
+      if (canSeeAllAtt) {
         if (recTitle) recTitle.innerText = "Riwayat Presensi Terbaru (Seluruh Karyawan)";
         if (recSub) recSub.innerText = "Log kehadiran seluruh karyawan secara real-time";
-        document.getElementById('adminNavGroup').classList.remove('hidden');
-        document.getElementById('btnAdminManualPayslipGroup').classList.remove('hidden');
       } else {
         if (recTitle) recTitle.innerText = "Riwayat Presensi Saya";
         if (recSub) recSub.innerText = "Log kehadiran pribadi Anda secara real-time";
-        document.getElementById('adminNavGroup').classList.add('hidden');
-        document.getElementById('btnAdminManualPayslipGroup').classList.add('hidden');
       }
+      // Panel admin: Admin melihat semua menu; akses parsial hanya menu sesuai hak aksesnya
+      const showReport = isAdmin || hasPerm('REPORT');
+      const showApprove = isAdmin || hasPerm('APPROVE');
+      document.getElementById('adminNavGroup').classList.toggle('hidden', !(isAdmin || showReport || showApprove));
+      document.getElementById('adminNavTitle').innerText = isAdmin ? 'Panel Administrator' : 'Akses Supervisor';
+      ['nav-adminEmployees', 'nav-adminDuties', 'nav-adminSettings'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', !isAdmin);
+      });
+      document.getElementById('nav-adminApprovals').classList.toggle('hidden', !showApprove);
+      document.getElementById('nav-adminReport').classList.toggle('hidden', !showReport);
+      document.getElementById('btnAdminManualPayslipGroup').classList.toggle('hidden', !isAdmin);
 
       const contractBtn = document.getElementById('btnDocContract');
       const bpjsBtn = document.getElementById('btnDocBpjs');
@@ -2018,6 +2035,12 @@
       document.getElementById('loginScreen').classList.remove('hidden');
       document.getElementById('formLogin').reset();
       if (!silent) showToast("Berhasil keluar.");
+    }
+
+    function hasPerm(p) {
+      if (!currentUser) return false;
+      if (currentUser.ROLE === 'ADMIN') return true;
+      return Array.isArray(currentUser.PERMISSIONS) && currentUser.PERMISSIONS.includes(p);
     }
 
     function openDrawer() { document.body.classList.add('drawer-open'); }
@@ -3554,7 +3577,8 @@
 
     function requestTypeDetailHtml(r) {
       if (r.OT_HOURS !== null && r.OT_HOURS !== undefined) {
-        return "<p class='text-[10px] text-violet-700 font-semibold'>" + r.OT_HOURS + " jam • Rp " + Number(r.OT_PAY || 0).toLocaleString('id-ID') + "</p>";
+        const pay = (r.OT_PAY === null || r.OT_PAY === undefined) ? '' : " • Rp " + Number(r.OT_PAY).toLocaleString('id-ID');
+        return "<p class='text-[10px] text-violet-700 font-semibold'>" + r.OT_HOURS + " jam" + pay + "</p>";
       }
       if (r.CORRECTION_KIND) {
         return "<p class='text-[10px] text-sky-700 font-semibold'>" + (r.CORRECTION_KIND === 'IN' ? 'Lupa absen masuk' : 'Lupa absen keluar') + " • jam " + esc(r.CORRECTION_TIME) + "</p>";
@@ -3709,7 +3733,13 @@
         return;
       }
 
-      cachedData.requests.forEach(r => {
+      const myId = String(currentUser.EMP_ID || '').toUpperCase();
+      const reqList = (currentUser.ROLE === 'ADMIN') ? cachedData.requests : cachedData.requests.filter(r => String(r.EMP_ID || '').toUpperCase() === myId || r.REQ_ID === 'REQ-NEW');
+      if (reqList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="py-4 text-center text-slate-400">Belum ada riwayat pengajuan.</td></tr>';
+        return;
+      }
+      reqList.forEach(r => {
         let badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">PENDING</span>';
         if (r.STATUS === 'APPROVED' || r.STATUS === 'DISETUJUI') badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DISETUJUI</span>';
         if (r.STATUS === 'REJECTED' || r.STATUS === 'DITOLAK') badge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">DITOLAK</span>';
@@ -4091,6 +4121,8 @@
         document.getElementById('empPassword').placeholder = 'Abaikan jika tidak diubah';
         document.getElementById('empWorkModeGroup').classList.toggle('hidden', !USE_PHP_BACKEND);
         document.getElementById('empIsActive').value = (emp.IS_ACTIVE === false) ? '0' : '1';
+        const empPerms = (emp.ROLE === 'ADMIN') ? [] : (emp.PERMISSIONS || []);
+        document.querySelectorAll('.emp-perm').forEach(c => { c.checked = empPerms.includes(c.value); });
         document.getElementById('empResignDate').value = emp.RESIGN_DATE ? toIsoDateInput(emp.RESIGN_DATE) : todayIso();
         onEmpActiveChange();
 
@@ -4112,6 +4144,7 @@
       document.getElementById('empPassword').placeholder = 'Wajib diisi (min. 6 karakter)';
       document.getElementById('empWorkModeGroup').classList.toggle('hidden', !USE_PHP_BACKEND);
       document.getElementById('empIsActive').value = '1';
+      document.querySelectorAll('.emp-perm').forEach(c => { c.checked = false; });
       onEmpActiveChange();
       document.getElementById('modalEmployee').classList.remove('hidden');
     }
@@ -4157,6 +4190,7 @@
         payload.workMode = document.getElementById('empWorkMode').value;
         payload.bonusExempt = document.getElementById('empBonusExempt').checked;
         payload.isActive = document.getElementById('empIsActive').value === '1';
+        payload.permissions = Array.from(document.querySelectorAll('.emp-perm:checked')).map(c => c.value);
         payload.resignDate = document.getElementById('empResignDate').value;
         if (!payload.isActive && payload.isEdit && !confirm('Nonaktifkan ' + payload.fullName + '? Karyawan ini tidak bisa login lagi, tetapi seluruh riwayatnya tetap tersimpan.')) return;
       }
@@ -4192,7 +4226,11 @@
         }
 
         let actions = '-';
-        if (r.STATUS === 'PENDING') {
+        const isOwnReq = currentUser && String(r.EMP_ID || '').toUpperCase() === String(currentUser.EMP_ID || '').toUpperCase();
+        const isOtReq = String(r.TYPE || '').trim().toLowerCase() === 'lembur';
+        if (r.STATUS === 'PENDING' && currentUser.ROLE !== 'ADMIN' && (isOwnReq || isOtReq)) {
+          actions = "<span class='text-[10px] text-slate-400 font-semibold'>" + (isOwnReq ? 'Diproses Admin (pengajuan Anda)' : 'Lembur: khusus Admin') + "</span>";
+        } else if (r.STATUS === 'PENDING') {
           actions = "<div class='flex items-center justify-center gap-1'>" +
             "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"APPROVED\")' class='px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:bg-emerald-700 shadow-sm'><i class='fa-solid fa-check'></i> Setujui</button>" +
             "<button onclick='processApproval(\"" + r.REQ_ID + "\", \"REJECTED\")' class='px-2.5 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700 shadow-sm'><i class='fa-solid fa-xmark'></i> Tolak</button>" +
