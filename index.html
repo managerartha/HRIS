@@ -1767,10 +1767,10 @@
     </div>
   </div>
 
-  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
-    <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
-      <i id="toastIcon" class="fa-solid fa-circle-info text-emerald-400"></i>
-      <span id="toastMsg" class="text-xs font-bold">Notifikasi Pesan</span>
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none" style="max-width: min(520px, calc(100vw - 24px));">
+    <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-start gap-3 border border-slate-700">
+      <i id="toastIcon" class="fa-solid fa-circle-info text-emerald-400 mt-0.5 shrink-0"></i>
+      <span id="toastMsg" class="text-xs font-bold leading-relaxed break-words">Notifikasi Pesan</span>
     </div>
   </div>
 
@@ -1926,18 +1926,21 @@
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
+    let toastTimer = null;
     function showToast(message, isError = false) {
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toastMsg');
       const toastIcon = document.getElementById('toastIcon');
 
       toastMsg.innerText = message;
-      toastIcon.className = isError ? "fa-solid fa-triangle-exclamation text-red-400" : "fa-solid fa-circle-check text-emerald-400";
+      toastIcon.className = (isError ? "fa-solid fa-triangle-exclamation text-red-400" : "fa-solid fa-circle-check text-emerald-400") + " mt-0.5 shrink-0";
       
       toast.classList.remove('translate-y-20', 'opacity-0');
-      setTimeout(() => {
+      // Pesan panjang ditampilkan lebih lama (4–10 detik) agar sempat dibaca
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
         toast.classList.add('translate-y-20', 'opacity-0');
-      }, 4000);
+      }, Math.min(10000, 4000 + String(message || '').length * 40));
     }
 
     async function handleLogin() {

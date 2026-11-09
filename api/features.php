@@ -230,10 +230,12 @@ function validate_correction(array $me, array $d): array
 
     $att = q_one('SELECT * FROM attendance WHERE emp_id = ? AND date = ?', [$me['emp_id'], $today]);
     if ($kind === 'IN' && $att && $att['checkin_time']) {
-        throw new ApiError('Anda sudah tercatat absen masuk hari ini jam ' . fmt_time($att['checkin_time']) . '. Koreksi tidak diperlukan.');
+        throw new ApiError('Anda sudah tercatat absen masuk hari ini jam ' . fmt_time($att['checkin_time'])
+            . '. Koreksi absen hanya untuk yang belum absen sama sekali. Jika terlambat karena kendala (mis. kendaraan rusak / macet), '
+            . 'ajukan "Izin Terlambat" — bila disetujui HR, keterlambatan bebas potongan.');
     }
     if ($kind === 'OUT') {
-        if ($att && $att['checkout_time']) throw new ApiError('Anda sudah tercatat absen keluar hari ini jam ' . fmt_time($att['checkout_time']) . '.');
+        if ($att && $att['checkout_time']) throw new ApiError('Anda sudah tercatat absen keluar hari ini jam ' . fmt_time($att['checkout_time']) . '. Koreksi tidak diperlukan.');
         $pendingIn = q_val("SELECT 1 FROM requests WHERE emp_id = ? AND start_date = ? AND type = ? AND correction_kind = 'IN'
                             AND UPPER(status) NOT IN ('REJECTED','DITOLAK')", [$me['emp_id'], $today, CORRECTION_TYPE]);
         if (!$att && !$pendingIn) throw new ApiError('Belum ada absen masuk hari ini. Ajukan koreksi "Lupa Absen Masuk" terlebih dahulu.');
