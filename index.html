@@ -2673,6 +2673,7 @@
 
         const uId = String(u.EMP_ID).trim().toUpperCase();
         let userAlphaDays = 0;
+        let userDutyAlphaDays = 0;
         const alphaDates = [];
         const resignP = u.RESIGN_DATE ? parseDateParts(u.RESIGN_DATE) : null;
         const joinP = u.JOIN_DATE ? parseDateParts(u.JOIN_DATE) : null;
@@ -2689,12 +2690,12 @@
           });
           if (hasAtt) return;
 
-          // 2. Cek apakah sedang dalam penugasan dinas luar kota
+          // 2. Tugas dinas TIDAK membebaskan dari absen: karyawan dinas wajib absen di titik lokasi dinas.
+          //    Jika tidak absen tetap dihitung Alpha, tetapi diberi tanda "(dinas)" agar HR mudah menindaklanjuti.
           const hasDuty = (cachedData.duties || []).some(d => {
             if (String(d.EMP_ID || '').trim().toUpperCase() !== uId) return false;
             return isDateBetweenStr(normDate, d.START_DATE, d.END_DATE);
           });
-          if (hasDuty) return;
 
           // 3. Cek apakah memiliki pengajuan izin ketidakhadiran resmi yang DISETUJUI
           // (Hanya Cuti, Izin Sakit, dan Libur Pengganti yang membebaskan dari Alpha; Izin Terlambat & Tabung Libur TIDAK membebaskan Alpha)
@@ -2717,13 +2718,14 @@
           });
           if (hasApprovedLeave) return;
 
-          // Jika tidak ada absensi, tidak ada tugas dinas, dan tidak ada izin/cuti sah -> Dihitung ALPHA
+          // Jika tidak ada absensi dan tidak ada izin/cuti sah -> Dihitung ALPHA (termasuk saat dinas)
           userAlphaDays++;
-          alphaDates.push(normDate.substring(0, 5)); // Simpan format DD/MM (contoh: 03/09, 24/09)
+          if (hasDuty) userDutyAlphaDays++;
+          alphaDates.push(normDate.substring(0, 5) + (hasDuty ? ' (dinas)' : '')); // format DD/MM, contoh: 03/09, 24/09 (dinas)
         });
 
         if (userAlphaDays > 0) {
-          alphaMap.set(uId, { name: u.FULL_NAME, empId: u.EMP_ID, days: userAlphaDays, dates: alphaDates });
+          alphaMap.set(uId, { name: u.FULL_NAME, empId: u.EMP_ID, days: userAlphaDays, dutyDays: userDutyAlphaDays, dates: alphaDates });
         }
       });
 
@@ -2826,8 +2828,9 @@
       } else {
         alphaHtml = '<ul class="divide-y divide-red-100 space-y-1.5">';
         alphaMap.forEach(item => {
-          const datesDetail = item.dates && item.dates.length > 0 ? 
-            "<p class='text-[9px] text-red-500 font-mono mt-0.5'>Tgl: " + item.dates.join(', ') + "</p>" : "";
+          const datesDetail = (item.dates && item.dates.length > 0 ? 
+            "<p class='text-[9px] text-red-500 font-mono mt-0.5'>Tgl: " + item.dates.join(', ') + "</p>" : "") +
+            (item.dutyDays > 0 ? "<p class='text-[9px] text-orange-600 font-bold mt-0.5'><i class='fa-solid fa-briefcase mr-0.5'></i>" + item.dutyDays + " hari tidak absen saat tugas dinas</p>" : "");
           alphaHtml += "<li class='pt-1 flex items-start justify-between'>" +
             "<div>" +
               "<span class='font-bold text-slate-800'>" + item.name + "</span>" +
