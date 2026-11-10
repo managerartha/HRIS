@@ -380,6 +380,8 @@ function out_user(array $u): array
         'IS_ACTIVE' => (bool)$u['is_active'],
         'RESIGN_DATE' => fmt_date($u['resign_date'] ?? null),
         'PERMISSIONS' => user_perms($u),
+        'LEAVE_ELIGIBLE' => leave_eligible($u),
+        'LEAVE_ELIGIBLE_DATE' => fmt_date(leave_eligible_date($u)),
     ];
 }
 
@@ -493,6 +495,63 @@ function get_settings(): array
     ];
 }
 
+/* ------------------------------------------------------------------ */
+/* Hak cuti tahunan                                                      */
+/* ------------------------------------------------------------------ */
+
+const LEAVE_ANNUAL_DAYS = 12;
+
+/** Tanggal karyawan mulai berhak cuti (1 tahun setelah tanggal bergabung). null = tanggal bergabung tidak diketahui. */
+function leave_eligible_date(array $u): ?string
+{
+    $j = $u['join_date'] ?? null;
+    if (!$j) return null;
+    return date('Y-m-d', strtotime($j . ' +1 year'));
+}
+
+function leave_eligible(array $u, ?string $today = null): bool
+{
+    $d = leave_eligible_date($u);
+    return $d === null || $d <= ($today ?? date('Y-m-d'));
+}
+
+/**
+ * Dijalankan sekali saat fitur aturan cuti dipasang:
+ * - karyawan yang sudah >= 1 tahun: saldo cuti tahun ini TIDAK diubah (dianggap sudah diberi jatah tahun ini)
+ * - karyawan yang belum 1 tahun: saldo cuti menjadi 0 (belum berhak cuti)
+ */
+function init_leave_entitlement(): void
+{
+    $year = (int)date('Y');
+    foreach (q_all('SELECT emp_id, full_name, join_date, leave_balance FROM users') as $u) {
+        if (leave_eligible($u)) {
+            q('UPDATE users SET leave_year = ? WHERE emp_id = ?', [$year, $u['emp_id']]);
+        } else {
+            q('UPDATE users SET leave_balance = 0, leave_year = NULL WHERE emp_id = ?', [$u['emp_id']]);
+            if ((int)$u['leave_balance'] !== 0) {
+                audit_log(null, 'RESET_CUTI', $u['emp_id'], 'Saldo cuti ' . $u['full_name'] . ' diubah ' . (int)$u['leave_balance']
+                    . ' → 0 hari (masa kerja belum 1 tahun, berhak mulai ' . fmt_date(leave_eligible_date($u)) . ').');
+            }
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Log aktivitas                                                         */
+/* ------------------------------------------------------------------ */
+
+/** Catat aktivitas. $actor = baris user pelaku (null = sistem otomatis). */
+function audit_log(?array $actor, string $action, string $target, string $detail): void
+{
+    try {
+        q('INSERT INTO audit_log (actor_id, actor_name, action, target, detail) VALUES (?, ?, ?, ?, ?)', [
+            $actor['emp_id'] ?? 'SISTEM', $actor['full_name'] ?? 'Sistem otomatis', mb_substr($action, 0, 40), mb_substr($target, 0, 100), $detail,
+        ]);
+    } catch (Throwable $e) {
+        error_log('[HRIS audit] ' . $e->getMessage());
+    }
+}
+
 /** Pengaturan yang boleh dilihat semua karyawan (tanpa data rahasia seperti password email). */
 function public_settings(): array
 {
@@ -507,11 +566,12 @@ function public_settings(): array
 /* Backup (dipakai api/backup.php dan api/cron_backup.php)              */
 /* ------------------------------------------------------------------ */
 
-const BACKUP_TABLES = ['users', 'settings', 'attendance', 'requests', 'payslips', 'agendas', 'duties', 'holidays'];
+const BACKUP_TABLES = ['users', 'settings', 'attendance', 'requests', 'payslips', 'agendas', 'duties', 'holidays', 'announcements', 'announcement_reads', 'audit_log'];
 
 /** Buat file ZIP berisi: CSV per tabel (bisa dibuka Excel), hris.sql (restore via phpMyAdmin), dan opsional folder uploads. */
 function build_backup_zip(string $zipPath, bool $includeFiles): void
 {
+    ensure_schema(); // pastikan semua tabel terbaru sudah ada
     $zip = new ZipArchive();
     if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
         throw new ApiError('Gagal membuat file ZIP backup.', 500);
@@ -572,7 +632,7 @@ function build_backup_zip(string $zipPath, bool $includeFiles): void
 /* Pembaruan struktur database otomatis (tanpa perlu buka phpMyAdmin)  */
 /* ------------------------------------------------------------------ */
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 function column_exists(string $table, string $col): bool
 {
@@ -619,6 +679,36 @@ function ensure_schema(): void
         ('WORK_END_SATURDAY', '12:00', 'Jam Pulang Hari Sabtu (WIB)')");
     // v4: hak akses tambahan per karyawan (mis. supervisor)
     add_column_if_missing('users', 'permissions', "permissions VARCHAR(255) NOT NULL DEFAULT '' AFTER role");
+
+    // v5: pengumuman HR, log aktivitas, hak cuti tahunan
+    db()->exec("CREATE TABLE IF NOT EXISTS audit_log (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        actor_id VARCHAR(20) NOT NULL DEFAULT '',
+        actor_name VARCHAR(150) NOT NULL DEFAULT '',
+        action VARCHAR(40) NOT NULL DEFAULT '',
+        target VARCHAR(100) NOT NULL DEFAULT '',
+        detail TEXT,
+        KEY idx_audit_created (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    db()->exec("CREATE TABLE IF NOT EXISTS announcements (
+        ann_id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(200) NOT NULL DEFAULT '',
+        body TEXT,
+        created_by VARCHAR(150) NOT NULL DEFAULT '',
+        created_by_id VARCHAR(20) NOT NULL DEFAULT '',
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    db()->exec("CREATE TABLE IF NOT EXISTS announcement_reads (
+        ann_id INT NOT NULL,
+        emp_id VARCHAR(20) NOT NULL,
+        read_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (ann_id, emp_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    if (add_column_if_missing('users', 'leave_year', "leave_year INT NULL AFTER leave_balance")) {
+        init_leave_entitlement();
+    }
 
     q("INSERT INTO settings (setting_key, setting_value, description) VALUES ('SCHEMA_VERSION', ?, 'Versi struktur database (otomatis)')
        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)", [(string)SCHEMA_VERSION]);

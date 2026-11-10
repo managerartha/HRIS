@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
   department        VARCHAR(150) NOT NULL DEFAULT '',
   join_date         DATE         NULL,
   leave_balance     INT          NOT NULL DEFAULT 12,
+  leave_year        INT          NULL,
   saved_holidays    INT          NOT NULL DEFAULT 0,
   contract_doc_url  VARCHAR(500) NOT NULL DEFAULT '-',
   bpjs_doc_url      VARCHAR(500) NOT NULL DEFAULT '-',
@@ -174,6 +175,34 @@ CREATE TABLE IF NOT EXISTS holidays (
   name         VARCHAR(150) NOT NULL DEFAULT '',
   type         VARCHAR(20)  NOT NULL DEFAULT 'LIBUR NASIONAL',
   created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  actor_id VARCHAR(20) NOT NULL DEFAULT '',
+  actor_name VARCHAR(150) NOT NULL DEFAULT '',
+  action VARCHAR(40) NOT NULL DEFAULT '',
+  target VARCHAR(100) NOT NULL DEFAULT '',
+  detail TEXT,
+  KEY idx_audit_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS announcements (
+  ann_id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL DEFAULT '',
+  body TEXT,
+  created_by VARCHAR(150) NOT NULL DEFAULT '',
+  created_by_id VARCHAR(20) NOT NULL DEFAULT '',
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS announcement_reads (
+  ann_id INT NOT NULL,
+  emp_id VARCHAR(20) NOT NULL,
+  read_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (ann_id, emp_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES

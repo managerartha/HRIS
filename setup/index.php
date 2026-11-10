@@ -271,6 +271,7 @@ function import_parts(array $parts, bool $wipe): array
     // Tanggal ACC pengajuan lama diambil dari agenda "Sistem HR" yang dibuat saat ACC
     ensure_schema();
     backfill_request_approved_at();
+    init_leave_entitlement(); // hak cuti: >= 1 tahun tetap, < 1 tahun = 0
 
     $tables = [];
     foreach ($rep as $sheet => $r) {

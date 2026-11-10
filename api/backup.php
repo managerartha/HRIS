@@ -21,6 +21,7 @@ try {
     @set_time_limit(300);
     $tmp = tempnam(sys_get_temp_dir(), 'hris');
     build_backup_zip($tmp, !empty($data['includeFiles']));
+    audit_log($me, 'BACKUP', 'Download backup', !empty($data['includeFiles']) ? 'Termasuk foto & lampiran.' : 'Data saja.');
 
     $name = 'backup-hris-' . date('Y-m-d-His') . '.zip';
     header('Content-Type: application/zip');

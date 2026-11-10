@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
 require __DIR__ . '/features.php';
+require __DIR__ . '/features2.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -49,7 +50,8 @@ try {
         // updateRequestStatus diperiksa di dalam fungsinya (admin / karyawan dengan hak akses Persetujuan)
         $adminOnly = ['addDutyAssignment', 'updateDutyAssignment', 'deleteDutyAssignment', 'saveEmployee',
             'saveManualPayslip', 'updateOfficeSettings', 'resolveMapsLink', 'addHoliday', 'deleteHoliday',
-            'getEmailSettings', 'saveEmailSettings', 'testEmail', 'sendPayslipEmails'];
+            'getEmailSettings', 'saveEmailSettings', 'testEmail', 'sendPayslipEmails',
+            'createAnnouncement', 'deleteAnnouncement', 'getAuditLog'];
         if (in_array($action, $adminOnly, true) && $me['role'] !== 'ADMIN') {
             throw new ApiError('Akses ditolak: fitur ini khusus Admin.', 403);
         }
@@ -75,8 +77,17 @@ try {
             case 'testEmail': $res = action_test_email($me, $data); break;
             case 'sendPayslipEmails': $res = action_send_payslip_emails($data); break;
             case 'previewOvertime': $res = action_preview_overtime($me, $data); break;
+            case 'createAnnouncement': $res = action_create_announcement($me, $data); break;
+            case 'deleteAnnouncement': $res = action_delete_announcement($me, $data); break;
+            case 'markAnnouncementRead': $res = action_mark_announcement_read($me, $data); break;
+            case 'getAuditLog': $res = action_get_audit_log($data); break;
+            case 'remindAbsent':
+                if ($me['role'] !== 'ADMIN' && !has_perm($me, PERM_ATT_ALL)) throw new ApiError('Akses ditolak.', 403);
+                $res = action_remind_absent($me, $data);
+                break;
             default: $res = ['success' => false, 'message' => 'Action not found.'];
         }
+        if (!empty($res['success'])) audit_action($me, $action, $data, $res);
     }
     echo json_encode($res, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     flush_mail_queue();
@@ -161,6 +172,8 @@ function require_session(array $d): array
 
 function action_dashboard(array $me): array
 {
+    run_leave_maintenance();
+    $me = q_one('SELECT * FROM users WHERE emp_id = ?', [$me['emp_id']]) ?? $me; // saldo cuti terbaru
     $isAdmin = $me['role'] === 'ADMIN';
     $empId = $me['emp_id'];
     // Akses parsial (mis. supervisor): lihat absensi semua / laporan / persetujuan, tanpa data gaji
@@ -229,6 +242,7 @@ function action_dashboard(array $me): array
         'currentUser' => out_user($me),
         'settings' => public_settings(),
         'holidays' => list_holidays(),
+        'announcements' => list_announcements($me),
         'activeDuty' => $activeDuty ? out_duty($activeDuty) : null,
         'stats' => [
             'totalEmployees' => count($activeUsers),
@@ -541,6 +555,7 @@ function action_submit_request(array $me, array $d): array
     }
     if ($type === '' || !$start) return ['success' => false, 'message' => 'Jenis pengajuan dan tanggal wajib diisi.'];
     if ($end < $start) [$start, $end] = [$end, $start];
+    if (is_annual_leave_type($type)) validate_annual_leave($me, $start, $end);
 
     $doc = '-';
     $file = (string)($d['fileBase64'] ?? '');
@@ -556,7 +571,7 @@ function action_submit_request(array $me, array $d): array
         q("UPDATE requests SET $set WHERE req_id = ?", array_merge(array_values($extra), [$reqId]));
     }
     notify_new_request($reqId);
-    $msg = 'Pengajuan ' . $type . ' berhasil dikirim ke Admin!';
+    $msg = (stripos($type, 'Pengajuan') === 0 ? $type : 'Pengajuan ' . $type) . ' berhasil dikirim ke Admin!';
     if (is_ot_type($type)) $msg .= ' (' . $extra['ot_hours'] . ' jam, perkiraan upah lembur ' . rp((int)$extra['ot_pay']) . ')';
     return ['success' => true, 'message' => $msg];
 }
@@ -621,6 +636,8 @@ function action_update_request_status(array $me, array $d): array
             $days = days_between($r['start_date'], $r['end_date']);
             $t = strtolower($r['type']);
             if (str_contains($t, 'cuti')) {
+                // Cuti tahunan dihitung per HARI KERJA (Minggu & tanggal merah tidak memotong saldo)
+                if (is_annual_leave_type($r['type'])) $days = working_days_between($r['start_date'], $r['end_date']);
                 q('UPDATE users SET leave_balance = GREATEST(0, leave_balance - ?) WHERE emp_id = ?', [$days, $r['emp_id']]);
             } elseif (str_contains($t, 'tabung') || str_contains($t, 'menabung')) {
                 q('UPDATE users SET saved_holidays = saved_holidays + ? WHERE emp_id = ?', [$days, $r['emp_id']]);
@@ -698,9 +715,13 @@ function action_save_employee(array $d, ?array $me = null): array
         $fields['emp_id'] = $empId;
         $fields['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
         $fields['join_date'] = parse_date_any($d['joinDate'] ?? null) ?? date('Y-m-d');
+        if (!leave_eligible($fields)) { $fields['leave_balance'] = 0; $fields['leave_year'] = null; }
+        else { $fields['leave_year'] = (int)date('Y'); }
         $cols = array_keys($fields);
         q('INSERT INTO users (' . implode(',', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols), '?')) . ')', array_values($fields));
         ensure_payslips($empId);
+        if ($me) audit_log($me, 'KARYAWAN_TAMBAH', $empId . ' ' . $fullName, 'Jabatan ' . $fields['position'] . ', gaji pokok ' . rp($fields['basic_salary'])
+            . ', role ' . $role . ($fields['permissions'] ?? '' ? ', hak akses ' . $fields['permissions'] : ''));
         return ['success' => true, 'message' => 'Karyawan baru berhasil ditambahkan dengan ID: ' . $empId];
     }
 
@@ -713,8 +734,10 @@ function action_save_employee(array $d, ?array $me = null): array
         return ['success' => false, 'message' => 'Email sudah dipakai karyawan lain!'];
     }
     if ($password !== '') $fields['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
+    $oldRow = q_one('SELECT * FROM users WHERE emp_id = ?', [$empId]);
     $set = implode(', ', array_map(fn($c) => "$c = ?", array_keys($fields)));
     q("UPDATE users SET $set WHERE emp_id = ?", array_merge(array_values($fields), [$empId]));
+    if ($me) audit_log($me, 'KARYAWAN_UBAH', $empId . ' ' . $fullName, employee_diff($oldRow ?? [], $fields));
     if ($password !== '' || (isset($fields['is_active']) && !$fields['is_active'])) {
         q('DELETE FROM sessions WHERE emp_id = ?', [$empId]); // paksa login ulang (sandi baru) / keluarkan karyawan nonaktif
     }
