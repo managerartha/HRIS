@@ -1815,6 +1815,18 @@
             <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Terakhir Bekerja</label>
             <input type="date" id="empResignDate" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
           </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Bergabung</label>
+            <input type="date" id="empJoinDate" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Hak Cuti Tahunan</label>
+            <select id="empLeavePolicy" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold">
+              <option value="ELIGIBLE">Berhak cuti (12 hari, reset tiap 1 Januari)</option>
+              <option value="AUTO">Belum berhak — otomatis setelah 1 tahun bergabung</option>
+              <option value="NONE">Tidak mendapat cuti tahunan</option>
+            </select>
+          </div>
           <div id="empPermGroup" class="sm:col-span-2 pt-2 border-t border-amber-100">
             <p class="text-xs font-bold text-slate-600 mb-1">Hak Akses Tambahan <span class="font-normal text-slate-400">(untuk karyawan non-admin, mis. supervisor)</span></p>
             <label class="flex items-center gap-2 text-xs text-slate-700 py-0.5"><input type="checkbox" class="emp-perm w-4 h-4 accent-emerald-600" value="ATT_ALL"> Lihat riwayat absensi seluruh karyawan</label>
@@ -2488,7 +2500,7 @@
         getLocationGPS(false);
         const leaveEl = document.getElementById('statLeaveBalance');
         if (leaveEl && currentUser && currentUser.LEAVE_ELIGIBLE === false) {
-          leaveEl.innerHTML = "0 <span class='text-[10px] font-semibold text-slate-400'>belum berhak</span>";
+          leaveEl.innerHTML = "0 <span class='text-[10px] font-semibold text-slate-400'>" + (currentUser.LEAVE_POLICY === 'NONE' ? 'tidak ada cuti' : 'belum berhak') + "</span>";
         }
         renderDashboardExtras();
       } else {
@@ -4364,7 +4376,7 @@
         document.getElementById('empRole').value = emp.ROLE || "EMPLOYEE";
         document.getElementById('empPosition').value = emp.POSITION || "";
         document.getElementById('empDepartment').value = emp.DEPARTMENT || "";
-        document.getElementById('empLeaveBalance').value = emp.LEAVE_BALANCE || "12";
+        document.getElementById('empLeaveBalance').value = (emp.LEAVE_BALANCE === undefined || emp.LEAVE_BALANCE === null || emp.LEAVE_BALANCE === '') ? '12' : emp.LEAVE_BALANCE;
         document.getElementById('empBasicSalary').value = emp.BASIC_SALARY || "0";
         document.getElementById('empAllowance').value = emp.ALLOWANCE || "0";
         document.getElementById('empContractUrl').value = emp.CONTRACT_DOC_URL || "";
@@ -4386,6 +4398,8 @@
         document.getElementById('empWorkModeGroup').classList.toggle('hidden', !USE_PHP_BACKEND);
         document.getElementById('empIsActive').value = (emp.IS_ACTIVE === false) ? '0' : '1';
         const empPerms = (emp.ROLE === 'ADMIN') ? [] : (emp.PERMISSIONS || []);
+        document.getElementById('empJoinDate').value = emp.JOIN_DATE ? toIsoDateInput(emp.JOIN_DATE) : '';
+        document.getElementById('empLeavePolicy').value = emp.LEAVE_POLICY || 'AUTO';
         document.querySelectorAll('.emp-perm').forEach(c => { c.checked = empPerms.includes(c.value); });
         document.getElementById('empResignDate').value = emp.RESIGN_DATE ? toIsoDateInput(emp.RESIGN_DATE) : todayIso();
         onEmpActiveChange();
@@ -4409,6 +4423,8 @@
       document.getElementById('empWorkModeGroup').classList.toggle('hidden', !USE_PHP_BACKEND);
       document.getElementById('empIsActive').value = '1';
       document.querySelectorAll('.emp-perm').forEach(c => { c.checked = false; });
+      document.getElementById('empJoinDate').value = todayIso();
+      document.getElementById('empLeavePolicy').value = 'AUTO';
       onEmpActiveChange();
       document.getElementById('modalEmployee').classList.remove('hidden');
     }
@@ -4455,6 +4471,8 @@
         payload.bonusExempt = document.getElementById('empBonusExempt').checked;
         payload.isActive = document.getElementById('empIsActive').value === '1';
         payload.permissions = Array.from(document.querySelectorAll('.emp-perm:checked')).map(c => c.value);
+        payload.leavePolicy = document.getElementById('empLeavePolicy').value;
+        payload.joinDateValue = document.getElementById('empJoinDate').value;
         payload.resignDate = document.getElementById('empResignDate').value;
         if (!payload.isActive && payload.isEdit && !confirm('Nonaktifkan ' + payload.fullName + '? Karyawan ini tidak bisa login lagi, tetapi seluruh riwayatnya tetap tersimpan.')) return;
       }
@@ -5485,7 +5503,10 @@
       const minIso = min.getFullYear() + '-' + String(min.getMonth() + 1).padStart(2, '0') + '-' + String(min.getDate()).padStart(2, '0');
       startEl.min = minIso; endEl.min = minIso;
       const bal = document.getElementById('statLeaveBalance') ? document.getElementById('statLeaveBalance').innerText : '-';
-      if (currentUser && currentUser.LEAVE_ELIGIBLE === false) {
+      if (currentUser && currentUser.LEAVE_POLICY === 'NONE') {
+        box.className = 'p-3 bg-red-50 border border-red-100 rounded-2xl text-[11px] text-red-800 space-y-0.5';
+        box.innerHTML = "<p class='font-bold'><i class='fa-solid fa-circle-exclamation mr-1'></i>Akun Anda tidak mendapat cuti tahunan.</p><p>Hubungi HR jika ada keperluan.</p>";
+      } else if (currentUser && currentUser.LEAVE_ELIGIBLE === false) {
         box.className = 'p-3 bg-red-50 border border-red-100 rounded-2xl text-[11px] text-red-800 space-y-0.5';
         box.innerHTML = "<p class='font-bold'><i class='fa-solid fa-circle-exclamation mr-1'></i>Anda belum berhak cuti tahunan.</p>" +
           "<p>Hak cuti berlaku setelah 1 tahun bekerja, mulai <b>" + esc(currentUser.LEAVE_ELIGIBLE_DATE || '-') + "</b>. Untuk keperluan mendesak gunakan Izin / Izin Sakit.</p>";

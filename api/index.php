@@ -694,6 +694,16 @@ function action_save_employee(array $d, ?array $me = null): array
         'encashed_holidays' => (int)($d['encashedHolidays'] ?? 0),
     ];
     if (array_key_exists('workMode', $d)) $fields['work_mode'] = $workMode;
+    if (array_key_exists('leavePolicy', $d)) {
+        $pol = strtoupper((string)$d['leavePolicy']);
+        if (in_array($pol, ['ELIGIBLE', 'AUTO', 'NONE'], true)) $fields['leave_policy'] = $pol;
+        if ($pol === 'NONE') $fields['leave_balance'] = 0;
+    }
+    // Tanggal bergabung dari form (kunci khusus agar versi lama halaman tidak menimpanya dengan tanggal hari ini)
+    if (!empty($d['joinDateValue'])) {
+        $jd = parse_date_any($d['joinDateValue']);
+        if ($jd) $fields['join_date'] = $jd;
+    }
     if (array_key_exists('permissions', $d) && is_array($d['permissions'])) {
         $perms = array_values(array_intersect(ALL_PERMS, array_map(fn($p) => strtoupper(trim((string)$p)), $d['permissions'])));
         $fields['permissions'] = implode(',', $perms);
@@ -714,7 +724,7 @@ function action_save_employee(array $d, ?array $me = null): array
         $empId = next_seq_id('users', 'emp_id', 'EMP');
         $fields['emp_id'] = $empId;
         $fields['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
-        $fields['join_date'] = parse_date_any($d['joinDate'] ?? null) ?? date('Y-m-d');
+        $fields['join_date'] = $fields['join_date'] ?? parse_date_any($d['joinDate'] ?? null) ?? date('Y-m-d');
         if (!leave_eligible($fields)) { $fields['leave_balance'] = 0; $fields['leave_year'] = null; }
         else { $fields['leave_year'] = (int)date('Y'); }
         $cols = array_keys($fields);
@@ -735,6 +745,19 @@ function action_save_employee(array $d, ?array $me = null): array
     }
     if ($password !== '') $fields['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
     $oldRow = q_one('SELECT * FROM users WHERE emp_id = ?', [$empId]);
+    // Jika (setelah perubahan) karyawan berhak cuti, saldo yang diisi Admin berlaku untuk tahun ini
+    $merged = array_merge($oldRow ?? [], $fields);
+    if (leave_eligible($merged)) {
+        if (empty($oldRow['leave_year'])) {
+            $fields['leave_year'] = (int)date('Y');
+            // Baru menjadi berhak cuti (mis. tanggal bergabung dibetulkan / status diubah) dan saldo tidak diubah Admin -> 12 hari
+            if (!leave_eligible($oldRow ?? []) && (int)($fields['leave_balance'] ?? 0) === (int)($oldRow['leave_balance'] ?? 0)) {
+                $fields['leave_balance'] = LEAVE_ANNUAL_DAYS;
+            }
+        }
+    } else {
+        $fields['leave_year'] = null;
+    }
     $set = implode(', ', array_map(fn($c) => "$c = ?", array_keys($fields)));
     q("UPDATE users SET $set WHERE emp_id = ?", array_merge(array_values($fields), [$empId]));
     if ($me) audit_log($me, 'KARYAWAN_UBAH', $empId . ' ' . $fullName, employee_diff($oldRow ?? [], $fields));

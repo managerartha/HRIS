@@ -50,7 +50,7 @@ function run_leave_maintenance(): void
     q("INSERT INTO settings (setting_key, setting_value, description) VALUES ('LEAVE_CHECK_DATE', ?, 'Pemeriksaan saldo cuti terakhir (otomatis)')
        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)", [$today]);
     $year = (int)date('Y');
-    foreach (q_all('SELECT emp_id, full_name, join_date, leave_balance, leave_year FROM users WHERE is_active = 1') as $u) {
+    foreach (q_all('SELECT emp_id, full_name, join_date, leave_balance, leave_year, leave_policy FROM users WHERE is_active = 1') as $u) {
         if (!leave_eligible($u, $today)) continue;
         if ($u['leave_year'] === null || (int)$u['leave_year'] < $year) {
             q('UPDATE users SET leave_balance = ?, leave_year = ? WHERE emp_id = ?', [LEAVE_ANNUAL_DAYS, $year, $u['emp_id']]);
@@ -64,6 +64,9 @@ function run_leave_maintenance(): void
 function validate_annual_leave(array $me, string $start, string $end): int
 {
     $today = date('Y-m-d');
+    if (leave_policy($me) === 'NONE') {
+        throw new ApiError('Akun Anda tidak mendapat cuti tahunan. Hubungi HR jika ada keperluan.');
+    }
     if (!leave_eligible($me, $today)) {
         throw new ApiError('Anda belum berhak cuti tahunan karena masa kerja belum 1 tahun. Hak cuti berlaku mulai '
             . fmt_date(leave_eligible_date($me)) . '. Untuk keperluan mendesak gunakan Izin / Izin Sakit.');
@@ -201,7 +204,7 @@ function employee_diff(array $old, array $new): string
         'department' => 'Departemen', 'leave_balance' => 'Sisa cuti', 'saved_holidays' => 'Tabungan libur',
         'basic_salary' => 'Gaji pokok', 'allowance' => 'Tunjangan', 'bpjs_tk_amount' => 'BPJS TK', 'has_bpjs_kes' => 'BPJS Kes aktif',
         'bpjs_kes_amount' => 'BPJS Kes', 'kasbon_amount' => 'Kasbon', 'encashed_holidays' => 'Libur diuangkan',
-        'work_mode' => 'Mode kerja', 'bonus_exempt' => 'Bebas bonus', 'is_active' => 'Aktif', 'resign_date' => 'Tgl resign',
+        'work_mode' => 'Mode kerja', 'bonus_exempt' => 'Bebas bonus', 'leave_policy' => 'Hak cuti', 'join_date' => 'Tgl bergabung', 'is_active' => 'Aktif', 'resign_date' => 'Tgl resign',
         'contract_doc_url' => 'Link kontrak', 'bpjs_doc_url' => 'Link BPJS',
     ];
     $money = ['basic_salary', 'allowance', 'bpjs_tk_amount', 'bpjs_kes_amount', 'kasbon_amount'];

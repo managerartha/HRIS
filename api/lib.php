@@ -381,6 +381,7 @@ function out_user(array $u): array
         'RESIGN_DATE' => fmt_date($u['resign_date'] ?? null),
         'PERMISSIONS' => user_perms($u),
         'LEAVE_ELIGIBLE' => leave_eligible($u),
+        'LEAVE_POLICY' => leave_policy($u),
         'LEAVE_ELIGIBLE_DATE' => fmt_date(leave_eligible_date($u)),
     ];
 }
@@ -502,8 +503,21 @@ function get_settings(): array
 const LEAVE_ANNUAL_DAYS = 12;
 
 /** Tanggal karyawan mulai berhak cuti (1 tahun setelah tanggal bergabung). null = tanggal bergabung tidak diketahui. */
+/*
+ * Hak cuti per karyawan (kolom leave_policy, diatur Admin di Edit Karyawan):
+ *  ELIGIBLE = berhak cuti tahunan (12 hari, reset tiap 1 Januari)
+ *  AUTO     = mengikuti tanggal bergabung (berhak setelah genap 1 tahun)
+ *  NONE     = tidak mendapat cuti tahunan (mis. direksi / remote / khusus)
+ */
+function leave_policy(array $u): string
+{
+    $p = strtoupper((string)($u['leave_policy'] ?? 'AUTO'));
+    return in_array($p, ['ELIGIBLE', 'AUTO', 'NONE'], true) ? $p : 'AUTO';
+}
+
 function leave_eligible_date(array $u): ?string
 {
+    if (leave_policy($u) !== 'AUTO') return null;
     $j = $u['join_date'] ?? null;
     if (!$j) return null;
     return date('Y-m-d', strtotime($j . ' +1 year'));
@@ -511,6 +525,9 @@ function leave_eligible_date(array $u): ?string
 
 function leave_eligible(array $u, ?string $today = null): bool
 {
+    $pol = leave_policy($u);
+    if ($pol === 'NONE') return false;
+    if ($pol === 'ELIGIBLE') return true;
     $d = leave_eligible_date($u);
     return $d === null || $d <= ($today ?? date('Y-m-d'));
 }
@@ -532,6 +549,42 @@ function init_leave_entitlement(): void
                 audit_log(null, 'RESET_CUTI', $u['emp_id'], 'Saldo cuti ' . $u['full_name'] . ' diubah ' . (int)$u['leave_balance']
                     . ' → 0 hari (masa kerja belum 1 tahun, berhak mulai ' . fmt_date(leave_eligible_date($u)) . ').');
             }
+        }
+    }
+}
+
+/**
+ * Perbaikan sekali jalan (v6): pemasangan aturan cuti sebelumnya membaca tanggal bergabung hasil import
+ * (tanggal akun dibuat di sistem lama, bukan tanggal mulai bekerja) sehingga banyak saldo cuti menjadi 0.
+ * - Saldo yang di-nol-kan sistem dipulihkan ke angka sebelumnya (tercatat di log) dan ditandai "Berhak cuti".
+ * - Sesuai arahan HR: Ridho, Rangga, Noih = belum berhak (ikut tanggal bergabung);
+ *   Erna, Ricardo (Ardo), Irfan = tidak mendapat cuti tahunan.
+ * Semua bisa diubah lagi oleh Admin di menu Edit Karyawan → Hak Cuti Tahunan.
+ */
+function repair_leave_v6(): void
+{
+    $year = (int)date('Y');
+    $restore = [];
+    foreach (q_all("SELECT target, detail FROM audit_log WHERE actor_id = 'SISTEM' AND action = 'RESET_CUTI'
+                    AND detail LIKE '%masa kerja belum 1 tahun%' ORDER BY id") as $l) {
+        if (preg_match('/diubah\s+(\d+)\s+→\s+0\s+hari/u', (string)$l['detail'], $m)) {
+            $restore[$l['target']] = $restore[$l['target']] ?? (int)$m[1]; // ambil nilai pertama (sebelum diubah)
+        }
+    }
+    foreach (q_all('SELECT emp_id, full_name, leave_balance FROM users') as $u) {
+        $n = strtolower((string)$u['full_name']);
+        $none = (bool)preg_match('/\berna\b|\birfan\b|ricardo|\bardo\b/u', $n);
+        $notYet = (bool)preg_match('/\bridho\b|\brangga\b|\bnoih\b/u', $n);
+        if ($none) {
+            q("UPDATE users SET leave_policy = 'NONE', leave_balance = 0, leave_year = NULL WHERE emp_id = ?", [$u['emp_id']]);
+            audit_log(null, 'HAK_CUTI', $u['emp_id'], 'Hak cuti ' . $u['full_name'] . ': Tidak mendapat cuti tahunan (saldo ' . (int)$u['leave_balance'] . ' → 0).');
+        } elseif ($notYet) {
+            q("UPDATE users SET leave_policy = 'AUTO', leave_balance = 0, leave_year = NULL WHERE emp_id = ?", [$u['emp_id']]);
+            audit_log(null, 'HAK_CUTI', $u['emp_id'], 'Hak cuti ' . $u['full_name'] . ': Belum berhak (ikut tanggal bergabung, mohon pastikan tanggal bergabung benar). Saldo 0.');
+        } elseif (array_key_exists($u['emp_id'], $restore)) {
+            $old = $restore[$u['emp_id']];
+            q("UPDATE users SET leave_policy = 'ELIGIBLE', leave_balance = ?, leave_year = ? WHERE emp_id = ?", [$old, $year, $u['emp_id']]);
+            audit_log(null, 'PULIHKAN_CUTI', $u['emp_id'], 'Saldo cuti ' . $u['full_name'] . ' dipulihkan 0 → ' . $old . ' hari dan ditandai "Berhak cuti tahunan".');
         }
     }
 }
@@ -632,7 +685,7 @@ function build_backup_zip(string $zipPath, bool $includeFiles): void
 /* Pembaruan struktur database otomatis (tanpa perlu buka phpMyAdmin)  */
 /* ------------------------------------------------------------------ */
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 function column_exists(string $table, string $col): bool
 {
@@ -708,6 +761,10 @@ function ensure_schema(): void
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     if (add_column_if_missing('users', 'leave_year', "leave_year INT NULL AFTER leave_balance")) {
         init_leave_entitlement();
+    }
+    // v6: hak cuti diatur per karyawan (tidak lagi hanya dari tanggal bergabung) + pemulihan saldo
+    if (add_column_if_missing('users', 'leave_policy', "leave_policy VARCHAR(10) NOT NULL DEFAULT 'AUTO' AFTER leave_year")) {
+        repair_leave_v6();
     }
 
     q("INSERT INTO settings (setting_key, setting_value, description) VALUES ('SCHEMA_VERSION', ?, 'Versi struktur database (otomatis)')
