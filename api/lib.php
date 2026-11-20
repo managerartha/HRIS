@@ -685,7 +685,7 @@ function build_backup_zip(string $zipPath, bool $includeFiles): void
 /* Pembaruan struktur database otomatis (tanpa perlu buka phpMyAdmin)  */
 /* ------------------------------------------------------------------ */
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 function column_exists(string $table, string $col): bool
 {
@@ -765,6 +765,12 @@ function ensure_schema(): void
     // v6: hak cuti diatur per karyawan (tidak lagi hanya dari tanggal bergabung) + pemulihan saldo
     if (add_column_if_missing('users', 'leave_policy', "leave_policy VARCHAR(10) NOT NULL DEFAULT 'AUTO' AFTER leave_year")) {
         repair_leave_v6();
+    }
+    // v7: absen hasil koreksi yang disetujui HR selalu TEPAT WAKTU (perbaiki data yang sudah ada)
+    if ($ver < 7) {
+        q("UPDATE attendance a JOIN requests r ON r.emp_id = a.emp_id AND r.start_date = a.date
+              AND r.type = 'Koreksi Absen' AND r.correction_kind = 'IN' AND UPPER(r.status) IN ('APPROVED','DISETUJUI')
+           SET a.status = 'TEPAT WAKTU' WHERE a.status = 'TERLAMBAT'");
     }
 
     q("INSERT INTO settings (setting_key, setting_value, description) VALUES ('SCHEMA_VERSION', ?, 'Versi struktur database (otomatis)')

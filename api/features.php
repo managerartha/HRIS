@@ -257,8 +257,8 @@ function apply_correction(array $r): void
     $time = $r['correction_time'];
     $att = q_one('SELECT * FROM attendance WHERE emp_id = ? AND date = ?', [$r['emp_id'], $date]);
     if ($r['correction_kind'] === 'IN') {
-        $settings = get_settings();
-        $status = time_to_minutes($time) > time_to_minutes(parse_time_any($settings['WORK_START_TIME']) ?? '08:00:00') ? 'TERLAMBAT' : 'TEPAT WAKTU';
+        // Koreksi absen yang sudah disetujui HR selalu dihitung TEPAT WAKTU (tujuannya membetulkan lupa absen)
+        $status = 'TEPAT WAKTU';
         if ($att) {
             q('UPDATE attendance SET checkin_time = ?, status = ? WHERE att_id = ?', [$time, $status, $att['att_id']]);
         } else {

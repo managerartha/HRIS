@@ -51,7 +51,7 @@ try {
         $adminOnly = ['addDutyAssignment', 'updateDutyAssignment', 'deleteDutyAssignment', 'saveEmployee',
             'saveManualPayslip', 'updateOfficeSettings', 'resolveMapsLink', 'addHoliday', 'deleteHoliday',
             'getEmailSettings', 'saveEmailSettings', 'testEmail', 'sendPayslipEmails',
-            'createAnnouncement', 'deleteAnnouncement', 'getAuditLog', 'updateAttendanceTime'];
+            'createAnnouncement', 'deleteAnnouncement', 'getAuditLog'];
         if (in_array($action, $adminOnly, true) && $me['role'] !== 'ADMIN') {
             throw new ApiError('Akses ditolak: fitur ini khusus Admin.', 403);
         }
@@ -81,7 +81,6 @@ try {
             case 'deleteAnnouncement': $res = action_delete_announcement($me, $data); break;
             case 'markAnnouncementRead': $res = action_mark_announcement_read($me, $data); break;
             case 'getAuditLog': $res = action_get_audit_log($data); break;
-            case 'updateAttendanceTime': $res = action_update_attendance_time($me, $data); break;
             case 'remindAbsent':
                 if ($me['role'] !== 'ADMIN' && !has_perm($me, PERM_ATT_ALL)) throw new ApiError('Akses ditolak.', 403);
                 $res = action_remind_absent($me, $data);
@@ -632,13 +631,6 @@ function action_update_request_status(array $me, array $d): array
             $calc = overtime_calc($u ?: [], $r['start_date'], (float)$r['ot_hours']);
             q('UPDATE requests SET ot_pay = ? WHERE req_id = ?', [$calc['pay'], $r['req_id']]);
         } elseif (is_approved($status) && is_correction_type($r['type'])) {
-            // HR boleh membetulkan jam yang diajukan karyawan saat menyetujui
-            $approvedTime = parse_time_any($d['approvedTime'] ?? null);
-            if ($approvedTime && $approvedTime !== $r['correction_time']) {
-                q('UPDATE requests SET correction_time = ?, admin_note = CONCAT(COALESCE(admin_note, ""), ?) WHERE req_id = ?',
-                    [$approvedTime, ' [Jam diajukan ' . fmt_time($r['correction_time']) . ', disetujui ' . fmt_time($approvedTime) . ']', $r['req_id']]);
-                $r['correction_time'] = $approvedTime;
-            }
             apply_correction($r);
         } elseif (is_approved($status)) {
             $days = days_between($r['start_date'], $r['end_date']);
