@@ -164,6 +164,9 @@ CREATE TABLE IF NOT EXISTS duties (
   radius_meters  INT          NOT NULL DEFAULT 50,
   start_date     DATE         NOT NULL,
   end_date       DATE         NOT NULL,
+  -- Hari perjalanan dinas (opsional): berangkat sebelum & kembali sesudah periode dinas
+  travel_start_date DATE      NULL,
+  travel_end_date   DATE      NULL,
   reason         TEXT,
   created_by     VARCHAR(150) NOT NULL DEFAULT '',
   created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,

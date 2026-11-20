@@ -575,6 +575,7 @@
                   <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-500"></span> Hadir</span>
                   <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-400"></span> Terlambat</span>
                   <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-violet-400"></span> Cuti / Izin</span>
+                  <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-orange-400"></span> Perjalanan</span>
                   <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-red-500"></span> Alpha</span>
                   <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-red-100 border border-red-200"></span> Libur</span>
                 </div>
@@ -1724,6 +1725,24 @@
           </div>
         </div>
 
+        <div class="p-3 bg-orange-50/60 border border-orange-100 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-xs font-bold text-slate-700"><i class="fa-solid fa-car-side text-orange-500 mr-1"></i> Hari Perjalanan <span class="font-normal text-slate-400">(opsional)</span></p>
+            <button type="button" onclick="fillTravelDates()" class="text-[10px] font-bold text-orange-600 hover:underline">Isi H-1 & H+1</button>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Berangkat</label>
+              <input type="date" id="dutyTravelStart" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Kembali</label>
+              <input type="date" id="dutyTravelEnd" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-500">Di hari perjalanan karyawan absen dari lokasi mana pun (selfie & GPS tetap direkam), tanpa aturan terlambat. Tidak absen = Alpha (perjalanan). Kosongkan jika tidak ada hari perjalanan.</p>
+        </div>
+
         <div id="dutyMapWrap" class="hidden space-y-1">
           <div id="dutyMap" class="w-full h-56 rounded-2xl border border-slate-200 overflow-hidden z-0"></div>
           <p class="text-[10px] text-slate-500"><i class="fa-solid fa-circle-info mr-1"></i>Lingkaran hijau = area yang diizinkan untuk absen. Titik merah bisa digeser untuk menyesuaikan posisi.</p>
@@ -2000,6 +2019,7 @@
     let currentUser = null;
     let officeSettings = { OFFICE_LAT: '-6.175392', OFFICE_LNG: '106.827153', MAX_RADIUS_METERS: '10', WORK_START_TIME: '08:00', WORK_END_TIME: '17:00' };
     let activeDutyAssignment = null;
+    let activeTravelAssignment = null; // hari perjalanan dinas (berangkat / kembali)
     let capturedPhotoBase64 = '';
     let currentGeoLocation = { lat: 0, lng: 0, accuracy: null, timestamp: 0 };
     let isFetchingGps = false;
@@ -2380,6 +2400,7 @@
         }
         officeSettings = res.settings;
         activeDutyAssignment = res.activeDuty || null;
+        activeTravelAssignment = res.activeTravel || null;
         
         cachedData.agendas = res.agendas || [];
         cachedData.users = res.allUsers || [];
@@ -2471,6 +2492,10 @@
           dutyBanner.classList.remove('hidden');
           document.getElementById('dutyBannerTitle').innerText = "📍 Tugas Dinas: " + activeDutyAssignment.LOCATION_NAME;
           document.getElementById('dutyBannerDetail').innerText = "Periode: " + activeDutyAssignment.START_DATE + " s/d " + activeDutyAssignment.END_DATE + " (Radius " + activeDutyAssignment.RADIUS_METERS + "m)";
+        } else if (activeTravelAssignment) {
+          dutyBanner.classList.remove('hidden');
+          document.getElementById('dutyBannerTitle').innerText = "🚗 Hari Perjalanan Dinas (" + (activeTravelAssignment.TRAVEL_KIND === 'BERANGKAT' ? 'berangkat' : 'kembali') + "): " + activeTravelAssignment.LOCATION_NAME;
+          document.getElementById('dutyBannerDetail').innerText = "Absen bisa dari lokasi mana pun hari ini (selfie & GPS tetap direkam). Dinas: " + activeTravelAssignment.START_DATE + " s/d " + activeTravelAssignment.END_DATE;
         } else {
           dutyBanner.classList.add('hidden');
         }
@@ -2531,6 +2556,7 @@
     }
 
     function attStatusBadge(item) {
+      if (item.STATUS === 'PERJALANAN DINAS') return '<span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-[10px] font-extrabold">PERJALANAN DINAS</span>';
       return item.STATUS === 'TEPAT WAKTU' ?
         '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-extrabold">TEPAT WAKTU</span>' :
         '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-extrabold">TERLAMBAT</span>';
@@ -2575,7 +2601,7 @@
           "<td class='py-3 px-3 font-bold text-slate-800'>" + esc(item.FULL_NAME) + "<p class='text-[10px] text-slate-400 font-mono font-normal'>" + esc(item.DATE) + "</p></td>" +
           "<td class='py-3 px-3 font-mono text-emerald-600 font-semibold'>" + esc(item.CHECKIN_TIME || '-') + "</td>" +
           "<td class='py-3 px-3 font-mono text-slate-500'>" + esc(item.CHECKOUT_TIME || '-') + "</td>" +
-          "<td class='py-3 px-3 font-semibold text-slate-600'>" + esc(item.DISTANCE_METERS || '0') + "m</td>" +
+          "<td class='py-3 px-3 font-semibold text-slate-600'>" + (item.STATUS === 'PERJALANAN DINAS' ? '–' : esc(item.DISTANCE_METERS || '0') + "m") + "</td>" +
           "<td class='py-3 px-3'>" + statusBadge + "</td>" +
           "<td class='py-3 px-3 text-center'>" +
             "<button onclick=\"" + photoClick + "\" class='px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold transition flex items-center gap-1 mx-auto'>" +
@@ -2594,7 +2620,7 @@
           "<div class='flex-1 min-w-0'>" +
             "<p class='font-bold text-slate-800 text-xs truncate'>" + esc(item.FULL_NAME) + "</p>" +
             "<p class='text-[11px] text-slate-500 font-mono'><i class='fa-solid fa-right-to-bracket text-emerald-600'></i> " + esc(item.CHECKIN_TIME || '-') +
-              " &nbsp; <i class='fa-solid fa-right-from-bracket text-slate-400'></i> " + esc(item.CHECKOUT_TIME || '-') + " &nbsp;·&nbsp; " + esc(item.DISTANCE_METERS || '0') + "m</p>" +
+              " &nbsp; <i class='fa-solid fa-right-from-bracket text-slate-400'></i> " + esc(item.CHECKOUT_TIME || '-') + (item.STATUS === 'PERJALANAN DINAS' ? '' : " &nbsp;·&nbsp; " + esc(item.DISTANCE_METERS || '0') + "m") + "</p>" +
             "<div class='mt-1'>" + statusBadge + "</div>" +
           "</div>" +
           "<button onclick=\"" + photoClick + "\" class='w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 shrink-0' aria-label='Foto bukti'><i class='fa-solid fa-camera'></i></button>" +
@@ -2827,6 +2853,47 @@
       return !!findHoliday(dateStr);
     }
 
+    // Hari perjalanan dinas (berangkat / kembali) seorang karyawan pada tanggal tertentu
+    function travelOn(empId, dateStr) {
+      const n = normalizeDateStandard(dateStr);
+      return (cachedData.duties || []).find(d => String(d.EMP_ID || '').trim().toUpperCase() === String(empId || '').trim().toUpperCase() &&
+        ((d.TRAVEL_START && normalizeDateStandard(d.TRAVEL_START) === n) || (d.TRAVEL_END && normalizeDateStandard(d.TRAVEL_END) === n))) || null;
+    }
+
+    // Kartu laporan: karyawan yang absen di hari perjalanan dinas pada bulan terpilih
+    function travelReportCardHtml(selMonth, selYear) {
+      const map = new Map();
+      (cachedData.attendance || []).forEach(a => {
+        if (String(a.STATUS || '').toUpperCase() !== 'PERJALANAN DINAS') return;
+        const p = parseDateParts(a.DATE);
+        if (!p || p.month !== selMonth || p.year !== selYear) return;
+        const id = String(a.EMP_ID || '').toUpperCase();
+        const it = map.get(id) || { name: a.FULL_NAME, empId: a.EMP_ID, dates: [] };
+        it.dates.push((normalizeDateStandard(a.DATE) || a.DATE).substring(0, 5));
+        map.set(id, it);
+      });
+      let body = '';
+      if (map.size === 0) {
+        body = '<p class="text-slate-400 italic text-[11px] py-1">Tidak ada perjalanan dinas (Nihil).</p>';
+      } else {
+        body = '<ul class="divide-y divide-orange-100 space-y-1.5">';
+        map.forEach(item => {
+          item.dates.sort();
+          body += "<li class='pt-1 flex items-start justify-between'>" +
+            "<div><span class='font-bold text-slate-800'>" + esc(item.name) + "</span><p class='text-[10px] text-slate-400 font-mono'>" + esc(item.empId) + "</p>" +
+            "<p class='text-[9px] text-orange-600 font-mono mt-0.5'>Tgl: " + item.dates.join(', ') + "</p></div>" +
+            "<span class='px-2 py-0.5 bg-orange-100 text-orange-700 rounded-lg text-[10px] font-extrabold shrink-0'>" + item.dates.length + " Hari</span>" +
+          "</li>";
+        });
+        body += '</ul>';
+      }
+      return "<div class='p-3 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-2'>" +
+        "<div class='flex items-center justify-between pb-1.5 border-b border-orange-100'>" +
+          "<span class='font-extrabold text-[11px] text-orange-900 flex items-center gap-1.5'><i class='fa-solid fa-car-side text-orange-600'></i> Perjalanan Dinas</span>" +
+          "<span class='text-[10px] font-bold text-orange-600'>" + map.size + " Karyawan</span>" +
+        "</div>" + body + "</div>";
+    }
+
     function closeAttendanceReportModal() {
       document.getElementById('modalPrintAttendanceReport').classList.add('hidden');
     }
@@ -2869,7 +2936,9 @@
         monthAttList.forEach(item => {
           let badge = '<span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-check mr-1"></i>TEPAT WAKTU</span>';
           
-          if (String(item.STATUS || '').toUpperCase() === 'TERLAMBAT') {
+          if (String(item.STATUS || '').toUpperCase() === 'PERJALANAN DINAS') {
+            badge = '<span class="text-orange-700 font-bold bg-orange-50 px-2 py-0.5 rounded-full text-[10px]"><i class="fa-solid fa-car-side mr-1"></i>PERJALANAN DINAS</span>';
+          } else if (String(item.STATUS || '').toUpperCase() === 'TERLAMBAT') {
             const uId = String(item.EMP_ID || '').trim().toUpperCase();
             const hasApprovedLate = (cachedData.requests || []).some(req => 
               String(req.EMP_ID || '').trim().toUpperCase() === uId && 
@@ -2975,6 +3044,7 @@
         const uId = String(u.EMP_ID).trim().toUpperCase();
         let userAlphaDays = 0;
         let userDutyAlphaDays = 0;
+        let userTravelAlphaDays = 0;
         const alphaDates = [];
         const resignP = u.RESIGN_DATE ? parseDateParts(u.RESIGN_DATE) : null;
         const joinP = u.JOIN_DATE ? parseDateParts(u.JOIN_DATE) : null;
@@ -3019,14 +3089,16 @@
           });
           if (hasApprovedLeave) return;
 
-          // Jika tidak ada absensi dan tidak ada izin/cuti sah -> Dihitung ALPHA (termasuk saat dinas)
+          // Jika tidak ada absensi dan tidak ada izin/cuti sah -> Dihitung ALPHA (termasuk saat dinas & hari perjalanan)
+          const hasTravel = !hasDuty && !!travelOn(uId, normDate);
           userAlphaDays++;
           if (hasDuty) userDutyAlphaDays++;
-          alphaDates.push(normDate.substring(0, 5) + (hasDuty ? ' (dinas)' : '')); // format DD/MM, contoh: 03/09, 24/09 (dinas)
+          if (hasTravel) userTravelAlphaDays++;
+          alphaDates.push(normDate.substring(0, 5) + (hasDuty ? ' (dinas)' : (hasTravel ? ' (perjalanan)' : ''))); // contoh: 03/09, 24/09 (dinas), 25/09 (perjalanan)
         });
 
         if (userAlphaDays > 0) {
-          alphaMap.set(uId, { name: u.FULL_NAME, empId: u.EMP_ID, days: userAlphaDays, dutyDays: userDutyAlphaDays, dates: alphaDates });
+          alphaMap.set(uId, { name: u.FULL_NAME, empId: u.EMP_ID, days: userAlphaDays, dutyDays: userDutyAlphaDays, travelDays: userTravelAlphaDays, dates: alphaDates });
         }
       });
 
@@ -3131,7 +3203,8 @@
         alphaMap.forEach(item => {
           const datesDetail = (item.dates && item.dates.length > 0 ? 
             "<p class='text-[9px] text-red-500 font-mono mt-0.5'>Tgl: " + item.dates.join(', ') + "</p>" : "") +
-            (item.dutyDays > 0 ? "<p class='text-[9px] text-orange-600 font-bold mt-0.5'><i class='fa-solid fa-briefcase mr-0.5'></i>" + item.dutyDays + " hari tidak absen saat tugas dinas</p>" : "");
+            (item.dutyDays > 0 ? "<p class='text-[9px] text-orange-600 font-bold mt-0.5'><i class='fa-solid fa-briefcase mr-0.5'></i>" + item.dutyDays + " hari tidak absen saat tugas dinas</p>" : "") +
+            (item.travelDays > 0 ? "<p class='text-[9px] text-orange-600 font-bold mt-0.5'><i class='fa-solid fa-car-side mr-0.5'></i>" + item.travelDays + " hari tidak absen saat perjalanan dinas</p>" : "");
           alphaHtml += "<li class='pt-1 flex items-start justify-between'>" +
             "<div>" +
               "<span class='font-bold text-slate-800'>" + item.name + "</span>" +
@@ -3175,7 +3248,8 @@
             "<span class='text-[10px] font-bold text-red-600'>" + alphaMap.size + " Karyawan</span>" +
           "</div>" +
           alphaHtml +
-        "</div>";
+        "</div>" +
+        travelReportCardHtml(selMonth, selYear);
     }
 
     // Koordinat bisa tersimpan dengan koma (format Indonesia "-6,175392") -> ubah ke titik.
@@ -3188,6 +3262,16 @@
     }
 
     function getAttendanceTarget() {
+      if (!activeDutyAssignment && activeTravelAssignment) {
+        return {
+          lat: parseCoord(activeTravelAssignment.LATITUDE, 0),
+          lng: parseCoord(activeTravelAssignment.LONGITUDE, 0),
+          radius: Infinity,
+          name: "🚗 Perjalanan Dinas (" + (activeTravelAssignment.TRAVEL_KIND === 'BERANGKAT' ? 'berangkat' : 'kembali') + "): " + activeTravelAssignment.LOCATION_NAME,
+          isDuty: false,
+          isTravel: true
+        };
+      }
       if (activeDutyAssignment) {
         return {
           lat: parseCoord(activeDutyAssignment.LATITUDE, 0),
@@ -3213,11 +3297,13 @@
       if (titleEl) titleEl.innerText = t.name;
       if (noticeEl) {
         // Elemen #displayOfficeRadius selalu dibuat ulang agar tidak hilang setelah mode dinas.
-        noticeEl.innerHTML = t.isDuty
+        noticeEl.innerHTML = t.isTravel
+          ? "<b class='text-orange-600'>Hari perjalanan dinas:</b> absen bisa dari lokasi mana pun (bandara, stasiun, perjalanan). Selfie & titik GPS tetap direkam sebagai bukti. <span id='displayOfficeRadius' class='hidden'></span>"
+          : t.isDuty
           ? "Presensi diizinkan pada <b class='text-amber-600'></b> maksimal radius <b class='text-emerald-600' id='displayOfficeRadius'></b> (Jam Masuk: " + (officeSettings.WORK_START_TIME || '08:00') + " WIB)."
           : "Presensi hanya diizinkan jika posisi lokasi berada maksimal <b class='text-emerald-600' id='displayOfficeRadius'></b> dari titik koordinat lokasi.";
         if (t.isDuty) noticeEl.querySelector('b.text-amber-600').innerText = t.name;
-        document.getElementById('displayOfficeRadius').innerText = t.radius + ' Meter';
+        document.getElementById('displayOfficeRadius').innerText = t.isTravel ? '' : t.radius + ' Meter';
       }
       return t;
     }
@@ -3238,7 +3324,10 @@
       const distance = calculateDistanceMeters(t.lat, t.lng, lat, lng);
       const badge = document.getElementById('distanceMeterBadge');
 
-      if (badge) {
+      if (badge && t.isTravel) {
+        badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-orange-100 text-orange-700";
+        badge.innerText = "Lokasi bebas (hari perjalanan)";
+      } else if (badge) {
         if (distance <= t.radius) {
           badge.className = "px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700";
           badge.innerText = distance + " Meter (Di dalam Radius)";
@@ -3706,10 +3795,22 @@
         document.getElementById('dutyStartDate').value = toIsoDateInput(duty.START_DATE);
         document.getElementById('dutyEndDate').value = toIsoDateInput(duty.END_DATE);
         document.getElementById('dutyReason').value = duty.REASON || '';
+        document.getElementById('dutyTravelStart').value = duty.TRAVEL_START ? toIsoDateInput(duty.TRAVEL_START) : '';
+        document.getElementById('dutyTravelEnd').value = duty.TRAVEL_END ? toIsoDateInput(duty.TRAVEL_END) : '';
       }
 
       document.getElementById('modalDuty').classList.remove('hidden');
       if (duty) renderLocationMap('duty'); else document.getElementById('dutyMapWrap').classList.add('hidden');
+    }
+
+    // Isi tanggal perjalanan otomatis: sehari sebelum mulai & sehari sesudah selesai dinas
+    function fillTravelDates() {
+      const s = document.getElementById('dutyStartDate').value;
+      const e = document.getElementById('dutyEndDate').value;
+      if (!s || !e) { showToast('Isi dulu tanggal mulai & selesai dinas.', true); return; }
+      const shift = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+      document.getElementById('dutyTravelStart').value = shift(s, -1);
+      document.getElementById('dutyTravelEnd').value = shift(e, 1);
     }
 
     // 'dd/mm/yyyy' -> 'yyyy-mm-dd' untuk input kalender
@@ -3733,6 +3834,8 @@
         lng: document.getElementById('dutyLng').value,
         radius: document.getElementById('dutyRadius').value,
         startDate: document.getElementById('dutyStartDate').value,
+        travelStartDate: document.getElementById('dutyTravelStart').value,
+        travelEndDate: document.getElementById('dutyTravelEnd').value,
         endDate: document.getElementById('dutyEndDate').value,
         reason: document.getElementById('dutyReason').value,
         createdBy: currentUser.FULL_NAME
@@ -3762,7 +3865,9 @@
           "<td class='py-3 px-3 font-semibold text-amber-600'><i class='fa-solid fa-location-dot mr-1'></i>" + d.LOCATION_NAME + "</td>" +
           "<td class='py-3 px-3 font-mono text-slate-500 text-[11px]'>" + d.LATITUDE + ", " + d.LONGITUDE + "</td>" +
           "<td class='py-3 px-3 font-bold text-emerald-600'>" + d.RADIUS_METERS + " m</td>" +
-          "<td class='py-3 px-3 text-slate-600 font-medium'>" + d.START_DATE + " s/d " + d.END_DATE + "</td>" +
+          "<td class='py-3 px-3 text-slate-600 font-medium'>" + d.START_DATE + " s/d " + d.END_DATE +
+            ((d.TRAVEL_START || d.TRAVEL_END) ? "<p class='text-[10px] text-orange-600 font-semibold mt-0.5'><i class='fa-solid fa-car-side mr-0.5'></i>Perjalanan: " +
+              [d.TRAVEL_START ? 'berangkat ' + esc(d.TRAVEL_START) : '', d.TRAVEL_END ? 'kembali ' + esc(d.TRAVEL_END) : ''].filter(Boolean).join(', ') + "</p>" : "") + "</td>" +
           "<td class='py-3 px-3 text-slate-500'>" + esc(d.REASON) + "</td>" +
           "<td class='py-3 px-3 text-center whitespace-nowrap'>" +
             "<button onclick='openDutyModal(\"" + d.DUTY_ID + "\")' class='text-emerald-600 hover:underline font-bold text-[11px] mr-3'><i class='fa-solid fa-pen-to-square'></i> Edit</button>" +
@@ -4933,7 +5038,8 @@
       const leave = approvedLeaveOn(myEmpId(), today);
       const startMin = hhmmToMin(officeSettings.WORK_START_TIME || '08:00');
       const nowMin = now.getHours() * 60 + now.getMinutes();
-      const target = activeDutyAssignment ? ('Dinas: ' + activeDutyAssignment.LOCATION_NAME) : (officeSettings.OFFICE_NAME || 'Kantor');
+      const target = activeDutyAssignment ? ('Dinas: ' + activeDutyAssignment.LOCATION_NAME)
+        : (activeTravelAssignment ? ('Perjalanan dinas ke/dari ' + activeTravelAssignment.LOCATION_NAME + ' — absen dari lokasi mana pun') : (officeSettings.OFFICE_NAME || 'Kantor'));
 
       if (att && att.CHECKIN_TIME && att.CHECKIN_TIME !== '-') {
         if (att.CHECKOUT_TIME && att.CHECKOUT_TIME !== '-') {
@@ -4943,8 +5049,9 @@
           setBtn('Lihat Riwayat', 'bg-slate-100 hover:bg-slate-200 text-slate-700', true);
         } else {
           const late = String(att.STATUS || '').toUpperCase() === 'TERLAMBAT';
-          setIcon(late ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600', 'fa-user-check');
-          title.innerText = 'Sudah absen masuk ' + att.CHECKIN_TIME + (late ? ' (terlambat)' : ' (tepat waktu)');
+          const trip = String(att.STATUS || '').toUpperCase() === 'PERJALANAN DINAS';
+          setIcon(trip ? 'bg-orange-100 text-orange-600' : (late ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'), trip ? 'fa-car-side' : 'fa-user-check');
+          title.innerText = 'Sudah absen masuk ' + att.CHECKIN_TIME + (trip ? ' (perjalanan dinas)' : (late ? ' (terlambat)' : ' (tepat waktu)'));
           detail.innerText = 'Jangan lupa absen keluar saat pulang · ' + target;
           setBtn('Absen Keluar', 'bg-slate-800 hover:bg-slate-900 text-white', true);
         }
@@ -4959,9 +5066,11 @@
         detail.innerText = 'Periode ' + leave.START_DATE + ' s/d ' + leave.END_DATE + ' · disetujui HR';
         setBtn('Absen Sekarang', 'bg-slate-100 hover:bg-slate-200 text-slate-700', false);
       } else {
-        setIcon('bg-slate-100 text-slate-500', 'fa-fingerprint');
-        title.innerText = 'Belum absen masuk hari ini';
-        if (startMin !== null && nowMin <= startMin) {
+        setIcon(activeTravelAssignment ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500', activeTravelAssignment ? 'fa-car-side' : 'fa-fingerprint');
+        title.innerText = activeTravelAssignment ? 'Hari perjalanan dinas — belum absen' : 'Belum absen masuk hari ini';
+        if (activeTravelAssignment) {
+          detail.innerText = target;
+        } else if (startMin !== null && nowMin <= startMin) {
           const left = startMin - nowMin;
           detail.innerText = 'Jam masuk ' + (officeSettings.WORK_START_TIME || '08:00') + ' · sisa ' + (left >= 60 ? Math.floor(left / 60) + ' jam ' : '') + (left % 60) + ' menit · ' + target;
         } else if (startMin !== null) {
@@ -5235,14 +5344,16 @@
       users.forEach(u => {
         const att = attendanceOn(u.EMP_ID, today);
         if (att) {
-          (String(att.STATUS || '').toUpperCase() === 'TERLAMBAT' ? groups.late : groups.ontime).push({ u, txt: att.CHECKIN_TIME + (dutyOn(u.EMP_ID, today) ? ' · dinas' : '') });
+          const trip = String(att.STATUS || '').toUpperCase() === 'PERJALANAN DINAS';
+          (String(att.STATUS || '').toUpperCase() === 'TERLAMBAT' ? groups.late : groups.ontime).push({ u, txt: att.CHECKIN_TIME + (trip ? ' · perjalanan' : (dutyOn(u.EMP_ID, today) ? ' · dinas' : '')) });
           return;
         }
         const leave = approvedLeaveOn(u.EMP_ID, today);
         if (leave) { groups.leave.push({ u, txt: leave.TYPE }); return; }
         if (isUserDireksi(u) || isUserRemote(u)) { groups.exempt.push({ u, txt: isUserRemote(u) ? 'remote' : 'direksi' }); return; }
         const duty = dutyOn(u.EMP_ID, today);
-        groups.absent.push({ u, txt: duty ? 'dinas: ' + duty.LOCATION_NAME : '' });
+        const trip = !duty && travelOn(u.EMP_ID, today);
+        groups.absent.push({ u, txt: duty ? 'dinas: ' + duty.LOCATION_NAME : (trip ? 'perjalanan dinas' : '') });
       });
       todayAbsentIds = groups.absent.map(x => x.u.EMP_ID);
       const nonWorking = isNonWorkingDay(today);
@@ -5361,8 +5472,9 @@
         let cls = 'text-slate-400', title = '';
         if (att) {
           const late = String(att.STATUS || '').toUpperCase() === 'TERLAMBAT';
-          cls = late ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white';
-          title = (late ? 'Terlambat' : 'Hadir') + ' · masuk ' + att.CHECKIN_TIME + (att.CHECKOUT_TIME && att.CHECKOUT_TIME !== '-' ? ', keluar ' + att.CHECKOUT_TIME : '');
+          const trip = String(att.STATUS || '').toUpperCase() === 'PERJALANAN DINAS';
+          cls = trip ? 'bg-orange-400 text-white' : (late ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white');
+          title = (trip ? 'Perjalanan dinas' : (late ? 'Terlambat' : 'Hadir')) + ' · masuk ' + att.CHECKIN_TIME + (att.CHECKOUT_TIME && att.CHECKOUT_TIME !== '-' ? ', keluar ' + att.CHECKOUT_TIME : '');
           late ? count.telat++ : count.hadir++;
         } else if (approvedLeaveOn(me, ds)) {
           const lv = approvedLeaveOn(me, ds);
@@ -5370,7 +5482,7 @@
         } else if (hol || new Date(y, m, d).getDay() === 0) {
           cls = 'bg-red-50 text-red-400 border border-red-100'; title = hol ? hol.NAME : 'Minggu';
         } else if (ts < todayTs && ts >= firstTs && firstTs !== Infinity && !exempt) {
-          cls = 'bg-red-500 text-white'; title = dutyOn(me, ds) ? 'Tidak absen (dinas)' : 'Tidak absen (Alpha)'; count.alpha++;
+          cls = 'bg-red-500 text-white'; title = dutyOn(me, ds) ? 'Tidak absen (dinas)' : (travelOn(me, ds) ? 'Tidak absen (perjalanan)' : 'Tidak absen (Alpha)'); count.alpha++;
         } else if (ts === todayTs) {
           cls = 'border-2 border-emerald-500 text-emerald-700'; title = 'Hari ini';
         }

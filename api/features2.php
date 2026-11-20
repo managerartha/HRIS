@@ -276,7 +276,8 @@ function audit_action(array $me, string $action, array $d, array $res): void
         case 'updateDutyAssignment':
             audit_log($me, $action === 'addDutyAssignment' ? 'DINAS_TAMBAH' : 'DINAS_UBAH', (string)($d['empId'] ?? ''),
                 ($d['locationName'] ?? '') . ' (' . ($d['lat'] ?? '') . ', ' . ($d['lng'] ?? '') . ', radius ' . ($d['radius'] ?? '') . ' m) '
-                . ($d['startDate'] ?? '') . ' s/d ' . ($d['endDate'] ?? ''));
+                . ($d['startDate'] ?? '') . ' s/d ' . ($d['endDate'] ?? '')
+                . (!empty($d['travelStartDate']) ? '; berangkat ' . $d['travelStartDate'] : '') . (!empty($d['travelEndDate']) ? '; kembali ' . $d['travelEndDate'] : ''));
             break;
         case 'deleteDutyAssignment':
             audit_log($me, 'DINAS_HAPUS', (string)($d['dutyId'] ?? ''), 'Menghapus tugas dinas.');

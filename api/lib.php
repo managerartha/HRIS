@@ -471,6 +471,8 @@ function out_duty(array $d): array
         'RADIUS_METERS' => (string)(int)$d['radius_meters'],
         'START_DATE' => fmt_date($d['start_date']),
         'END_DATE' => fmt_date($d['end_date']),
+        'TRAVEL_START' => fmt_date($d['travel_start_date'] ?? null),
+        'TRAVEL_END' => fmt_date($d['travel_end_date'] ?? null),
         'REASON' => (string)$d['reason'],
         'CREATED_BY' => $d['created_by'],
         'CREATED_AT' => $d['created_at'],
@@ -685,7 +687,7 @@ function build_backup_zip(string $zipPath, bool $includeFiles): void
 /* Pembaruan struktur database otomatis (tanpa perlu buka phpMyAdmin)  */
 /* ------------------------------------------------------------------ */
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 function column_exists(string $table, string $col): bool
 {
@@ -766,6 +768,9 @@ function ensure_schema(): void
     if (add_column_if_missing('users', 'leave_policy', "leave_policy VARCHAR(10) NOT NULL DEFAULT 'AUTO' AFTER leave_year")) {
         repair_leave_v6();
     }
+    // v8: hari perjalanan dinas (berangkat & kembali) diatur HR per penugasan dinas
+    add_column_if_missing('duties', 'travel_start_date', "travel_start_date DATE NULL AFTER end_date");
+    add_column_if_missing('duties', 'travel_end_date', "travel_end_date DATE NULL AFTER travel_start_date");
     // v7: absen hasil koreksi yang disetujui HR selalu TEPAT WAKTU (perbaiki data yang sudah ada)
     if ($ver < 7) {
         q("UPDATE attendance a JOIN requests r ON r.emp_id = a.emp_id AND r.start_date = a.date

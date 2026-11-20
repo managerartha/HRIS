@@ -244,6 +244,8 @@ function action_dashboard(array $me): array
         'holidays' => list_holidays(),
         'announcements' => list_announcements($me),
         'activeDuty' => $activeDuty ? out_duty($activeDuty) : null,
+        'activeTravel' => (!$activeDuty && ($tr = find_travel_duty($empId, $today)))
+            ? out_duty($tr) + ['TRAVEL_KIND' => $tr['travel_start_date'] === $today ? 'BERANGKAT' : 'KEMBALI'] : null,
         'stats' => [
             'totalEmployees' => count($activeUsers),
             'presentToday' => count($todayAtt),
@@ -287,6 +289,23 @@ function days_between(?string $start, ?string $end): int
     if (!$start || !$end) return 1;
     $d = (int)round(abs(strtotime($end) - strtotime($start)) / 86400) + 1;
     return max(1, $d);
+}
+
+/** Penugasan dinas yang hari perjalanannya (berangkat / kembali) jatuh pada tanggal ini. */
+function find_travel_duty(string $empId, string $date): ?array
+{
+    return q_one('SELECT * FROM duties WHERE emp_id = ? AND (travel_start_date = ? OR travel_end_date = ?)
+                  ORDER BY created_at DESC, duty_id DESC LIMIT 1', [$empId, $date, $date]);
+}
+
+/** Validasi tanggal perjalanan (opsional) dari form dinas. Mengembalikan [berangkat, kembali]. */
+function parse_travel_dates(array $d, string $start, string $end): array
+{
+    $out = parse_date_any($d['travelStartDate'] ?? null);
+    $back = parse_date_any($d['travelEndDate'] ?? null);
+    if ($out && $out >= $start) throw new ApiError('Tanggal perjalanan berangkat harus sebelum tanggal mulai dinas (' . fmt_date($start) . ').');
+    if ($back && $back <= $end) throw new ApiError('Tanggal perjalanan kembali harus sesudah tanggal selesai dinas (' . fmt_date($end) . ').');
+    return [$out, $back];
 }
 
 function find_active_duty(string $empId, string $date): ?array
@@ -397,7 +416,14 @@ function action_submit_attendance(array $me, array $d): array
     $empId = $me['emp_id'];
 
     $duty = find_active_duty($empId, $today);
-    if ($duty) {
+    $travel = $duty ? null : find_travel_duty($empId, $today);
+    if ($travel) {
+        // Hari perjalanan dinas: absen dari lokasi mana pun (radius tidak dicek), selfie & GPS tetap direkam
+        $tLat = (float)$travel['latitude'];
+        $tLng = (float)$travel['longitude'];
+        $maxR = INF;
+        $locName = '🚗 Perjalanan Dinas (' . ($travel['travel_start_date'] === $today ? 'berangkat' : 'kembali') . '): ' . $travel['location_name'];
+    } elseif ($duty) {
         $tLat = (float)$duty['latitude'];
         $tLng = (float)$duty['longitude'];
         $maxR = (float)($duty['radius_meters'] ?: 50);
@@ -420,7 +446,7 @@ function action_submit_attendance(array $me, array $d): array
     if ($type === 'CHECKIN') {
         if ($existing) return ['success' => false, 'message' => 'Anda sudah melakukan Absen Masuk hari ini.'];
         $isLate = time_to_minutes($now) > time_to_minutes(parse_time_any($settings['WORK_START_TIME']) ?? '08:00:00');
-        $status = $isLate ? 'TERLAMBAT' : 'TEPAT WAKTU';
+        $status = $travel ? 'PERJALANAN DINAS' : ($isLate ? 'TERLAMBAT' : 'TEPAT WAKTU'); // aturan terlambat tidak berlaku saat perjalanan
         $path = save_data_url($photo, 'attendance', IMAGE_MIMES, 3 * 1048576);
         try {
             q('INSERT INTO attendance (att_id, date, emp_id, full_name, checkin_time, latitude, longitude, distance_meters,
@@ -494,10 +520,12 @@ function action_add_duty(array $me, array $d): array
     if (!$start || !$end) return ['success' => false, 'message' => 'Tanggal mulai / selesai dinas wajib diisi.'];
     if ($end < $start) [$start, $end] = [$end, $start];
     $radius = max(10, (int)($d['radius'] ?? 50));
-    q('INSERT INTO duties (duty_id, emp_id, full_name, location_name, latitude, longitude, radius_meters, start_date, end_date, reason, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+    [$tOut, $tBack] = parse_travel_dates($d, $start, $end);
+    q('INSERT INTO duties (duty_id, emp_id, full_name, location_name, latitude, longitude, radius_meters, start_date, end_date,
+         travel_start_date, travel_end_date, reason, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
         next_seq_id('duties', 'duty_id', 'DUTY'), $u['emp_id'], $u['full_name'], (string)($d['locationName'] ?? ''),
-        $lat, $lng, $radius, $start, $end, (string)($d['reason'] ?? ''), $me['full_name'],
+        $lat, $lng, $radius, $start, $end, $tOut, $tBack, (string)($d['reason'] ?? ''), $me['full_name'],
     ]);
     return ['success' => true, 'message' => 'Tugas dinas luar kota berhasil diberikan kepada ' . $u['full_name'] . '!'];
 }
@@ -515,10 +543,11 @@ function action_update_duty(array $me, array $d): array
     if (!$start || !$end) return ['success' => false, 'message' => 'Tanggal mulai / selesai dinas wajib diisi.'];
     if ($end < $start) [$start, $end] = [$end, $start];
     $radius = max(10, (int)($d['radius'] ?? 50));
+    [$tOut, $tBack] = parse_travel_dates($d, $start, $end);
     q('UPDATE duties SET emp_id = ?, full_name = ?, location_name = ?, latitude = ?, longitude = ?, radius_meters = ?,
-         start_date = ?, end_date = ?, reason = ? WHERE duty_id = ?', [
+         start_date = ?, end_date = ?, travel_start_date = ?, travel_end_date = ?, reason = ? WHERE duty_id = ?', [
         $u['emp_id'], $u['full_name'], (string)($d['locationName'] ?? ''), $lat, $lng, $radius, $start, $end,
-        (string)($d['reason'] ?? ''), $duty['duty_id'],
+        $tOut, $tBack, (string)($d['reason'] ?? ''), $duty['duty_id'],
     ]);
     return ['success' => true, 'message' => 'Tugas dinas ' . $duty['duty_id'] . ' (' . $u['full_name'] . ') berhasil diperbarui!'];
 }
@@ -834,6 +863,7 @@ function action_update_settings(array $d): array
     // Hitung ulang status terlambat hari ini jika jam masuk diubah
     $startMin = time_to_minutes($start);
     q("UPDATE attendance SET status = IF(HOUR(checkin_time) * 60 + MINUTE(checkin_time) > ?, 'TERLAMBAT', 'TEPAT WAKTU')
-       WHERE date = CURDATE() AND checkin_time IS NOT NULL", [$startMin]);
+       WHERE date = CURDATE() AND checkin_time IS NOT NULL
+         AND status IN ('TERLAMBAT', 'TEPAT WAKTU') AND location_name NOT LIKE 'Koreksi Absen%'", [$startMin]);
     return ['success' => true, 'message' => 'Pengaturan kantor & jam kerja berhasil disimpan!'];
 }

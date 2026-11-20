@@ -257,8 +257,9 @@ function apply_correction(array $r): void
     $time = $r['correction_time'];
     $att = q_one('SELECT * FROM attendance WHERE emp_id = ? AND date = ?', [$r['emp_id'], $date]);
     if ($r['correction_kind'] === 'IN') {
-        // Koreksi absen yang sudah disetujui HR selalu dihitung TEPAT WAKTU (tujuannya membetulkan lupa absen)
-        $status = 'TEPAT WAKTU';
+        // Koreksi absen yang sudah disetujui HR selalu dihitung TEPAT WAKTU (tujuannya membetulkan lupa absen);
+        // di hari perjalanan dinas tercatat sebagai PERJALANAN DINAS
+        $status = find_travel_duty($r['emp_id'], $date) && !find_active_duty($r['emp_id'], $date) ? 'PERJALANAN DINAS' : 'TEPAT WAKTU';
         if ($att) {
             q('UPDATE attendance SET checkin_time = ?, status = ? WHERE att_id = ?', [$time, $status, $att['att_id']]);
         } else {
