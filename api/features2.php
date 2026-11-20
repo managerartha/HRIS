@@ -300,3 +300,30 @@ function audit_action(array $me, string $action, array $d, array $res): void
             break;
     }
 }
+
+/* ================================================================== */
+/* ADMIN: UBAH JAM ABSEN (mis. koreksi yang jamnya salah diisi)          */
+/* ================================================================== */
+
+function action_update_attendance_time(array $me, array $d): array
+{
+    $att = q_one('SELECT * FROM attendance WHERE att_id = ?', [(string)($d['attId'] ?? '')]);
+    if (!$att) return ['success' => false, 'message' => 'Data absensi tidak ditemukan.'];
+    $reason = trim((string)($d['reason'] ?? ''));
+    if ($reason === '') return ['success' => false, 'message' => 'Alasan perubahan wajib diisi.'];
+    $in = parse_time_any($d['checkinTime'] ?? null);
+    if (!$in) return ['success' => false, 'message' => 'Jam masuk tidak valid (contoh 07:55).'];
+    $outRaw = trim((string)($d['checkoutTime'] ?? ''));
+    $out = ($outRaw === '' || $outRaw === '-') ? null : parse_time_any($outRaw);
+    if ($outRaw !== '' && $outRaw !== '-' && !$out) return ['success' => false, 'message' => 'Jam keluar tidak valid (contoh 17:05), atau kosongkan.'];
+    if ($out && time_to_minutes($out) <= time_to_minutes($in)) return ['success' => false, 'message' => 'Jam keluar harus setelah jam masuk.'];
+    $settings = get_settings();
+    $status = time_to_minutes($in) > time_to_minutes(parse_time_any($settings['WORK_START_TIME']) ?? '08:00:00') ? 'TERLAMBAT' : 'TEPAT WAKTU';
+    q('UPDATE attendance SET checkin_time = ?, checkout_time = ?, status = ? WHERE att_id = ?', [$in, $out, $status, $att['att_id']]);
+    audit_log($me, 'ABSEN_UBAH', $att['emp_id'] . ' ' . $att['full_name'] . ' ' . fmt_date($att['date']),
+        'Masuk ' . fmt_time($att['checkin_time']) . ' → ' . fmt_time($in) . ', keluar ' . fmt_time($att['checkout_time']) . ' → ' . fmt_time($out)
+        . ', status ' . $att['status'] . ' → ' . $status . '. Alasan: ' . $reason);
+    ensure_payslips($att['emp_id']);
+    return ['success' => true, 'message' => 'Absensi ' . $att['full_name'] . ' ' . fmt_date($att['date']) . ' diperbarui: masuk ' . fmt_time($in)
+        . ($out ? ', keluar ' . fmt_time($out) : '') . ' (' . $status . ').'];
+}

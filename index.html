@@ -1597,7 +1597,7 @@
               </select>
             </div>
             <div>
-              <label class="block text-xs font-bold text-slate-600 mb-1">Jam Sebenarnya</label>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jam Anda Sebenarnya Tiba / Pulang</label>
               <input type="time" id="reqCorrectionTime" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold">
             </div>
           </div>
@@ -2530,6 +2530,23 @@
         (!nameVal || String(a.FULL_NAME || '').toLowerCase().includes(nameVal) || String(a.EMP_ID || '').toLowerCase().includes(nameVal)));
     }
 
+    function isAdminUser() { return !!currentUser && currentUser.ROLE === 'ADMIN' && USE_PHP_BACKEND; }
+
+    // Admin: membetulkan jam absen yang sudah tercatat (tercatat di Log Aktivitas)
+    async function editAttendanceTime(attId) {
+      const a = (cachedData.attendance || []).find(x => x.ATT_ID === attId);
+      if (!a) return;
+      const inT = prompt('Ubah absensi ' + a.FULL_NAME + ' (' + a.DATE + ')\n\nJam MASUK (JJ:MM):', a.CHECKIN_TIME || '');
+      if (inT === null) return;
+      const outT = prompt('Jam KELUAR (JJ:MM), kosongkan jika belum absen keluar:', (a.CHECKOUT_TIME && a.CHECKOUT_TIME !== '-') ? a.CHECKOUT_TIME : '');
+      if (outT === null) return;
+      const reason = prompt('Alasan perubahan (wajib, tercatat di Log Aktivitas):', '');
+      if (reason === null) return;
+      const res = await apiCall('updateAttendanceTime', { attId: attId, checkinTime: inT.trim(), checkoutTime: outT.trim(), reason: reason.trim() });
+      showToast(res.message, !res.success);
+      if (res.success) loadDashboardData();
+    }
+
     function attStatusBadge(item) {
       return item.STATUS === 'TEPAT WAKTU' ?
         '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-extrabold">TEPAT WAKTU</span>' :
@@ -2581,6 +2598,7 @@
             "<button onclick=\"" + photoClick + "\" class='px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold transition flex items-center gap-1 mx-auto'>" +
               "<i class='fa-solid fa-camera'></i> Foto Bukti" +
             "</button>" +
+            (isAdminUser() && item.ATT_ID ? "<button onclick=\"editAttendanceTime('" + esc(item.ATT_ID) + "')\" class='mt-1 text-[10px] font-bold text-slate-500 hover:text-emerald-700 hover:underline'><i class='fa-solid fa-pen'></i> Ubah jam</button>" : "") +
           "</td>" +
         "</tr>";
 
@@ -2597,7 +2615,10 @@
               " &nbsp; <i class='fa-solid fa-right-from-bracket text-slate-400'></i> " + esc(item.CHECKOUT_TIME || '-') + " &nbsp;·&nbsp; " + esc(item.DISTANCE_METERS || '0') + "m</p>" +
             "<div class='mt-1'>" + statusBadge + "</div>" +
           "</div>" +
-          "<button onclick=\"" + photoClick + "\" class='w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 shrink-0' aria-label='Foto bukti'><i class='fa-solid fa-camera'></i></button>" +
+          "<div class='flex flex-col gap-1 shrink-0'>" +
+            "<button onclick=\"" + photoClick + "\" class='w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700' aria-label='Foto bukti'><i class='fa-solid fa-camera'></i></button>" +
+            (isAdminUser() && item.ATT_ID ? "<button onclick=\"editAttendanceTime('" + esc(item.ATT_ID) + "')\" class='w-10 h-8 rounded-xl bg-slate-100 text-slate-600 text-xs' aria-label='Ubah jam'><i class='fa-solid fa-pen'></i></button>" : "") +
+          "</div>" +
         "</div>";
       });
       tbody.innerHTML = rowsHtml;
@@ -3809,9 +3830,7 @@
       if (isCorr) {
         const now = new Date();
         document.getElementById('reqCorrectionToday').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        if (!document.getElementById('reqCorrectionTime').value) {
-          document.getElementById('reqCorrectionTime').value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-        }
+        // Sengaja dikosongkan: karyawan wajib mengisi jam kedatangan / kepulangan yang sebenarnya
       }
       if (isOt) {
         const dateEl = document.getElementById('reqOtDate');
@@ -3912,6 +3931,15 @@
       const btn = document.getElementById('btnSubmitRequest');
 
       // Koreksi absen & lembur: diperiksa server dulu, form tetap terbuka jika ada yang salah
+      if (isCorr) {
+        const t = document.getElementById('reqCorrectionTime').value;
+        const kind = document.getElementById('reqCorrectionKind').value;
+        if (!t) { showToast('Isi jam Anda sebenarnya tiba / pulang.', true); return; }
+        const startMin = hhmmToMin(officeSettings.WORK_START_TIME || '08:00');
+        if (kind === 'IN' && startMin !== null && hhmmToMin(t) > startMin &&
+            !confirm('Jam masuk yang Anda isi: ' + t + '\nJam masuk kantor: ' + (officeSettings.WORK_START_TIME || '08:00') +
+              '\n\nAbsen ini akan tercatat TERLAMBAT. Pastikan jam yang diisi adalah jam Anda benar-benar tiba, bukan jam saat mengisi form.\n\nLanjutkan?')) return;
+      }
       if (isCorr || isOt) {
         const day = isOt ? document.getElementById('reqOtDate').value : todayIso();
         const payload = {
@@ -4533,10 +4561,19 @@
     }
 
     async function processApproval(reqId, status) {
+      const req = (cachedData.requests || []).find(r => r.REQ_ID === reqId);
+      let approvedTime = '';
+      if (req && req.CORRECTION_KIND && status === 'APPROVED') {
+        const label = req.CORRECTION_KIND === 'IN' ? 'masuk' : 'keluar';
+        approvedTime = prompt('Koreksi absen ' + label + ' ' + req.FULL_NAME + ' (' + req.START_DATE + ').\n' +
+          'Jam yang diajukan: ' + req.CORRECTION_TIME + '\n\nUbah jika perlu (format JJ:MM), lalu tekan OK:', req.CORRECTION_TIME || '');
+        if (approvedTime === null) return; // dibatalkan
+        if (!/^\d{1,2}[:.]\d{2}$/.test(approvedTime.trim())) { showToast('Format jam tidak valid. Contoh: 07:55', true); return; }
+      }
       const note = prompt("Masukkan catatan admin (opsional):", status === 'APPROVED' ? 'Disetujui HR' : 'Tidak memenuhi kriteria');
       
       showToast("Memproses verifikasi...");
-      const res = await apiCall('updateRequestStatus', { reqId: reqId, status: status, adminNote: note, adminName: currentUser.FULL_NAME });
+      const res = await apiCall('updateRequestStatus', { reqId: reqId, status: status, adminNote: note, adminName: currentUser.FULL_NAME, approvedTime: approvedTime.trim() });
       if (res.success) {
         showToast(res.message);
         loadDashboardData();
